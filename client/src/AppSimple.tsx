@@ -41,8 +41,18 @@ function AppSimple() {
     language,
     onResult: (transcript) => {
       console.log('[AppSimple] Voice input result:', transcript);
-      setCurrentInput(transcript);
-      handleSendMessage(transcript, 'chat');
+      
+      // If we have a selected text, include it as context for the AI
+      if (selectedText) {
+        const contextText = selectedText.text.join('\n\n');
+        const contextualQuestion = `CONTEXTE:\n${selectedText.title}\n\n${contextText}\n\nQUESTION:\n${transcript}`;
+        
+        console.log('[AppSimple] Voice question with context:', transcript);
+        handleAIRequest(contextualQuestion, 'general');
+      } else {
+        setCurrentInput(transcript);
+        handleSendMessage(transcript, 'chat');
+      }
     },
     onError: (error) => {
       console.error('[AppSimple] Voice input error:', error);
@@ -113,10 +123,11 @@ Traduis d'abord ce texte en français, puis fournis une analyse détaillée selo
 
 TEXTE À ANALYSER:
 ${text}`,
-      general: `Guidance spirituelle selon Rabbi Nahman de Breslov.
+      general: `Tu es le Compagnon du Cœur, guide spirituel basé sur les enseignements de Rabbi Nahman de Breslov.
 
-QUESTION:
-${text}`,
+${text.includes('CONTEXTE:') ? text : `QUESTION:\n${text}`}
+
+Réponds en français avec sagesse et compassion selon les enseignements breslov.`,
       snippet: `Analyse cet extrait selon les enseignements de Rabbi Nahman.
 
 EXTRAIT:
