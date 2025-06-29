@@ -1,0 +1,55 @@
+**Message à l’équipe/agent Replit – Priorité Critique**
+
+---
+
+Bonjour !
+Nous entrons dans une phase décisive : l’application « **Le Compagnon du Cœur** » doit être opérationnelle **avant la prochaine session de test**. Merci de traiter les points suivants comme **bloquants** ; aucun autre développement ne sera validé tant qu’ils ne seront pas complètement résolus.
+
+### 1. Chargement exhaustif des textes Breslev
+
+| Exigence          | Détails attendus                                                                        | Critère d’acceptation                                                    |
+| ----------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Découverte**    | Récursivité sur `contents`, `nodes`, `schema.nodes` via **API v3** `/texts/{tref}`.     | Console log = 0 texte manquant ; liste complète visible dans le sidebar. |
+| **Proxy Node.js** | Toutes requêtes vers Sefaria passent par `/api/sefaria/*`, CORS + cache 1 h.            | Latence < 1 s après cache chaud.                                         |
+| **Fallback**      | Si 404 v3 → retenter en v1 ; si encore échec → afficher message d’erreur contextualisé. | Aucun “texte indisponible” silencieux.                                   |
+
+### 2. Intégration Gemini (5 modes IA + TTS)
+
+1. **Route POST `/gemini-api/chat`** (stream) déjà esquissée : finaliser, tester avec clé secrète `GEMINI_API_KEY`.
+2. **Fonction centrale `streamAiResponse(mode, payload)`** côté client :
+
+   * `mode ∈ {study, general, snippet, advice, summary}`.
+   * Prompt généré par `getSystemPrompt` (cf. spéc. précédente).
+3. **TTS** : hook `useTTS` → lecture automatique à la fin du stream ; interrupteur dans le header.
+4. **Reconnaissance vocale** intégrée dans `ChatInput`.
+5. **UI** : boutons/areas déclenchent le mode approprié, bulle “Points Clés” sous réponses > 200 car.
+
+### 3. Interface & UX (inspirée de tikounaolam.com)
+
+* **Palette sombre** :`#0f172a` (fond) ; `sky-500` (CTA) ; `amber-400` (accent conseils).
+* **Sidebar** : accordéon multi-niveaux, coulissant sur mobile (<768 px).
+* **Composants réactifs** : coins `rounded-2xl`, ombres `shadow-lg`, animations `transition-all`.
+* **Accessibilité** : lecteur d’écran OK, contrastes AA, aria-labels.
+
+### 4. Tests impératifs avant validation
+
+1. **Script E2E** (Playwright ou Cypress) :
+
+   * ouvre l’app → charge la bibliothèque → sélectionne “Likutei Moharan 1” → reçoit le texte intégral.
+   * envoie question générale → IA répond (>50 mots) → bouton “Points Clés” renvoie 3-5 puces.
+2. **Audit Lighthouse mobile** ≥ 90 / 90 / 90 / 100 (Perf/Acc/Best Prac/SEO).
+3. **Log** : aucune erreur 400/500 en console ou serveur.
+
+### 5. Échéancier et responsabilité
+
+* **Délai maximum** : *aujourd’hui, 23 h59* (UTC+2).
+* Si l’un des critères ci-dessus n’est pas respecté :
+
+  1. freeze des nouvelles features,
+  2. revue de code obligatoire,
+  3. éventuellement réaffectation du projet.
+
+---
+
+Merci de confirmer réception et de **publier un rapport d’avancement détaillé** (checklist + captures) après chaque bloc résolu.
+Votre réactivité et votre rigueur sont essentielles : nous comptons sur vous pour livrer une version stable et complète dans les temps.
