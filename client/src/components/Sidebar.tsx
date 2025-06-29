@@ -24,9 +24,12 @@ export const Sidebar = ({ isOpen, onClose, onTextSelect, language }: SidebarProp
     try {
       setLoading(true);
       setError(null);
-      const texts = await sefariaService.getIndex();
-      setBreslovTexts(texts);
+      console.log('[Sidebar] Loading Breslov index via simple proxy');
+      const breslovBooks = await getBreslovIndex();
+      console.log('[Sidebar] Breslov library loaded:', breslovBooks.length, 'books');
+      setBreslovTexts(breslovBooks);
     } catch (err) {
+      console.error('[Sidebar] Failed to load Breslov library:', err);
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
     } finally {
       setLoading(false);
@@ -56,6 +59,7 @@ export const Sidebar = ({ isOpen, onClose, onTextSelect, language }: SidebarProp
         className="w-full text-left p-2 text-sm text-slate-400 hover:text-sky-400 transition-colors rounded block"
         onClick={() => {
           if (node.ref) {
+            console.log('[Sidebar] Text selected:', node.title, node.ref);
             onTextSelect(node.ref, node.title);
           }
         }}

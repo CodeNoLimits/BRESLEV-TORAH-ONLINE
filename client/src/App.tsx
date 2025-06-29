@@ -10,8 +10,8 @@ import { TextViewer } from './components/TextViewer';
 import { BookNavigator } from './components/BookNavigator';
 import { LoadingModal } from './components/LoadingModal';
 import { useTTS } from './hooks/useTTS';
-import { useGemini } from './hooks/useGemini';
-import { sefariaService } from './services/sefaria';
+import { getText } from './services/sefariaSimple';
+import { streamGemini } from './services/geminiSimple';
 import { Message, Language, SefariaText, InteractionMode, AIMode } from './types';
 
 function App() {
@@ -28,11 +28,9 @@ function App() {
 
   // Custom hooks
   const { speak, stop: stopTTS, isSpeaking } = useTTS({ language, enabled: ttsEnabled });
-  const { sendMessage, isLoading, isStreaming } = useGemini({
-    language,
-    onResponse: (text) => setStreamingText(text),
-    onError: (error) => setError(error)
-  });
+  
+  // Gemini streaming state
+  const [isAILoading, setIsAILoading] = useState(false);
 
   // Voice recognition setup
   const [recognition, setRecognition] = useState<any>(null);
