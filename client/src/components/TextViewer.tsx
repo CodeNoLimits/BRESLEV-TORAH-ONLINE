@@ -9,6 +9,7 @@ interface TextViewerProps {
 
 export const TextViewer = ({ selectedText, onClose, language }: TextViewerProps) => {
   const [displayLanguage, setDisplayLanguage] = useState<'en' | 'he' | 'fr'>('en');
+  const [showFullText, setShowFullText] = useState(false);
 
   // Automatically set display language based on user's interface language
   useEffect(() => {
@@ -32,11 +33,11 @@ export const TextViewer = ({ selectedText, onClose, language }: TextViewerProps)
     }
     
     if (displayLanguage === 'fr') {
-      // For French mode, show a simplified note - the AI will handle translation
+      // Show the actual English text that will be translated by AI
       if (selectedText.text.length === 0) {
         return "Texte non disponible pour cette section";
       }
-      return `📖 ${selectedText.text.length} segments de texte chargés\n\n✨ L'IA traduira automatiquement ce texte en français lors de l'analyse spirituelle.\n\nCliquez sur "Analyser ce texte" pour obtenir la traduction complète et l'analyse selon les enseignements de Rabbi Nahman.`;
+      return selectedText.text.join('\n\n');
     }
     
     // English
@@ -84,18 +85,44 @@ export const TextViewer = ({ selectedText, onClose, language }: TextViewerProps)
         </div>
       </div>
       
-      <div className="bg-slate-800 rounded-lg p-4 max-h-60 overflow-y-auto">
+      <div className="mb-4 flex justify-between items-center">
+        <div className="text-sm text-amber-400">
+          {selectedText.text.length} segments de texte authentique • {displayLanguage === 'he' ? 'עברית' : displayLanguage === 'fr' ? 'Français (traduit de l\'anglais)' : 'English'}
+        </div>
+        <button
+          onClick={() => setShowFullText(!showFullText)}
+          className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-black rounded text-sm font-medium transition-colors"
+        >
+          {showFullText ? 'Réduire' : 'Texte complet'}
+        </button>
+      </div>
+
+      <div className={`bg-slate-800 rounded-lg p-4 overflow-y-auto ${showFullText ? 'max-h-screen' : 'max-h-96'}`}>
         <div 
           className={`leading-relaxed text-slate-300 ${
-            displayLanguage === 'he' ? 'text-right font-crimson' : 'font-crimson'
+            displayLanguage === 'he' ? 'text-right font-crimson text-lg' : 'font-crimson'
           }`}
           dir={displayLanguage === 'he' ? 'rtl' : 'ltr'}
         >
-          {getDisplayText().split('\n').map((paragraph, idx) => (
-            <p key={idx} className="mb-4 last:mb-0">
-              {paragraph}
-            </p>
-          ))}
+          {displayLanguage === 'he' ? (
+            selectedText.he.slice(0, showFullText ? selectedText.he.length : 3).map((segment, idx) => (
+              <p key={idx} className="mb-6 last:mb-0 border-b border-slate-700 pb-4 last:border-b-0">
+                {segment}
+              </p>
+            ))
+          ) : (
+            selectedText.text.slice(0, showFullText ? selectedText.text.length : 3).map((segment, idx) => (
+              <p key={idx} className="mb-6 last:mb-0 border-b border-slate-700 pb-4 last:border-b-0">
+                {segment}
+              </p>
+            ))
+          )}
+          
+          {!showFullText && (selectedText.text.length > 3 || selectedText.he.length > 3) && (
+            <div className="text-center py-4 text-slate-400 italic">
+              ... {(displayLanguage === 'he' ? selectedText.he.length : selectedText.text.length) - 3} segments supplémentaires disponibles
+            </div>
+          )}
         </div>
       </div>
     </div>

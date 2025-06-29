@@ -1,0 +1,169 @@
+## 📋 Instructions fermes & sans détour pour ton dev Replit
+
+*(copie-colle-lui tel quel ; aucun bla-bla hors de la check-list)*
+
+---
+
+### 0. Règles de base
+
+1. **Pas de promesses vides** : chaque tâche terminée doit être démontrable (log ou capture).
+2. **Pas d’accès direct à Sefaria depuis le navigateur** – toujours passer par **Express proxy** pour éviter CORS.
+3. **Toutes les clés** (`GEMINI_API_KEY`, etc.) **uniquement** dans les *Secrets* Replit → `process.env`.
+4. Code **ESM partout** (`"type":"module"` dans `package.json`) ; pas de `require()` pour le SDK Gemini (il est ESM-only).
+
+---
+
+### 1. Nettoyage & setup minimal
+
+```bash
+rm -rf node_modules && npm i            # repart propre
+npm i express node-fetch@3 cors @google/generative-ai
+```
+
+`package.json`
+
+```jsonc
+{
+  "type": "module",
+  "scripts": { "dev": "node server.js" }
+}
+```
+
+---
+
+### 2. `server.js`  (proxy unique)
+
+```js
+import express from 'express';
+import fetch from 'node-fetch';
+import cors from 'cors';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+/* ---------- Sefaria proxy ---------- */
+app.get('/sefaria/*', async (req, res) => {
+  const target = 'https://www.sefaria.org' + req.originalUrl.replace('/sefaria', '');
+  const r = await fetch(target);
+  res.status(r.status);
+  r.body.pipe(res);
+});
+
+/* ---------- Gemini proxy (stream) ---------- */
+if (!process.env.GEMINI_API_KEY) throw new Error('⛔️ GEMINI_API_KEY manquante');
+const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = ai.getGenerativeModel({
+  model: 'gemini-1.5-flash-latest',
+  systemInstruction: { role: 'system', parts: [{ text: 'Tu es Le Compagnon du Cœur…' }] }
+});
+
+app.post('/gemini/chat', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    const chat = model.startChat();
+    const result = await chat.sendMessageStream(prompt);
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.flushHeaders();
+
+    for await (const chunk of result.stream) res.write(chunk.text());
+    res.end();
+  } catch (e) {
+    console.error(e); res.status(500).json({ error: 'Gemini fail' });
+  }
+});
+
+app.listen(3000, () => console.log('🚀 Proxy up : http://localhost:3000'));
+```
+
+*Test immédiat* :
+
+```bash
+curl "http://localhost:3000/sefaria/api/texts/Genesis.1.1"
+curl -X POST -H "Content-Type: application/json" -d '{"prompt":"Bonjour"}' http://localhost:3000/gemini/chat
+```
+
+Les deux appels doivent répondre ; sinon on ne continue pas.
+
+---
+
+### 3. Service Sefaria côté client (`src/services/sefaria.ts`)
+
+```ts
+export const getBreslovIndex = async () => {
+  const r = await fetch('/sefaria/api/index/');
+  const idx = await r.json();
+  const cha = idx.find((c:any) => c.category === 'Chasidut')?.contents ?? [];
+  const bre = cha.find((c:any) => c.category === 'Breslov')?.contents ?? [];
+  return bre;                              // tableau hiérarchique complet
+};
+
+export const getText = (ref: string) =>
+  fetch(`/sefaria/api/v3/texts/${ref.replace(/ /g,'_')}?context=0&commentary=0&pad=0&wrapLinks=false`)
+    .then(r => r.json());
+```
+
+---
+
+### 4. Service Gemini côté client (`src/services/gemini.ts`)
+
+```ts
+export const streamGemini = async (prompt: string, onChunk: (t:string)=>void) => {
+  const res = await fetch('/gemini/chat', {
+    method: 'POST', headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify({ prompt })
+  });
+  const reader = res.body!.getReader();
+  const dec = new TextDecoder();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    onChunk(dec.decode(value, { stream: true }));
+  }
+};
+```
+
+---
+
+### 5. UI – fonctionnalités obligatoires
+
+| Zone                                           | Action → appel                      |
+| ---------------------------------------------- | ----------------------------------- |
+| **Sidebar** (clic sur un enseignement)         | `streamGemini('study', {textFull})` |
+| **ChatInput**                                  | `streamGemini('general', {text})`   |
+| **Textarea “Analyser un extrait”**             | mode **snippet**                    |
+| **Textarea “Conseil ✨”**                       | mode **advice**                     |
+| **Bouton “Points Clés”** sous réponses >200 c. | mode **summary**                    |
+
+Prompt builder minimal :
+
+```ts
+const buildPrompt = (mode,p)=>`MODE=${mode}\nQUESTION=${p.text}`;
+```
+
+---
+
+### 6. TTS & STT
+
+* **Hook `useTTS`** (lecture).
+* Dans `ChatInput`, Web Speech API pour dictée (si dispo).
+
+---
+
+### 7. Vérifications finales (à montrer dans le log Replit)
+
+1. `GET /sefaria/...` → 200.
+2. `POST /gemini/chat` → flux reçu.
+3. Sidebar affiche toute l’arbo Breslov (≈ > 8 titres).
+4. Clic ⇒ texte complet apparaît dans la viewer et **stream IA** démarre.
+5. TTS lit la réponse.
+6. Aucun appel direct à `https://www.sefaria.org` dans le réseau du navigateur (tout passe par le proxy).
+
+👉 **Tout ça doit être opérationnel avant d’ajouter du CSS fancy**. Pas de design tant que le data-flow n’est pas 100 % OK.
+
+---
+
+**Fin des ordres. Pas de diversion, pas de “je vais le faire” – seulement des commits prouvables.**
