@@ -10,9 +10,25 @@ export const useTTSFixed = ({ language, enabled }: TTSOptions) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [voicesLoaded, setVoicesLoaded] = useState(false);
+  const [isCloudAvailable, setIsCloudAvailable] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setIsSupported('speechSynthesis' in window);
+    
+    // Check Google Cloud TTS availability
+    const checkCloudTTS = async () => {
+      try {
+        const response = await fetch('/api/tts/ping');
+        const data = await response.json();
+        setIsCloudAvailable(data.available);
+        console.log(`[TTS-Premium] Cloud TTS available: ${data.available}`);
+      } catch (error) {
+        setIsCloudAvailable(false);
+      }
+    };
+
+    checkCloudTTS();
   }, []);
 
   const loadVoices = useCallback((): Promise<SpeechSynthesisVoice[]> => {

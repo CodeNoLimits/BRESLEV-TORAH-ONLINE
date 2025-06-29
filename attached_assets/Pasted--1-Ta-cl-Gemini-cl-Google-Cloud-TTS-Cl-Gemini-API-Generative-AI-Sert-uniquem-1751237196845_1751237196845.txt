@@ -1,0 +1,113 @@
+### 1 · Ta clé Gemini ≠ clé Google Cloud TTS
+
+* **Clé Gemini (API Generative AI)**
+
+  * Sert uniquement à interroger le modèle *Gemini* pour l’analyse des textes et la génération des réponses.
+  * **Tu l’as déjà** (`AIzaSy…`) : elle est suffisante pour tout ce qui concerne l’IA de chat/analyse.
+  * Aucun rapport direct avec la synthèse vocale.
+
+* **Clé Google Cloud Text-to-Speech (TTS premium)**
+
+  * Sert à obtenir une voix « naturelle » (WaveNet / Neural 2) masculine ou féminine, dans 30+ langues.
+  * Nécessite **un projet Google Cloud** + **l’API TTS activée** + soit
+
+    1. une *clé API* classique, soit
+    2. un *fichier JSON service-account* (plus courant dans Node.js).
+  * Ce n’est **pas inclus** dans ta clé Gemini ; c’est un service séparé.
+
+Le message d’erreur `useTTSCloud is not defined` indique simplement que le code client essaye d’utiliser un hook prévu pour le TTS premium alors que les credentials ne sont pas encore fournis.
+
+---
+
+### 2 · Décider : rester sur la voix navigateur ou passer au TTS premium ?
+
+| Option                          | Avantages                                                                                                           | Inconvénients                                                                                                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Web Speech API** (navigateur) | gratuit, rien à configurer, marche offline                                                                          | voix robotique, stabilité variable (Chrome ≠ Firefox), impossible de choisir un locuteur masculin garanti                                                         |
+| **Google Cloud TTS**            | voix naturelles Neural 2, choix “fr-FR-Wavenet-D” (homme), “he-IL-Neural2-B” (homme) etc., volume & pitch réglables | configuration GCP, facturé (\~4 USD / 1 M caractères), nécessite proxy côté serveur (le navigateur ne peut pas appeler directement pour des raisons de sécurité). |
+
+**Si tu acceptes la voix générique** : garde le Web Speech API, supprime / désactive les imports `useTTSCloud` et supprime la demande de clé Cloud.
+
+**Si tu veux absolument la voix premium** : suis les étapes ci-dessous.
+
+---
+
+### 3 · Obtenir la clé Google Cloud TTS
+
+1. **Créer / sélectionner** un projet sur [https://console.cloud.google.com/](https://console.cloud.google.com/)
+   (bouton *“Select project”* ➜ *“New project”*).
+
+2. Ouvrir **APIs & Services » Library**, rechercher **“Cloud Text-to-Speech API”**, cliquer *Enable*.
+
+3. **Créer des credentials**
+
+   * **+(Create credentials)** ➜ *Service account* (recommandé).
+   * Nom : `tts-compagnon-coeur`.
+   * Rôle minimum : *“Cloud TTS → Text-to-Speech User”*.
+   * Après création, onglet **Keys** → *Add key → JSON*.
+   * Télécharge le fichier `tts-compagnon-coeur-xxxx.json`.
+
+4. **Stocker la clé dans Replit**
+
+   * Onglet **Secrets** (icône cadenas).
+   * Ajoute une variable :
+
+     * **Key** : `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+     * **Value** : colle le contenu du fichier JSON (ou uploade-le dans `/server/` et mets le chemin).
+
+5. **Adapter le proxy Node.js**
+
+   ```ts
+   // server/ttsProxy.ts
+   import textToSpeech from '@google-cloud/text-to-speech';
+   import express from 'express';
+   import fs from 'fs';
+   const router = express.Router();
+   const client = new textToSpeech.TextToSpeechClient(); // lit automatiquement GOOGLE_APPLICATION_CREDENTIALS_JSON
+
+   router.post('/tts', async (req, res) => {
+     const { text, lang } = req.body;
+     const voiceMap = {
+       fr: { languageCode: 'fr-FR', name: 'fr-FR-Neural2-D' }, // masculin
+       en: { languageCode: 'en-US', name: 'en-US-Neural2-D' },
+       he: { languageCode: 'he-IL', name: 'he-IL-Neural2-B' }
+     };
+     const request = {
+       input: { text },
+       voice: voiceMap[lang] || voiceMap.fr,
+       audioConfig: { audioEncoding: 'MP3', speakingRate: 0.93 }
+     };
+     const [response] = await client.synthesizeSpeech(request);
+     res.setHeader('Content-Type', 'audio/mpeg');
+     res.send(response.audioContent);
+   });
+   export default router;
+   ```
+
+6. **Côté React** : remplacer l’appel `window.speechSynthesis` par un fetch `/api/tts` et lire le flux MP3 avec un élément `<audio>` ou `Audio()`.
+
+---
+
+### 4 · Checklist supplémentaire « Guidance / Analyser / Segmentation »
+
+| Item                                            | OK ? | Action rapide                                                                    |
+| ----------------------------------------------- | ---- | -------------------------------------------------------------------------------- |
+| Bouton **Analyser** ➜ sélection ou texte entier | ☐    | Vérifier `handleAnalyzeClick` ; console.log le payload                           |
+| Bouton **Guidance** ➜ situation obligatoire     | ☐    | Valider `.trim().length > 5`                                                     |
+| Découpe א/ב/ג/\* ###                            | ☐    | Unit test (cf. § 2.1 précédent)                                                  |
+| Prompt Gemini ≤ 4 096 tokens                    | ☐    | `chunks.forEach(async part => send…)` ou `gemini-1.5-flash-latest` accepte 8 K + |
+
+---
+
+### 5 · Que faire maintenant ?
+
+1. **Choisis** 🡒 garder WebSpeech ou passer à Google Cloud TTS.
+2. **Si Cloud TTS** : suis les 6 étapes ; commit ; redeploie.
+3. **Relance** l’app ➜ vérifie que le message d’accueil est lu par la voix masculine premium.
+
+> Dès que ces points sont validés, tu auras enfin :
+>
+> * Analyse IA multi-mode fiable
+> * TTS homme de haute fidélité
+> * Segmentation anti-saturation
+> * Boutons Guidance / Analyser opérationnels.

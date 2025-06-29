@@ -265,20 +265,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[TTS-Cloud] Synthesizing: ${text.substring(0, 50)}... (${lang})`);
 
-      const [response] = await ttsClient.synthesizeSpeech({
+      const request: protos.google.cloud.texttospeech.v1.ISynthesizeSpeechRequest = {
         input: { text },
-        voice: voice,
+        voice: {
+          languageCode: voice.languageCode,
+          name: voice.name,
+          ssmlGender: protos.google.cloud.texttospeech.v1.SsmlVoiceGender.MALE
+        },
         audioConfig: { 
-          audioEncoding: 'MP3' as const,
+          audioEncoding: protos.google.cloud.texttospeech.v1.AudioEncoding.MP3,
           speakingRate: 0.95,
-          pitch: -2.0, // Slightly lower pitch for masculine tone
+          pitch: -2.0,
           volumeGainDb: 2.0
         }
-      });
+      };
+
+      const [response] = await ttsClient.synthesizeSpeech(request);
 
       res.setHeader('Content-Type', 'audio/mpeg');
       res.setHeader('Content-Length', response.audioContent?.length || 0);
-      res.send(Buffer.from(response.audioContent as string, 'base64'));
+      res.send(response.audioContent);
       
     } catch (error) {
       console.error('[TTS-Cloud] Error:', error);

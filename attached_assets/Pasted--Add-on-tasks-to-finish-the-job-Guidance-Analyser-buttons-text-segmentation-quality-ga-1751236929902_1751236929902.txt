@@ -1,0 +1,92 @@
+### Add-on tasks to finish the job – **“Guidance”, “Analyser” buttons & text-segmentation quality gate**
+
+> À copier / coller tel quel dans le canal Agent de Replit / Google Studio.
+> Objectif : garantir que **les deux boutons secondaires fonctionnent** et que la **segmentation intelligente** est réellement appliquée avant tout appel Gemini.
+
+---
+
+## 1 ·  Wiring des boutons **Analyser** et **Guidance**
+
+| UI élément                            | Appel attendu                                         | Fallback si rien n’est sélectionné |               |                                                            |
+| ------------------------------------- | ----------------------------------------------------- | ---------------------------------- | ------------- | ---------------------------------------------------------- |
+| **Analyser** (textarea « Extrait »)   | \`streamAiResponse('snippet', { text: selectedText    |                                    | fullText })\` | utilise `fullText` (le texte affiché dans le `TextViewer`) |
+| **Guidance ✨** (textarea « Conseil ») | `streamAiResponse('advice', { text: userSituation })` | — (champ obligatoire)              |               |                                                            |
+
+### 1.1  Vérification rapide
+
+```tsx
+// Dans App.tsx (ou AppSimple.tsx)
+
+const handleAnalyzeClick = () => {
+  const sel = getCurrentSelection() || currentText?.currentSegment || '';
+  if (!sel) return toast.error('Sélectionnez un passage ou ouvrez un texte.');
+  streamAiResponse('snippet', { text: sel });
+};
+
+const handleAdviceClick = (situation:string) => {
+  if (!situation.trim()) return toast.error('Décrivez votre situation.');
+  streamAiResponse('advice', { text: situation.trim() });
+};
+```
+
+* **getCurrentSelection()** : utilitaire qui lit `window.getSelection()?.toString()`.
+* Boutons **disabled** quand `isLoading === true`.
+
+---
+
+## 2 ·  Segmentation « anti-saturation » – check-list
+
+1. **Découpe primaire** : par marqueurs traditionnels
+   `text.split(/(?:\n\n|^|\s)[\u05d0-\u05ea](?:\s|-|\.|:)/g)` pour א/ב/ג… + `•`, `*`, titres Markdown (`##`)
+2. **Règle 4096 tokens** :
+
+   ```ts
+   while (segment.length > MAX_CHARS) {
+       chunks.push(segment.slice(0, MAX_CHARS));
+       segment = segment.slice(MAX_CHARS);
+   }
+   ```
+3. **Lang aware** : garder la même langue que l’affichage (fr / en / he) ; passer ce `lang` au backend : `/api/sefaria/section?ref=X&lang=he`.
+4. **Cache** : `sessionStorage.setItem(ref+'-'+lang, JSON.stringify(chunks))`.
+
+### 2.1  Test automatique (à lancer dans la console Replit)
+
+```bash
+node - <<'JS'
+const seg = require('./client/src/utils/segment').segmentText;
+const longTxt = require('fs').readFileSync('./tests/long_hebrew.txt','utf8');
+const chunks = seg(longTxt);
+console.log('Segments:', chunks.length, '≤', Math.ceil(longTxt.length/1500));
+process.exit(chunks.every(c=>c.length<=1500)?0:1);
+JS
+```
+
+---
+
+## 3 ·  Scénario de validation « en 3 clics »
+
+1. **Sélectionner** quatre lignes dans un Likutei Moharan affiché → clic **Analyser**
+
+   * ✔️ l’IA répond seulement sur l’extrait
+   * ✔️ TTS lit la réponse (voix homme premium)
+2. Laisser la sélection vide → clic **Analyser**
+
+   * ✔️ analyse du **texte entier** (pas d’erreur)
+3. Remplir « Conseil ✨ » avec « Je perds motivation pour la prière » → clic **Obtenir un conseil**
+
+   * ✔️ réponse sous 8 s, cite au moins une source Breslev
+   * ✔️ le quota TTS décrémenté dans la barre info
+
+---
+
+### ⚠️  Point-bloquant courant
+
+**Erreur `Failed to fetch`** dans `sefariaDirectClient.ts:40` ⇒
+
+* vérifier que la route proxy `/api/sefaria/*` renvoie bien `Access-Control-Allow-Origin: *`
+* s’assurer que `ref` est **URI-encoded** (`Likutei_Moharan.1.1`)
+
+---
+
+> **Si ces quatre ticks sont verts, l’app est prête pour démo.**
+> Sinon : log dans la console du Preview et pointez la ligne exacte pour correction rapide.
