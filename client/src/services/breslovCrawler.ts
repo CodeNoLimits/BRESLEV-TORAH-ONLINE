@@ -90,6 +90,20 @@ export class BreslovCrawler {
       }
       
       const data = await response.json();
+      
+      // Debug: Log the actual structure to understand the text/he mapping
+      if (data && data.versions && data.versions.length > 0) {
+        const version = data.versions[0];
+        console.log(`[BreslovCrawler] Data structure for ${ref}:`, {
+          hasText: !!version.text,
+          hasHe: !!version.he,
+          textType: Array.isArray(version.text) ? 'array' : typeof version.text,
+          heType: Array.isArray(version.he) ? 'array' : typeof version.he,
+          textSample: Array.isArray(version.text) ? version.text[0]?.substring(0, 50) : 'N/A',
+          heSample: Array.isArray(version.he) ? version.he[0]?.substring(0, 50) : 'N/A'
+        });
+      }
+      
       this.cache.set(cacheKey, data);
       return data;
     } catch (error) {
@@ -211,6 +225,14 @@ export class BreslovCrawler {
     this.cache.clear();
     sessionStorage.removeItem('breslov_crawler_cache');
     console.log(`[BreslovCrawler] Cache cleared`);
+  }
+
+  getCache(): Record<string, any> {
+    const cacheObject: Record<string, any> = {};
+    this.cache.forEach((value, key) => {
+      cacheObject[key] = value;
+    });
+    return cacheObject;
   }
 }
 
