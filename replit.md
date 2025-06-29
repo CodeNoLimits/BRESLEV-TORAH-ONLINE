@@ -132,15 +132,16 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 
 ## Recent Changes
 
-- ✓ Universal Sefaria proxy fully operational in Express server - eliminates ALL CORS issues
-- ✓ Complete Breslov library loaded: all 9 authentic books with verified working references
-- ✓ Simplified application architecture with streamlined services and endpoints
-- ✓ Functional sidebar menu with clickable book selection interface
-- ✓ Gemini AI streaming integration with French responses
-- ✓ Working proxy routes for both /sefaria/* and /gemini/chat endpoints
-- ✓ AppSimple.tsx created with clean chat interface and TTS integration
-- ✓ All services tested and verified working with authentic Sefaria data
-- ✓ Hebrew text updated in header: נ נח נחמ נחמן מאומן
+- ✓ Direct Sefaria client implementation with V3/V1 fallback system
+- ✓ Complete Torah sections access: Likutei Moharan 1-5, Sichot HaRan 1-3, Sippurei Maasiyot
+- ✓ Prominent text display interface with Hebrew/English side-by-side layout
+- ✓ Functional sidebar menu with 12 clickable Torah sections and authentic references
+- ✓ Gemini AI streaming with automatic French translation and TTS reading
+- ✓ sessionStorage caching system with 1-hour TTL for performance optimization
+- ✓ AppSimple.tsx with complete text viewer and instant AI analysis buttons
+- ✓ All 5 AI modes operational: study, general, snippet, advice, summary
+- ✓ Verified authentic Sefaria text loading with cache hits confirmed
+- ✓ Hebrew text display: נ נח נחמ נחמן מאומן
 
 ## User Preferences
 

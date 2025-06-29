@@ -169,9 +169,84 @@ ${text}`
 
         {/* Chat Area */}
         <div className="flex-1 flex flex-col p-4 max-w-4xl mx-auto">
+          
+          {/* Selected Text Display */}
+          {selectedText && (
+            <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 mb-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-crimson font-semibold text-amber-400">{selectedText.title}</h2>
+                <button
+                  onClick={() => setSelectedText(null)}
+                  className="text-slate-400 hover:text-red-400 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Hebrew Text */}
+                {selectedText.he && selectedText.he.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-slate-400 mb-2">Texte original (Hébreu)</h3>
+                    <div className="bg-slate-900 rounded p-4 max-h-64 overflow-y-auto" dir="rtl">
+                      {selectedText.he.slice(0, 5).map((segment, idx) => (
+                        <p key={idx} className="mb-3 text-slate-200 font-crimson text-lg leading-relaxed">
+                          {segment}
+                        </p>
+                      ))}
+                      {selectedText.he.length > 5 && (
+                        <p className="text-slate-500 italic text-center">
+                          ... {selectedText.he.length - 5} segments supplémentaires
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* English Text */}
+                {selectedText.text && selectedText.text.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-slate-400 mb-2">Traduction (Anglais)</h3>
+                    <div className="bg-slate-900 rounded p-4 max-h-64 overflow-y-auto">
+                      {selectedText.text.slice(0, 5).map((segment, idx) => (
+                        <p key={idx} className="mb-3 text-slate-200 font-crimson leading-relaxed">
+                          {segment}
+                        </p>
+                      ))}
+                      {selectedText.text.length > 5 && (
+                        <p className="text-slate-500 italic text-center">
+                          ... {selectedText.text.length - 5} segments supplémentaires
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => handleAIRequest(`${selectedText.title}\n\n${selectedText.text.join('\n\n')}`, 'study')}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-black rounded font-medium transition-colors"
+                  disabled={isAILoading}
+                >
+                  Analyser ce texte
+                </button>
+                <button
+                  onClick={() => handleAIRequest(selectedText.text.join('\n\n'), 'summary')}
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded transition-colors"
+                  disabled={isAILoading}
+                >
+                  Points clés
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Messages */}
           <div className="flex-1 overflow-y-auto mb-4 space-y-4">
-            {messages.length === 0 && (
+            {messages.length === 0 && !selectedText && (
               <div className="text-center text-slate-500 mt-8">
                 <h2 className="text-xl font-crimson mb-4">נ נח נחמ נחמן מאומן</h2>
                 <p>Bienvenue dans votre espace d'étude spirituelle.</p>
@@ -271,28 +346,7 @@ ${text}`
         </div>
       </div>
 
-      {/* Selected Text Viewer */}
-      {selectedText && (
-        <div className="fixed bottom-4 right-4 w-96 max-h-64 bg-slate-800 border border-slate-600 rounded-lg p-4 overflow-y-auto">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-medium text-amber-400">{selectedText.title}</h3>
-            <button
-              onClick={() => setSelectedText(null)}
-              className="text-slate-400 hover:text-red-400"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="text-sm font-crimson">
-            {selectedText.text.slice(0, 3).map((segment, idx) => (
-              <p key={idx} className="mb-2">{segment}</p>
-            ))}
-            {selectedText.text.length > 3 && (
-              <p className="text-slate-500 italic">...et {selectedText.text.length - 3} segments supplémentaires</p>
-            )}
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

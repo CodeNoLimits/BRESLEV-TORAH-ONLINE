@@ -126,21 +126,24 @@ class SefariaDirectClient {
     }
   }
 
-  // Extract known Breslov texts with proper refs
+  // Extract known Breslov texts with proper refs for first Torah sections
   private extractTextsWithRefs(nodes: any[]): SefariaIndexNode[] {
     const breslovBooks = [
-      { title: 'Likutei Moharan', ref: 'Likutei Moharan 1:1' },
-      { title: 'Sichot HaRan', ref: 'Sichot HaRan 1' },
-      { title: 'Sippurei Maasiyot', ref: 'Sippurei Maasiyot 1:1' },
-      { title: 'Chayei Moharan', ref: 'Chayei Moharan 1:1' },
-      { title: 'Shivchei HaRan', ref: 'Shivchei HaRan 1' },
-      { title: 'Sefer HaMiddot', ref: 'Sefer HaMiddot, Anger 1' },
-      { title: 'Likutei Tefilot', ref: 'Likutei Tefilot 1:1' },
-      { title: 'Likutei Halakhot', ref: 'Likutei Halakhot, Orach Chaim, Tefillat Shacharit 1:1' },
-      { title: 'Likkutei Etzot', ref: 'Likkutei Etzot, Anger 1' }
+      { title: 'Likutei Moharan - Torah 1', ref: 'Likutei Moharan 1' },
+      { title: 'Likutei Moharan - Torah 2', ref: 'Likutei Moharan 2' },
+      { title: 'Likutei Moharan - Torah 3', ref: 'Likutei Moharan 3' },
+      { title: 'Likutei Moharan - Torah 4', ref: 'Likutei Moharan 4' },
+      { title: 'Likutei Moharan - Torah 5', ref: 'Likutei Moharan 5' },
+      { title: 'Sichot HaRan - Section 1', ref: 'Sichot HaRan 1' },
+      { title: 'Sichot HaRan - Section 2', ref: 'Sichot HaRan 2' },
+      { title: 'Sichot HaRan - Section 3', ref: 'Sichot HaRan 3' },
+      { title: 'Sippurei Maasiyot - Story 1', ref: 'Sippurei Maasiyot 1' },
+      { title: 'Sippurei Maasiyot - Story 2', ref: 'Sippurei Maasiyot 2' },
+      { title: 'Chayei Moharan 1', ref: 'Chayei Moharan 1' },
+      { title: 'Shivchei HaRan 1', ref: 'Shivchei HaRan 1' }
     ];
 
-    console.log(`[SefariaClient] Using predefined Breslov references`);
+    console.log(`[SefariaClient] Using Breslov Torah sections for direct access`);
     return breslovBooks;
   }
 }
