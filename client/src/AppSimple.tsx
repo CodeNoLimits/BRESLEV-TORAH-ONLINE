@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
-import { BreslovLibrary } from './components/BreslovLibraryFixed';
+import { BreslovLibrary } from './components/BreslovLibrarySimple';
 import { FloatingTTSControl } from './components/FloatingTTSControl';
 import { useTTSFixed } from './hooks/useTTSFixed';
 import { MobileTTS, isMobile, MobileUtils } from './services/mobileOptimized';
@@ -36,8 +36,23 @@ function AppSimple() {
   const [isAILoading, setIsAILoading] = useState(false);
   const [currentInput, setCurrentInput] = useState('');
 
-  // Premium TTS with masculine voice
-  const { speak, speakGreeting, stopTTS, isSpeaking } = useTTSFixed({ language, enabled: ttsEnabled });
+  // Premium TTS with mobile optimization
+  const { speak: originalSpeak, speakGreeting, stopTTS, isSpeaking } = useTTSFixed({ language, enabled: ttsEnabled });
+  const [mobileTTS] = useState(() => new MobileTTS());
+
+  // TTS optimisé avec fallback mobile automatique
+  const speak = useCallback(async (text: string) => {
+    if (isMobile()) {
+      try {
+        await mobileTTS.speak(text, { voice: 'male', language: 'fr-FR' });
+      } catch (error) {
+        console.warn('[Mobile TTS] Fallback to original TTS:', error);
+        originalSpeak(text);
+      }
+    } else {
+      originalSpeak(text);
+    }
+  }, [mobileTTS, originalSpeak]);
 
   // Voice input for questions
   const { isListening, startListening, stopListening } = useVoiceInput({
