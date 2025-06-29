@@ -62,15 +62,39 @@ function App() {
   // Event handlers
   const handleTextSelect = useCallback(async (ref: string, title: string) => {
     try {
-      const text = await sefariaService.getText(ref);
-      setSelectedText(text);
+      // Check if this is a book-level selection (no specific verse numbers)
+      const isBookLevel = !ref.includes('.') || ref.split('.').length <= 1;
       
-      // Auto-trigger deep study analysis
-      const textContent = sefariaService.getTextInLanguage(text, 'en');
-      await handleSendAIMessage(textContent, 'study', `Texte sélectionné: ${title}`);
+      if (isBookLevel) {
+        // Show book navigator for complete book access
+        setSelectedBook(title);
+        setSelectedText(null);
+        console.log(`[App] Opening book navigator for: ${title}`);
+      } else {
+        // Load specific section/verse
+        const text = await sefariaService.getText(ref);
+        setSelectedText(text);
+        setSelectedBook(null);
+        console.log(`[App] Loaded specific text: ${ref}`);
+        
+        // Auto-trigger deep study analysis
+        const textContent = sefariaService.getTextInLanguage(text, 'en');
+        await handleSendAIMessage(textContent, 'study', `Texte sélectionné: ${title}`);
+      }
       
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Erreur lors du chargement du texte');
+    }
+  }, []);
+
+  const handleSectionSelect = useCallback(async (ref: string) => {
+    try {
+      const text = await sefariaService.getText(ref);
+      setSelectedText(text);
+      setSelectedBook(null);
+      console.log(`[App] Loaded book section: ${ref}`);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Erreur lors du chargement de la section');
     }
   }, []);
 
@@ -182,6 +206,16 @@ function App() {
           isSpeaking={isSpeaking || isListening}
           onStartVoiceInput={handleStartVoiceInput}
         />
+        
+        {/* Book Navigator */}
+        {selectedBook && (
+          <BookNavigator
+            bookTitle={selectedBook}
+            onSectionSelect={handleSectionSelect}
+            onClose={() => setSelectedBook(null)}
+            language={language}
+          />
+        )}
         
         {/* Text Viewer */}
         <TextViewer
