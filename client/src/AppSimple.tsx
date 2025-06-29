@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { BreslovLibrary } from './components/BreslovLibrary';
 import { FloatingTTSControl } from './components/FloatingTTSControl';
 import { useTTSFixed } from './hooks/useTTSFixed';
+import { useVoiceInput } from './hooks/useVoiceInput';
 import { TextSegmenter } from './services/textSegmenter';
 import { sefariaClient, SefariaText } from './services/sefariaDirectClient';
 import { streamGemini } from './services/geminiSimple';
@@ -35,6 +36,19 @@ function AppSimple() {
   // Premium TTS with masculine voice
   const { speak, speakGreeting, stopTTS, isSpeaking } = useTTSFixed({ language, enabled: ttsEnabled });
 
+  // Voice input for questions
+  const { isListening, startListening, stopListening } = useVoiceInput({
+    language,
+    onResult: (transcript) => {
+      console.log('[AppSimple] Voice input result:', transcript);
+      setCurrentInput(transcript);
+      handleSendMessage(transcript, 'chat');
+    },
+    onError: (error) => {
+      console.error('[AppSimple] Voice input error:', error);
+    }
+  });
+
   // Initialize crawler cache on app start
   useEffect(() => {
     console.log('[AppSimple] Initializing Breslov crawler cache');
@@ -66,9 +80,9 @@ function AppSimple() {
     // Auto-welcome message with TTS après 2 secondes
     setTimeout(() => {
       const welcomeMessages = {
-        fr: "Shalom et bienvenue dans Le Compagnon du Cœur. Je suis votre guide spirituel basé sur les enseignements de Rabbi Nahman de Breslov. Ouvrez la bibliothèque pour sélectionner un texte, et je vous fournirai une analyse spirituelle approfondie avec lecture automatique.",
-        en: "Shalom and welcome to The Heart's Companion. I am your spiritual guide based on the teachings of Rabbi Nahman of Breslov. Open the library to select a text, and I will provide you with deep spiritual analysis with automatic reading.",
-        he: "שלום וברוכים הבאים לחבר הלב. אני המדריך הרוחני שלכם המבוסס על תורת רבי נחמן מברסלב. פתחו את הספרייה לבחירת טקסט, ואספק לכם ניתוח רוחני עמוק עם קריאה אוטומטית."
+        fr: "Shalom et bienvenue dans Le Compagnon du Cœur. Voici comment utiliser l'application : D'abord, cliquez sur le menu à gauche pour ouvrir la bibliothèque de Rabbi Nahman. Ensuite, choisissez un texte. Une fois affiché, sélectionnez une partie avec votre souris, puis utilisez les boutons Analyser ou Guidance. Vous pouvez aussi poser des questions directement dans le champ de saisie. Le bouton rouge flottant arrête ma lecture à tout moment. Le micro vous permet de poser des questions vocalement.",
+        en: "Shalom and welcome to The Heart's Companion. Here's how to use the application: First, click the left menu to open Rabbi Nachman's library. Then choose a text. Once displayed, select a part with your mouse, then use Analyze or Guidance buttons. You can also ask questions directly in the input field. The floating red button stops my reading at any time. The microphone lets you ask questions vocally.",
+        he: "שלום וברוכים הבאים לחבר הלב. הנה איך להשתמש באפליקציה: ראשית, לחצו על התפריט משמאל לפתיחת ספריית רבי נחמן. אחר כך בחרו טקסט. לאחר הצגה, בחרו חלק עם העכבר, ואז השתמשו בכפתורי ניתוח או הדרכה. אפשר גם לשאול שאלות ישירות בשדה הקלט. הכפתור האדום הצף עוצר את הקריאה שלי בכל רגע. המיקרופון מאפשר לשאול שאלות קולית."
       };
       
       const welcomeText = welcomeMessages[language];
@@ -349,8 +363,8 @@ ${text}`
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Hebrew Text */}
-                {selectedText.he && selectedText.he.length > 0 && (
+                {/* English Text */}
+                {selectedText.text && selectedText.text.length > 0 && (
                   <div>
                     <h3 className="text-sm font-medium text-slate-400 mb-2">Texte original (Hébreu)</h3>
                     <div 
@@ -365,22 +379,23 @@ ${text}`
                         }
                       }}
                     >
-                      {selectedText.he.slice(0, 5).map((segment, idx) => (
+                      {/* Show Hebrew text if available, otherwise show English as Hebrew */}
+                      {(selectedText.he && selectedText.he.length > 0 ? selectedText.he : selectedText.text).slice(0, 5).map((segment, idx) => (
                         <p key={idx} className="mb-3 text-slate-200 font-crimson text-lg leading-relaxed">
                           {segment}
                         </p>
                       ))}
-                      {selectedText.he.length > 5 && (
+                      {(selectedText.he && selectedText.he.length > 0 ? selectedText.he : selectedText.text).length > 5 && (
                         <p className="text-slate-500 italic text-center">
-                          ... {selectedText.he.length - 5} segments supplémentaires
+                          ... {(selectedText.he && selectedText.he.length > 0 ? selectedText.he : selectedText.text).length - 5} segments supplémentaires
                         </p>
                       )}
                     </div>
                   </div>
                 )}
                 
-                {/* English Text */}
-                {selectedText.text && selectedText.text.length > 0 && (
+                {/* Hebrew Text */}
+                {selectedText.he && selectedText.he.length > 0 && (
                   <div>
                     <h3 className="text-sm font-medium text-slate-400 mb-2">Traduction (Anglais)</h3>
                     <div 
@@ -647,13 +662,28 @@ ${text}`
                   }
                 }}
               />
-              <button
-                onClick={() => handleSendMessage(currentInput, 'chat')}
-                disabled={isAILoading || !currentInput.trim()}
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-600 rounded-lg transition-colors"
-              >
-                {isAILoading ? '...' : 'Envoyer'}
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={isListening ? stopListening : startListening}
+                  className={`p-3 rounded-lg transition-all duration-200 ${
+                    isListening 
+                      ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse' 
+                      : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                  }`}
+                  title={isListening ? 'Arrêter l\'écoute' : 'Poser une question vocalement'}
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"></path>
+                  </svg>
+                </button>
+                <button
+                  onClick={() => handleSendMessage(currentInput, 'chat')}
+                  disabled={isAILoading || !currentInput.trim()}
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-600 rounded-lg transition-colors"
+                >
+                  {isAILoading ? '...' : 'Envoyer'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
