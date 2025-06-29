@@ -363,8 +363,8 @@ ${text}`
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* English Text */}
-                {selectedText.text && selectedText.text.length > 0 && (
+                {/* Hebrew Text - Original */}
+                {selectedText.he && selectedText.he.length > 0 && (
                   <div>
                     <h3 className="text-sm font-medium text-slate-400 mb-2">Texte original (Hébreu)</h3>
                     <div 
@@ -379,23 +379,22 @@ ${text}`
                         }
                       }}
                     >
-                      {/* Show Hebrew text if available, otherwise show English as Hebrew */}
-                      {(selectedText.he && selectedText.he.length > 0 ? selectedText.he : selectedText.text).slice(0, 5).map((segment, idx) => (
+                      {selectedText.he.slice(0, 5).map((segment, idx) => (
                         <p key={idx} className="mb-3 text-slate-200 font-crimson text-lg leading-relaxed">
                           {segment}
                         </p>
                       ))}
-                      {(selectedText.he && selectedText.he.length > 0 ? selectedText.he : selectedText.text).length > 5 && (
+                      {selectedText.he.length > 5 && (
                         <p className="text-slate-500 italic text-center">
-                          ... {(selectedText.he && selectedText.he.length > 0 ? selectedText.he : selectedText.text).length - 5} segments supplémentaires
+                          ... {selectedText.he.length - 5} segments supplémentaires
                         </p>
                       )}
                     </div>
                   </div>
                 )}
                 
-                {/* Hebrew Text */}
-                {selectedText.he && selectedText.he.length > 0 && (
+                {/* English Text - Translation */}
+                {selectedText.text && selectedText.text.length > 0 && (
                   <div>
                     <h3 className="text-sm font-medium text-slate-400 mb-2">Traduction (Anglais)</h3>
                     <div 
