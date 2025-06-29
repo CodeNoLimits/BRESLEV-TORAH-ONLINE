@@ -1,0 +1,84 @@
+Prompt complet à envoyer (copie/colle tel quel)
+Objet : Construction from-scratch de l’application « Le Compagnon du Cœur »
+Stack souhaitée : React + TypeScript + Tailwind + Vite, API Sefaria, Google Gemini (streaming), Web Speech API (TTS & STT).
+
+1 . Fonctionnalités IA à implémenter
+Mode 1 – Étude Approfondie : dès qu’on clique sur un enseignement dans la bibliothèque, l’IA analyse le texte complet automatiquement (aucune question utilisateur nécessaire).
+
+Mode 2 – Question Générale : chat libre.
+
+Mode 3 – Analyse d’Extrait : textarea « Analyser un extrait » ; l’IA se concentre uniquement sur l’extrait collé.
+
+Mode 4 – Conseil Personnalisé : textarea « Trouver un conseil ✨ » ; l’IA propose un enseignement adapté à la situation décrite.
+
+Mode 5 – Résumé « Points Clés » : bouton sous chaque réponse IA (> 200 car.) pour obtenir 3–5 points synthétiques.
+
+Streaming temps réel ; interruption TTS si nouvelle question.
+
+2 . Récupération EXHAUSTIVE des textes Breslev
+GET https://www.sefaria.org/api/index/
+
+Dans la réponse JSON, repérer la catégorie "Chasidut" → "Breslov".
+
+Parcourir récursivement toutes les clés possibles (contents, nodes, schema.nodes).
+
+Chaque élément sans enfant mais muni d’un ref est un texte final ; enregistrer la liste complète (cache 24 h dans sessionStorage ou IndexedDB). Aucun livre Breslev ne doit manquer.
+
+Lorsqu’un ref est sélectionné, appeler :
+
+ruby
+Copier
+Modifier
+GET https://www.sefaria.org/api/texts/{ref}?context=1&commentary=0
+(remplacer les espaces par _) et afficher text (EN) + he (HE) ; message placeholder si vide.
+
+3 . Interface utilisateur à livrer
+Header : logo cœur, sélecteur FR / EN / HE, bascule « Auto-Lecture ».
+
+Sidebar Bibliothèque : arbre accordéon complet Breslev ; spinner au premier fetch ; responsive (panneau coulissant < 768 px).
+
+Zone Chat : bulles (user sky / IA slate), streaming live, bouton « Points Clés ✨ ».
+
+Modules bas de page :
+
+textarea « Analyser un extrait » (Mode 3)
+
+textarea « Trouver un conseil ✨ » (Mode 4)
+
+barre de chat principale (STT + send).
+
+Design : thème sombre inspiré de tikounaolam.com (palette #0f172a / slate / sky / amber / teal, coins 2xl, ombres douces).
+
+Accessibilité : contrastes AA, ARIA labels sur micro & TTS.
+
+4 . Étapes de réalisation (recommandées)
+Scaffold Vite + React TS + Tailwind.
+
+Implémenter sefariaService (index + texte, cache).
+
+Construire la sidebar récursive ; vérifier couverture à 100 %.
+
+Brancher Gemini (streaming) avec les 5 modes.
+
+Intégrer TTS bidirectionnel.
+
+Finaliser modules UI et responsive.
+
+Tests : sélection multiple, extrait, conseil, résumé, offline-cache.
+
+Déploiement ; variables .env pour la clé Gemini.
+
+Critères de succès :
+
+Aucun texte Breslev manquant.
+
+Temps de réponse initiale < 3 s grâce au cache.
+
+Analyse auto au clic, pas de données codées en dur.
+
+UI conforme à la maquette, thème tikounaolam.
+
+Accessibilité validée.
+
+Na Naḥ Naḥma Naḥman Méouman – Merci de confirmer que tout est clair avant de commencer la génération du code.
+

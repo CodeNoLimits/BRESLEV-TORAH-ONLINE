@@ -1,0 +1,64 @@
+Na Naḥ Naḥma Naḥman Méouman
+
+**Tselahya, voici le “pitch” clair et direct que tu peux copier n’importe où pour expliquer l’app :**
+
+---
+
+### Le Compagnon du Cœur – Présentation fonctionnelle
+
+1. **Mission & identité**
+
+   * Interface spirituelle centrée sur les enseignements de Rabbi Naḥman de Breslev.
+   * Agit comme un compagnon d’étude, de conseil et d’approfondissement personnel.
+
+2. **Sources dynamiques**
+
+   * Se connecte en temps réel à l’API publique **Sefaria**.
+   * Filtre automatiquement la catégorie `Chasidut › Breslov` pour afficher l’intégralité des livres et des sous-sections authentiques (Likoutey Moharan, Sippurei Maassiyot, etc.).
+   * À chaque clic sur un enseignement, le texte complet est récupéré (he/en) puis transmis à l’IA.
+
+3. **Moteur IA (Gemini)**
+
+   * Propulsé par **Gemini 1.5-flash** (clé API côté front).
+   * Un prompt système fixe définit **5 modes** :
+
+     1. *Étude approfondie* (analyse ligne-à-ligne d’un enseignement).
+     2. *Exploration synthétique* (réponse libre à une question générale).
+     3. *Analyse ciblée* d’un extrait collé.
+     4. *Recherche de conseil* personnel fondé sur Breslev.
+     5. *Résumé des points clés* d’un long message.
+   * Les réponses arrivent en **streaming** pour une lecture fluide.
+
+4. **Interface utilisateur**
+
+   * **Sidebar “Bibliothèque”** : arborescence cliquable et repliable ; titres traduits (FR/EN/HE).
+   * **Zone de chat** : bulles utilisateur ↔ IA, résumé à la volée, bouton “Points Clés”.
+   * **Modules annexes** :
+
+     * *Analyser un extrait* (textarea).
+     * *Trouver un conseil* personnalisé (textarea).
+   * **Header** : sélecteur de langue + interrupteur TTS (auto-lecture).
+
+5. **Accessibilité & voix**
+
+   * **Hook useTTS** : lecture vocale (fr-FR, en-US, he-IL).
+   * Reconnaissance vocale Web Speech API pour dicter une question.
+
+6. **Tech-stack minimal**
+
+   * Front 100 % client : React 18 (import map), Tailwind CDN, Babel standalone.
+   * Aucune étape de build obligatoire : un simple index.html suffit pour démarrer, idéal pour Replit ou une page statique.
+
+7. **Expérience attendue**
+
+   * L’utilisateur parcourt la bibliothèque, clique sur un texte → analyse immédiate.
+   * Il peut poser des questions libres, demander des conseils ou coller un extrait pour une analyse ciblée.
+   * Tout se fait dans la langue de la question, sans mélange de langues, avec citations précises.
+
+---
+
+**En résumé** :
+
+> *Une web-app légère, zéro backend, qui combine le corpus Breslev de Sefaria avec la puissance analytique de Gemini pour offrir étude, guidance et synthèse — le tout dans une interface moderne, multilingue et vocale.*
+
+Na Naḥ Naḥma Naḥman Méouman

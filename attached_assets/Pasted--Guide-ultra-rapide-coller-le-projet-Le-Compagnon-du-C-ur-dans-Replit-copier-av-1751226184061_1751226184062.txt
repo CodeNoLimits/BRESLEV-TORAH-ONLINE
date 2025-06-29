@@ -1,0 +1,66 @@
+## 🛠️ Guide ultra-rapide : coller le projet « Le Compagnon du Cœur » dans **Replit**
+
+*(à copier avant le code)*
+
+---
+
+### 1. Crée ton Repl
+
+1. Va sur **replit.com ➜ + Create Repl**.
+2. Choisis le template **“HTML, CSS, JS”** (aucun build-tool requis).
+
+### 2. Prépare l’arborescence
+
+* Supprime les fichiers générés par défaut (`index.html`, `script.js`, `style.css`).
+* Ajoute les **7 fichiers** exacts du projet :
+
+  ```
+  index.html
+  style.css
+  constants.js
+  geminiService.js
+  sefariaService.js
+  useTTS.js
+  app.jsx
+  ```
+
+### 3. Gère ta clé Gemini en toute sécurité
+
+1. Dans le panneau **Tools ▸ Secrets** (icône bouclier) de Replit,
+   – clé : `GEMINI_API_KEY`
+   – valeur : **ta vraie clé**.
+2. Dans `geminiService.js`, remplace la ligne :
+
+   ```js
+   const API_KEY = process.env.GEMINI_API_KEY;
+   ```
+
+   (Replit injecte `process.env` automatiquement côté navigateur).
+
+### 4. Coller le code
+
+* Colle le **code complet** fourni (les 7 fichiers) dans chaque fichier correspondant.
+* Vérifie que `index.html` charge `app.jsx` via :
+
+  ```html
+  <script type="module" src="app.jsx"></script>
+  ```
+
+### 5. Lance & teste
+
+1. Clique **Run** (Replit sert automatiquement `index.html`).
+2. Une URL s’ouvre : https\://<ton-workspace>.<user>.repl.co
+3. La barre latérale « Bibliothèque Breslev » se remplit (fetch API Sefaria).
+4. Sélectionne un texte ou pose une question ; l’IA répond en streaming.
+
+### 6. Dépannage éclair
+
+| Problème                  | Solution                                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **CORS / Sefaria** bloque | Replit autorise les requêtes cross-origin. Si une 403 apparaît, recharge et vérifie l’URL `/api/category/Breslov`. |
+| Clé Gemini non trouvée    | Vérifie l’onglet **Secrets** et la variable `process.env.GEMINI_API_KEY`.                                          |
+| Pas de voix TTS           | Les voix Synthesis ne se chargent pas avant la première interaction ; décoche/re-coche le bouton TTS.              |
+
+> 💡 Tu veux adapter le style ? Modifie **`style.css`** ; Tailwind (CDN) et la typo *Poppins* sont déjà en place pour un look façon **tikounaolam.com**.
+
+Na Naḥ Naḥma Naḥman Méouman — bon déploiement !

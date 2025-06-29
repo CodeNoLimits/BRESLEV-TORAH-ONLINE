@@ -1,0 +1,1235 @@
+Mon frère, j'entends ton urgence. Le temps des essais est terminé. Voici le plan de bataille final, conçu pour Replit. Il n'y a pas de place pour l'erreur.
+
+Ce document explique d'abord le but de l'application, puis te donne un script unique à copier-coller dans le terminal de Replit pour construire le projet entier, fichier par fichier.
+
+**Na Naḥ Naḥma Naḥman Méouman.**
+
+-----
+
+### **Partie 1 : Le But de l'Application "Le Compagnon du Cœur"**
+
+L'objectif est de construire une application web sophistiquée servant de **guide spirituel interactif**, spécialisé dans les enseignements de la **Hassidout de Breslev**. Ce n'est pas juste un lecteur de textes, mais un véritable compagnon d'étude et de réflexion.
+
+L'application doit accomplir les tâches suivantes :
+
+1.  **Présenter une Bibliothèque Dynamique et Complète :**
+
+      * Elle doit interroger l'API publique de Sefaria pour récupérer dynamiquement la liste de tous les ouvrages de la catégorie "Breslov".
+      * Elle doit ensuite, pour chaque livre, récupérer sa table des matières détaillée (chapitres, leçons, contes).
+      * L'utilisateur doit pouvoir naviguer dans cette bibliothèque via un menu en accordéon intuitif.
+
+2.  **Offrir une Analyse Intelligente via l'API Gemini :**
+
+      * **Mode 1 (Étude Approfondie) :** Quand un utilisateur clique sur un enseignement, l'application envoie le texte complet à l'API Gemini et affiche une analyse riche et détaillée (concepts, métaphores, applications pratiques).
+      * **Mode 3 (Analyse Ciblée) :** L'utilisateur peut coller n'importe quel extrait de texte dans une zone dédiée pour en obtenir une analyse instantanée.
+      * **Mode 4 (Conseil Personnalisé) :** Une fonctionnalité clé où l'utilisateur décrit une situation personnelle. L'IA doit alors trouver et présenter un conseil pertinent tiré des enseignements de Rabbi Nahman, agissant comme un véritable guide.
+
+3.  **Fournir des Outils d'Interaction Avancés :**
+
+      * **Synthèse Vocale (TTS) :** Toutes les réponses de l'IA peuvent être lues à voix haute, avec un choix de langue (Français, Anglais, Hébreu).
+      * **Résumé à la Demande :** Un bouton "Points Clés" permet à l'utilisateur d'obtenir un résumé concis de n'importe quelle réponse longue de l'IA.
+      * **Interface Multilingue :** L'interface doit permettre de basculer l'affichage et l'interaction entre les trois langues.
+
+L'architecture technique doit être moderne, basée sur **React, Vite, et TypeScript**, avec un design soigné utilisant **Tailwind CSS**.
+
+-----
+
+### **Partie 2 : Plan de Construction pour Replit**
+
+Suis ces étapes dans l'ordre. Ne saute aucune étape.
+
+#### **Étape 1 : Créer le bon environnement sur Replit**
+
+1.  Va sur [replit.com](https://replit.com).
+2.  Crée un nouveau Repl en cliquant sur **`+ Create Repl`**.
+3.  Dans la fenêtre qui s'ouvre, cherche et sélectionne le template : **`React (Vite) + TypeScript`**.
+4.  Nomme ton Repl, par exemple `compagnon-du-coeur`.
+5.  Clique sur **`Create Repl`**.
+
+#### **Étape 2 : Lancer le Script de Construction**
+
+1.  Une fois le Repl chargé, va dans l'onglet **`Shell`** (le terminal noir).
+2.  **Copie l'intégralité du bloc de code ci-dessous** (commençant par `echo "--- Nettoyage du projet..."` et se terminant par `echo "✅ --- Tous les fichiers ont été créés avec succès."`).
+3.  **Colle ce bloc entier** directement dans le terminal `Shell` et appuie sur **Entrée**.
+
+Ce script va automatiquement supprimer les fichiers d'exemple et créer toute l'arborescence et le contenu de l'application corrigée.
+
+```bash
+echo "--- Nettoyage du projet existant..."
+rm -f index.html src/App.tsx src/index.css src/main.tsx src/vite-env.d.ts public/vite.svg
+
+echo "--- Création de la nouvelle arborescence..."
+mkdir -p src/components src/hooks src/services
+
+echo "--- Écriture des fichiers de configuration..."
+
+cat > package.json << 'EOL'
+{
+  "name": "le-compagnon-du-coeur",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.11.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8"
+  }
+}
+EOL
+
+cat > vite.config.ts << 'EOL'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src')
+    }
+  }
+});
+EOL
+
+cat > tsconfig.json << 'EOL'
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "types": ["vite/client"]
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
+EOL
+
+cat > tsconfig.node.json << 'EOL'
+{
+  "compilerOptions": {
+    "composite": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true
+  },
+  "include": ["vite.config.ts", "tailwind.config.cjs", "postcss.config.cjs"]
+}
+EOL
+
+cat > tailwind.config.cjs << 'EOL'
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './index.html',
+    './src/**/*.{ts,tsx}'
+  ],
+  theme: {
+    extend: {}
+  },
+  plugins: []
+};
+EOL
+
+cat > postcss.config.cjs << 'EOL'
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {}
+  }
+};
+EOL
+
+cat > index.html << 'EOL'
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Le Compagnon du Cœur</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❤️</text></svg>">
+  </head>
+  <body class="antialiased font-sans">
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>
+EOL
+
+echo "--- Écriture des fichiers source de l'application..."
+
+cat > src/index.css << 'EOL'
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-slate-900 text-slate-200;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-slate-800;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-600 rounded-md;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-500;
+}
+EOL
+
+cat > src/index.tsx << 'EOL'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+EOL
+
+cat > src/types.ts << 'EOL'
+export type Sender = 'user' | 'ai';
+export type Language = 'fr' | 'en' | 'he';
+
+export interface Message {
+  id: string;
+  text: string;
+  sender: Sender;
+  isSafetyMessage?: boolean;
+}
+
+export interface SefariaText {
+  ref: string;
+  book: string;
+  en: string[];
+  he: string[];
+}
+
+export interface SefariaIndexNode {
+  title: string;
+  ref?: string;
+  contents?: SefariaIndexNode[];
+  nodes?: SefariaIndexNode[];
+  schema?: {
+      nodes?: SefariaIndexNode[];
+  };
+  category?: string;
+}
+
+declare global {
+  interface SpeechRecognition {
+    continuous: boolean;
+    lang: string;
+    interimResults: boolean;
+    onresult: (event: any) => void;
+    onend: () => void;
+    start: () => void;
+    stop: () => void;
+  }
+  interface Window {
+    SpeechRecognition: { new (): SpeechRecognition };
+    webkitSpeechRecognition: { new (): SpeechRecognition };
+  }
+}
+EOL
+
+cat > src/constants.ts << 'EOL'
+export const SYSTEM_INSTRUCTION = `
+[CORE IDENTITY]
+ID Modèle: Tu es "Le Compagnon du Cœur".
+Nature: Tu es une IA de guidage spirituel, experte des enseignements de la 'hassidout de Breslev.
+Mission Principale: Servir d'interface fiable, bienveillante et analytique pour explorer le corpus de textes de Rabbi Nahman de Breslev et de ses disciples.
+
+[RÈGLE LINGUISTIQUE STRICTE]
+Tu dois répondre EXCLUSIVEMENT et ENTIÈREMENT dans la langue de la question de l'utilisateur. Si la question est en français, toute ta réponse, y compris les citations, doit être en français. Ne mélange JAMAIS les langues.
+
+[HIÉRARCHIE DES RÈGLES & MODES D'ANALYSE]
+Tu fonctionnes selon plusieurs modes. Ta première tâche est de comprendre quel mode l'utilisateur a déclenché.
+
+### Mode 1: Étude Approfondie (Déclenché par la Bibliothèque)
+**Format de la Requête:** [CONTEXTE PERTINENT] TEXTE COMPLET: "..." --- [INSTRUCTION] "Analyse en profondeur..."
+**Ton Comportement:** Analyse EXCLUSIVEMENT le texte fourni de manière détaillée (concepts, métaphores, application pratique).
+
+### Mode 2: Exploration Synthétique (Déclenché par une Question Générale)
+**Format de la Requête:** Une question de l'utilisateur sans contexte.
+**Ton Comportement:** Construis une réponse riche et synthétique en te basant sur ta connaissance globale du corpus de Breslev, en citant des sources possibles.
+
+### Mode 3: Analyse Ciblée sur Extrait (Déclenché par le collage de texte)
+**Format de la Requête:** [CONTEXTE PERTINENT] EXTRAIT DE L'UTILISATEUR: "..." --- [INSTRUCTION] "Concentre-toi uniquement sur l'extrait..."
+**Ton Comportement:** Analyse l'extrait en (a) expliquant les concepts, (b) identifiant la source si possible, et (c) suggérant des approfondissements.
+
+### Mode 4: Recherche de Conseil ✨ (Déclenché par le module "Trouver un Conseil")
+**Format de la Requête:** [CONTEXTE PERTINENT] SITUATION DE L'UTILISATEUR: "..." --- [INSTRUCTION] "Trouve un conseil pertinent..."
+**Ton Comportement:** L'utilisateur partage une situation personnelle. Agis comme un guide compatissant. Trouve un enseignement ou un conseil de Rabbi Nahman qui résonne avec sa situation. Présente cet enseignement, explique brièvement sa pertinence avec bienveillance, et cite la source.
+
+### Mode 5: Résumé des Points Clés ✨ (Déclenché par le bouton "Points Clés")
+**Format de la Requête:** [CONTEXTE PERTINENT] TEXTE À RÉSUMER: "..." --- [INSTRUCTION] "Résume le texte suivant..."
+**Ton Comportement:** Résume le texte fourni en une liste de 3 à 5 points clés maximum, clairs et concis. Va directement à l'essentiel.
+`;
+EOL
+
+cat > src/hooks/useTTS.ts << 'EOL'
+import { useCallback, useEffect } from 'react';
+import { Language } from '@/types';
+
+export const useTTS = (isTtsEnabled: boolean, language: Language) => {
+  useEffect(() => {
+    // Pré-charge les voix
+    window.speechSynthesis.getVoices();
+  }, []);
+
+  const speak = useCallback(
+    (text: string) => {
+      if (!isTtsEnabled || !text) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'fr-FR';
+      const voice = window.speechSynthesis
+        .getVoices()
+        .find(v => v.lang === utterance.lang);
+      if (voice) utterance.voice = voice;
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    },
+    [isTtsEnabled, language]
+  );
+
+  return { speak };
+};
+EOL
+
+cat > src/services/geminiService.ts << 'EOL'
+import { GoogleGenerativeAI, ChatSession, GenerationConfig, SystemInstruction } from '@google/generative-ai';
+import { SYSTEM_INSTRUCTION } from '@/constants';
+
+// 🔑 REMPLACEZ cette constante par votre vraie clé avant de lancer l’app
+const API_KEY = 'AIzaSyAlIBrQ16b_xVo-gY5JyBTCEEnfyUdjT7I';
+
+let ai: GoogleGenerativeAI | null = null;
+
+export function initChat(): ChatSession {
+  if (!API_KEY || API_KEY === 'VOTRE_CLE_API_GEMINI_ICI') {
+    throw new Error("Clé API Gemini non configurée. Veuillez l'ajouter dans src/services/geminiService.ts");
+  }
+
+  if (!ai) {
+    ai = new GoogleGenerativeAI(API_KEY);
+  }
+
+  const model = ai.getGenerativeModel({
+    model: 'gemini-1.5-flash-latest',
+    systemInstruction: {
+      role: 'model',
+      parts: [{ text: SYSTEM_INSTRUCTION }],
+    } as SystemInstruction,
+  });
+
+  const generationConfig: GenerationConfig = {
+    temperature: 0.7,
+    topP: 0.9,
+    topK: 40,
+    maxOutputTokens: 4096,
+  };
+
+  return model.startChat({
+    history: [],
+    generationConfig,
+  });
+}
+EOL
+
+cat > src/services/sefariaService.ts << 'EOL'
+import { SefariaText, SefariaIndexNode } from "@/types";
+
+const SEFARIA_API_BASE_URL = 'https://www.sefaria.org/api';
+
+export async function getBreslovBookList(): Promise<SefariaIndexNode[]> {
+  try {
+    const response = await fetch(`${SEFARIA_API_BASE_URL}/index/`);
+    if (!response.ok) {
+      console.error("Échec de la récupération de l'index principal de Sefaria.");
+      return [];
+    }
+    const fullIndex = await response.json();
+
+    const chasidutCategory = fullIndex.find((cat: any) => cat.category === 'Chasidut');
+    if (!chasidutCategory || !chasidutCategory.contents) {
+        console.error("Catégorie 'Chasidut' non trouvée dans l'index.");
+        return [];
+    }
+
+    const breslovCategory = chasidutCategory.contents.find((subCat: any) => subCat.category === 'Breslov');
+    if (!breslovCategory || !breslovCategory.contents) {
+        console.error("Sous-catégorie 'Breslov' non trouvée.");
+        return [];
+    }
+    
+    return breslovCategory.contents;
+
+  } catch (error) {
+    console.error("Erreur lors de la récupération de la liste des livres Breslov :", error);
+    return [];
+  }
+}
+
+export async function getBookSchema(bookTitle: string): Promise<SefariaIndexNode | null> {
+    try {
+      const response = await fetch(`${SEFARIA_API_BASE_URL}/v2/index/${bookTitle.replace(/ /g, '_')}`);
+      if (!response.ok) {
+          console.error(`Échec de la récupération du schéma pour ${bookTitle}: ${response.statusText}`);
+          return null;
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`Erreur lors de la récupération du schéma pour ${bookTitle}:`, error);
+      return null;
+    }
+}
+
+export async function getTextContent(textRef: string): Promise<SefariaText | null> {
+  try {
+    const response = await fetch(`${SEFARIA_API_BASE_URL}/texts/${textRef.replace(/ /g, '_')}?context=1&commentary=0`);
+    if (!response.ok) {
+        console.error(`Failed to fetch text for ${textRef}: ${response.statusText}`);
+        return null;
+    }
+    const data = await response.json();
+    
+    return {
+      ref: data.ref,
+      book: data.book,
+      en: data.text || ['(No English translation available for this text.)'],
+      he: data.he || ['(No Hebrew text available.)'],
+    };
+  } catch (error) {
+    console.error(`Error fetching text content for ${textRef}:`, error);
+    return null;
+  }
+}
+EOL
+
+cat > src/components/icons.tsx << 'EOL'
+import React from 'react';
+
+export const HeartIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+);
+export const SendIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
+);
+export const AlertIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"></path></svg>
+);
+export const MicrophoneIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/></svg>
+);
+export const PasteIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M19 2h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
+);
+export const ChevronDownIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+);
+export const ChevronUpIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6 1.41 1.41z"/></svg>
+);
+export const CloseIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+);
+export const LightbulbIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
+);
+export const ListIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+);
+EOL
+
+cat > src/components/Loader.tsx << 'EOL'
+import React from 'react';
+import { HeartIcon } from '@/components/icons';
+
+const Loader: React.FC = () => {
+  return (
+    <div className="flex items-center self-start p-4">
+      <HeartIcon className="w-6 h-6 mr-3 flex-shrink-0 text-sky-500" />
+      <div className="flex items-center space-x-1">
+        <span className="w-2.5 h-2.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+        <span className="w-2.5 h-2.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+        <span className="w-2.5 h-2.5 bg-slate-400 rounded-full animate-bounce"></span>
+      </div>
+    </div>
+  );
+};
+export default Loader;
+EOL
+
+cat > src/components/ChatBubble.tsx << 'EOL'
+import React from 'react';
+import { Message } from '@/types';
+import { AlertIcon, HeartIcon, ListIcon } from '@/components/icons';
+
+interface ChatBubbleProps {
+  message: Message;
+  onSummarize: (text: string) => void;
+}
+
+const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onSummarize }) => {
+  const { text, sender, isSafetyMessage } = message;
+
+  const bubbleClasses = sender === 'user'
+    ? 'bg-sky-600 text-white self-end'
+    : 'bg-slate-700 text-slate-200 self-start shadow-md';
+  
+  const safetyClasses = 'border-2 border-red-500 bg-red-900/20 text-red-200';
+
+  const baseBubbleStyle = 'max-w-xl lg:max-w-3xl w-fit rounded-2xl p-4 mb-1 whitespace-pre-wrap leading-relaxed relative';
+
+  if (isSafetyMessage) {
+    return (
+      <div className={`${baseBubbleStyle} ${safetyClasses} flex items-start self-center`}>
+         <AlertIcon className="w-8 h-8 mr-4 flex-shrink-0 text-red-400" />
+        <p>{text}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex flex-col ${sender === 'user' ? 'items-end' : 'items-start'}`}>
+      <div className={`${baseBubbleStyle} ${bubbleClasses} flex items-start`}>
+        {sender === 'ai' && <HeartIcon className="w-6 h-6 mr-3 flex-shrink-0 text-sky-400" />}
+        <p>{text}</p>
+      </div>
+      {sender === 'ai' && text.length > 200 && (
+          <button 
+            onClick={() => onSummarize(text)}
+            className="flex items-center text-xs text-slate-400 hover:text-sky-300 transition-colors py-1 px-2 rounded-full bg-slate-700/50 hover:bg-slate-700 mb-3"
+          >
+            <ListIcon className="w-4 h-4 mr-1.5" />
+            Points Clés ✨
+          </button>
+      )}
+    </div>
+  );
+};
+export default ChatBubble;
+EOL
+
+cat > src/components/ChatInput.tsx << 'EOL'
+import React, { useState, useEffect, useRef } from 'react';
+import { MicrophoneIcon, SendIcon } from '@/components/icons';
+
+interface ChatInputProps {
+  onSend: (message: string) => void;
+  isLoading: boolean;
+  currentTextRef: string | null;
+}
+
+const ChatInput: React.FC<ChatInputProps> = ({ onSend, isLoading, currentTextRef }) => {
+  const [input, setInput] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  const isSpeechRecognitionSupported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+
+  useEffect(() => {
+    if (!isSpeechRecognitionSupported) return;
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognitionRef.current = new SpeechRecognitionAPI();
+    recognitionRef.current.continuous = false;
+    recognitionRef.current.lang = 'fr-FR';
+    recognitionRef.current.interimResults = false;
+
+    recognitionRef.current.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+    };
+
+    recognitionRef.current.onend = () => setIsListening(false);
+  }, [isSpeechRecognitionSupported]);
+
+  const handleToggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+    } else {
+      recognitionRef.current?.start();
+      setIsListening(true);
+    }
+  };
+
+  const handleSend = () => {
+    if (input.trim() && !isLoading) {
+      onSend(input.trim());
+      setInput('');
+    }
+  };
+
+  const placeholderText = currentTextRef 
+    ? `Posez une question sur "${currentTextRef}"...`
+    : "Posez une question générale...";
+
+  return (
+    <div className="bg-slate-800 p-4 border-t border-slate-700">
+      <div className="flex items-center bg-slate-900 border border-slate-600 rounded-full p-2 focus-within:ring-2 focus-within:ring-sky-500">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+          placeholder={placeholderText}
+          className="flex-1 bg-transparent text-slate-200 placeholder-slate-400 focus:outline-none px-4"
+          disabled={isLoading || isListening}
+        />
+        {isSpeechRecognitionSupported && (
+          <button
+            onClick={handleToggleListening}
+            className={`p-2 rounded-full transition-colors ${isListening ? 'text-red-500 animate-pulse' : 'text-slate-400 hover:text-white'}`}
+            aria-label="Enregistrer la voix"
+          >
+            <MicrophoneIcon className="w-6 h-6" />
+          </button>
+        )}
+        <button
+          onClick={handleSend}
+          disabled={isLoading || input.trim() === ''}
+          className="p-3 rounded-full text-white transition-colors duration-200 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-600 disabled:cursor-not-allowed ml-2"
+          aria-label="Envoyer le message"
+        >
+          <SendIcon className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  );
+};
+export default ChatInput;
+EOL
+
+cat > src/components/GuidanceCounselor.tsx << 'EOL'
+import React, { useState } from 'react';
+import { LightbulbIcon } from '@/components/icons';
+
+interface GuidanceCounselorProps {
+  onFindAdvice: (topic: string) => void;
+  isLoading: boolean;
+}
+
+const GuidanceCounselor: React.FC<GuidanceCounselorProps> = ({ onFindAdvice, isLoading }) => {
+  const [topic, setTopic] = useState('');
+
+  const handleFindAdviceClick = () => {
+    if (topic.trim()) {
+      onFindAdvice(topic.trim());
+      setTopic('');
+    }
+  };
+
+  return (
+    <div className="bg-slate-800/50 p-4 border-t border-slate-700">
+      <label htmlFor="guidance-input" className="text-sm font-semibold text-slate-300 mb-2 flex items-center">
+        <LightbulbIcon className="w-5 h-5 mr-2 text-amber-300" />
+        Trouver un Conseil Personnalisé ✨
+      </label>
+      <textarea
+        id="guidance-input"
+        value={topic}
+        onChange={(e) => setTopic(e.target.value)}
+        placeholder="Décrivez une situation, un sentiment, une question..."
+        className="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-all h-24 resize-none"
+        disabled={isLoading}
+      />
+      <button
+        onClick={handleFindAdviceClick}
+        disabled={isLoading || topic.trim() === ''}
+        className="mt-2 w-full bg-amber-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-amber-500 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors"
+      >
+        Obtenir un conseil
+      </button>
+    </div>
+  );
+};
+export default GuidanceCounselor;
+EOL
+
+cat > src/components/SnippetAnalyzer.tsx << 'EOL'
+import React, { useState } from 'react';
+import { PasteIcon } from '@/components/icons';
+
+interface SnippetAnalyzerProps {
+  onAnalyze: (snippet: string) => void;
+  isLoading: boolean;
+}
+
+const SnippetAnalyzer: React.FC<SnippetAnalyzerProps> = ({ onAnalyze, isLoading }) => {
+  const [snippet, setSnippet] = useState('');
+
+  const handleAnalyzeClick = () => {
+    if (snippet.trim()) {
+      onAnalyze(snippet.trim());
+      setSnippet('');
+    }
+  };
+
+  return (
+    <div className="bg-slate-800/50 p-4 border-t border-slate-700">
+      <label htmlFor="snippet-input" className="text-sm font-semibold text-slate-300 mb-2 flex items-center">
+        <PasteIcon className="w-5 h-5 mr-2" />
+        Analyser un extrait
+      </label>
+      <textarea
+        id="snippet-input"
+        value={snippet}
+        onChange={(e) => setSnippet(e.target.value)}
+        placeholder="Collez ici un texte ou un extrait pour obtenir une analyse ciblée..."
+        className="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all h-24 resize-none"
+        disabled={isLoading}
+      />
+      <button
+        onClick={handleAnalyzeClick}
+        disabled={isLoading || snippet.trim() === ''}
+        className="mt-2 w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-500 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors"
+      >
+        Analyser l'extrait
+      </button>
+    </div>
+  );
+};
+export default SnippetAnalyzer;
+EOL
+
+cat > src/components/TextViewer.tsx << 'EOL'
+import React, { useState, useEffect } from 'react';
+import { SefariaText, Language } from '@/types';
+import { CloseIcon } from '@/components/icons';
+
+interface TextViewerProps {
+  text: SefariaText;
+  onClose: () => void;
+  lang: Language;
+}
+
+const TextViewer: React.FC<TextViewerProps> = ({ text, onClose, lang }) => {
+  const [viewLang, setViewLang] = useState<Language>(lang === 'he' ? 'he' : 'en');
+
+  useEffect(() => {
+    setViewLang(lang === 'he' ? 'he' : 'en');
+  }, [lang, text]);
+
+  return (
+    <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700 p-4 flex-shrink-0 relative">
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-lg font-bold text-sky-300">{text.ref}</h3>
+        <div className="flex items-center">
+            <div className="flex items-center space-x-1 bg-slate-700 p-1 rounded-lg mr-4">
+                <button onClick={() => setViewLang('en')} className={`px-3 py-1 text-sm rounded-md ${viewLang === 'en' ? 'bg-sky-500 text-white' : 'text-slate-300'}`}>EN</button>
+                <button onClick={() => setViewLang('he')} className={`px-3 py-1 text-sm rounded-md ${viewLang === 'he' ? 'bg-sky-500 text-white' : 'text-slate-300'}`}>HE</button>
+            </div>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-700">
+                <CloseIcon className="w-6 h-6 text-slate-400" />
+            </button>
+        </div>
+      </div>
+      <div 
+        className="max-h-48 overflow-y-auto text-slate-300 text-sm leading-relaxed pr-2"
+        dir={viewLang === 'he' ? 'rtl' : 'ltr'}
+      >
+        {viewLang === 'en' ? text.en.join('\\n\\n') : text.he.join('\\n\\n')}
+      </div>
+    </div>
+  );
+};
+export default TextViewer;
+EOL
+
+cat > src/components/Header.tsx << 'EOL'
+import React from 'react';
+import { HeartIcon } from '@/components/icons';
+import { Language } from '@/types';
+
+interface HeaderProps {
+    isTtsEnabled: boolean;
+    onTtsToggle: (enabled: boolean) => void;
+    language: Language;
+    onLanguageChange: (lang: Language) => void;
+}
+
+const LanguageButton: React.FC<{
+  lang: Language;
+  currentLang: Language;
+  onClick: (lang: Language) => void;
+  children: React.ReactNode;
+}> = ({ lang, currentLang, onClick, children }) => (
+  <button
+    onClick={() => onClick(lang)}
+    className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${
+      currentLang === lang
+        ? 'bg-sky-500 text-white'
+        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+    }`}
+  >
+    {children}
+  </button>
+);
+
+const Header: React.FC<HeaderProps> = ({ isTtsEnabled, onTtsToggle, language, onLanguageChange }) => {
+  return (
+    <header className="bg-slate-800/50 backdrop-blur-sm shadow-lg w-full p-4 flex items-center justify-between sticky top-0 z-20">
+      <div className="flex items-center">
+        <HeartIcon className="w-8 h-8 text-sky-400 mr-3" />
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-100">Le Compagnon du Cœur</h1>
+      </div>
+      <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 bg-slate-800 p-1 rounded-lg">
+           <LanguageButton lang="fr" currentLang={language} onClick={onLanguageChange}>FR</LanguageButton>
+           <LanguageButton lang="en" currentLang={language} onClick={onLanguageChange}>EN</LanguageButton>
+           <LanguageButton lang="he" currentLang={language} onClick={onLanguageChange}>HE</LanguageButton>
+        </div>
+        <div className="hidden md:flex items-center space-x-2">
+           <span className="text-sm text-slate-400">Auto-Lecture</span>
+           <label htmlFor="tts-toggle" className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                id="tts-toggle" 
+                className="sr-only peer"
+                checked={isTtsEnabled}
+                onChange={(e) => onTtsToggle(e.target.checked)}
+              />
+              <div className="w-11 h-6 bg-slate-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-sky-500 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+           </label>
+        </div>
+      </div>
+    </header>
+  );
+};
+export default Header;
+EOL
+
+cat > src/components/LibrarySidebar.tsx << 'EOL'
+import React, { useState, useEffect } from 'react';
+import { getBreslovBookList, getBookSchema } from '@/services/sefariaService';
+import { SefariaIndexNode } from '@/types';
+import { ChevronDownIcon, ChevronUpIcon } from '@/components/icons';
+
+const AccordionItem: React.FC<{
+  node: SefariaIndexNode;
+  onSelectRef: (textRef: string) => void;
+  isLoadingText: boolean;
+  level: number;
+}> = ({ node, onSelectRef, isLoadingText, level }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const getChildren = (n: SefariaIndexNode | undefined): SefariaIndexNode[] => {
+      if (!n) return [];
+      if (n.contents) return n.contents;
+      if (n.nodes) return n.nodes;
+      if (n.schema && n.schema.nodes) return n.schema.nodes;
+      return [];
+  }
+
+  const children = getChildren(node);
+  const isClickableRef = node.ref && children.length === 0;
+
+  if (isClickableRef) {
+    return (
+      <li>
+        <button
+          onClick={() => onSelectRef(node.ref!)}
+          disabled={isLoadingText}
+          className={`w-full text-left p-2 transition-colors text-sm disabled:opacity-50`}
+          style={{ paddingLeft: `${level * 16 + 16}px` }}
+        >
+          <span className="text-slate-300 hover:text-white">{node.title}</span>
+        </button>
+      </li>
+    );
+  }
+  
+  if (children.length === 0) {
+      return null; 
+  }
+
+  return (
+    <li className="border-b border-slate-700/50">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex justify-between items-center text-left p-3 hover:bg-slate-700/50 transition-colors"
+        style={{ paddingLeft: `${level * 16 + 16}px` }}
+      >
+        <span className="font-semibold text-slate-200">{node.title}</span>
+        {isOpen ? (
+          <ChevronUpIcon className="w-5 h-5 text-slate-400" />
+        ) : (
+          <ChevronDownIcon className="w-5 h-5 text-slate-400" />
+        )}
+      </button>
+      {isOpen && (
+        <ul className="bg-slate-900/50">
+          {children.map((childNode, index) => (
+            <AccordionItem key={`${childNode.title}-${index}`} node={childNode} onSelectRef={onSelectRef} isLoadingText={isLoadingText} level={level + 1} />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+};
+
+const LibrarySidebar: React.FC<{
+  onSelectRef: (textRef: string) => void;
+  isLoadingText: boolean;
+}> = ({ onSelectRef, isLoadingText }) => {
+  const [breslovLibrary, setBreslovLibrary] = useState<SefariaIndexNode[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLibrary = async () => {
+      setIsLoading(true);
+      const bookList = await getBreslovBookList();
+      if (bookList && bookList.length > 0) {
+          const schemaPromises = bookList.map(book => getBookSchema(book.title));
+          const fullSchemas = await Promise.all(schemaPromises);
+          setBreslovLibrary(fullSchemas.filter(Boolean) as SefariaIndexNode[]);
+      }
+      setIsLoading(false);
+    };
+    fetchLibrary();
+  }, []);
+
+  return (
+    <aside className="w-96 bg-slate-800 flex-shrink-0 flex flex-col h-full border-r border-slate-700 hidden md:flex">
+      <div className="p-4 border-b border-slate-700">
+        <h2 className="text-xl font-bold text-white">Bibliothèque</h2>
+        <p className="text-sm text-slate-400">Explorez les enseignements.</p>
+      </div>
+      <div className="flex-grow overflow-y-auto">
+        {isLoading ? (
+            <div className="p-4 text-slate-400">Chargement de la bibliothèque...</div>
+        ) : (
+            <ul>
+                {breslovLibrary.map((bookNode, index) => (
+                    <AccordionItem key={`${bookNode.title}-${index}`} node={bookNode} onSelectRef={onSelectRef} isLoadingText={isLoadingText} level={0} />
+                ))}
+            </ul>
+        )}
+      </div>
+    </aside>
+  );
+};
+export default LibrarySidebar;
+EOL
+
+cat > src/ChatView.tsx << 'EOL'
+import React, { useRef, useEffect } from 'react';
+import { Message, SefariaText, Language } from '@/types';
+import Header from '@/components/Header';
+import ChatBubble from '@/components/ChatBubble';
+import Loader from '@/components/Loader';
+import SnippetAnalyzer from '@/components/SnippetAnalyzer';
+import GuidanceCounselor from '@/components/GuidanceCounselor';
+import ChatInput from '@/components/ChatInput';
+import TextViewer from '@/components/TextViewer';
+
+interface ChatViewProps {
+  messages: Message[];
+  isLoading: boolean;
+  onSendGeneralQuestion: (message: string) => void;
+  onAnalyzeSnippet: (snippet: string) => void;
+  onFindAdvice: (topic: string) => void;
+  onSummarize: (text: string) => void;
+  isTtsEnabled: boolean;
+  onTtsToggle: (enabled: boolean) => void;
+  language: Language;
+  onLanguageChange: (lang: Language) => void;
+  currentText: SefariaText | null;
+  onCloseTextViewer: () => void;
+}
+
+const ChatView: React.FC<ChatViewProps> = ({
+  messages,
+  isLoading,
+  onSendGeneralQuestion,
+  onAnalyzeSnippet,
+  onFindAdvice,
+  onSummarize,
+  isTtsEnabled,
+  onTtsToggle,
+  language,
+  onLanguageChange,
+  currentText,
+  onCloseTextViewer
+}) => {
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatContainerRef.current?.scrollTo({
+      top: chatContainerRef.current.scrollHeight,
+      behavior: 'smooth',
+    });
+  }, [messages, isLoading]);
+
+  return (
+    <main className="flex-1 flex flex-col h-screen bg-slate-900">
+      <Header 
+        isTtsEnabled={isTtsEnabled} 
+        onTtsToggle={onTtsToggle}
+        language={language}
+        onLanguageChange={onLanguageChange}
+      />
+      {currentText && <TextViewer text={currentText} onClose={onCloseTextViewer} lang={language} />}
+      <div ref={chatContainerRef} className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto">
+        {messages.map(msg => (
+          <ChatBubble key={msg.id} message={msg} onSummarize={onSummarize} />
+        ))}
+        {isLoading && <Loader />}
+      </div>
+      <div className="flex-shrink-0">
+        <GuidanceCounselor onFindAdvice={onFindAdvice} isLoading={isLoading} />
+        <SnippetAnalyzer onAnalyze={onAnalyzeSnippet} isLoading={isLoading} />
+        <ChatInput onSend={onSendGeneralQuestion} isLoading={isLoading} currentTextRef={currentText?.ref ?? null} />
+      </div>
+    </main>
+  );
+};
+export default ChatView;
+EOL
+
+cat > src/App.tsx << 'EOL'
+import React, { useState, useRef, useEffect } from 'react';
+import { ChatSession } from "@google/generative-ai";
+import { Message, SefariaText, Language } from '@/types';
+import { initChat } from '@/services/geminiService';
+import { getTextContent } from '@/services/sefariaService';
+import { useTTS } from '@/hooks/useTTS';
+import LibrarySidebar from '@/components/LibrarySidebar';
+import ChatView from '@/ChatView';
+
+const App: React.FC = () => {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 'init',
+      sender: 'ai',
+      text: 'Bonjour. Je suis le Compagnon du Cœur. Parcourez la bibliothèque ou posez-moi une question pour commencer.',
+    },
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isTtsEnabled, setIsTtsEnabled] = useState(true);
+  const [language, setLanguage] = useState<Language>('fr');
+  const [currentText, setCurrentText] = useState<SefariaText | null>(null);
+  const [isFetchingText, setIsFetchingText] = useState(false);
+
+  const chatRef = useRef<ChatSession | null>(null);
+  const { speak } = useTTS(isTtsEnabled, language);
+
+  useEffect(() => {
+    try {
+      chatRef.current = initChat();
+    } catch (error) {
+      console.error("Failed to initialize chat:", error);
+      setMessages(prev => [...prev, {
+          id: 'error-init',
+          sender: 'ai',
+          text: `Erreur: Impossible d'initialiser la session de chat. ${error instanceof Error ? error.message : 'Erreur inconnue.'}`,
+          isSafetyMessage: true,
+      }]);
+    }
+  }, []);
+
+  const processStream = async (prompt: string, onComplete?: (fullText: string) => void) => {
+    setIsLoading(true);
+    window.speechSynthesis.cancel();
+    
+    try {
+      if (!chatRef.current) throw new Error("Chat not initialized.");
+      
+      const result = await chatRef.current.sendMessageStream(prompt);
+      
+      let aiResponseText = '';
+      const aiMessageId = Date.now().toString() + '-ai';
+      setMessages(prev => [...prev, { id: aiMessageId, text: '', sender: 'ai' }]);
+      
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        aiResponseText += chunkText;
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === aiMessageId ? { ...msg, text: aiResponseText } : msg
+          )
+        );
+      }
+      setIsLoading(false);
+      if (onComplete) {
+        onComplete(aiResponseText);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setIsLoading(false);
+      setMessages(prev => [...prev, {
+        id: 'error-send',
+        sender: 'ai',
+        text: "Désolé, une erreur de communication est survenue. Veuillez réessayer.",
+        isSafetyMessage: true,
+      }]);
+    }
+  };
+
+  const addUserMessage = (text: string) => {
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      sender: 'user',
+      text: text,
+    };
+    setMessages(prev => [...prev, userMessage]);
+  };
+  
+  const handleSelectRef = async (textRef: string) => {
+      setIsFetchingText(true);
+      setCurrentText(null);
+      addUserMessage(`Analyse de "${textRef}"`);
+
+      const textContent = await getTextContent(textRef);
+      setIsFetchingText(false);
+
+      if (textContent) {
+        setCurrentText(textContent);
+        
+        const textToAnalyze = language === 'he' ? textContent.he.join('\\n') : textContent.en.join('\\n');
+        const prompt = \`
+[CONTEXTE PERTINENT]
+TEXTE COMPLET (\${textContent.ref}): "\${textToAnalyze}"
+---
+[INSTRUCTION]
+Analyse en profondeur le texte complet de l'enseignement fourni. Structure ton analyse : explique les concepts clés, les métaphores, la logique interne et l'application pratique de l'enseignement.
+        \`.trim();
+        
+        await processStream(prompt, speak);
+      } else {
+        setMessages(prev => [...prev, {
+          id: 'error-fetch-text',
+          sender: 'ai',
+          text: \`Désolé, impossible de charger le texte pour "\${textRef}".\`,
+          isSafetyMessage: true,
+        }]);
+      }
+  };
+
+  const handleSendGeneralQuestion = async (question: string) => {
+    addUserMessage(question);
+    await processStream(question, speak);
+  };
+  
+  const handleAnalyzeSnippet = async (snippet: string) => {
+    addUserMessage(\`Analyse cet extrait pour moi :\\n\\n"\${snippet}"\`);
+    const prompt = \`
+[CONTEXTE PERTINENT]
+EXTRAIT DE L'UTILISATEUR: "\${snippet}"
+---
+[INSTRUCTION]
+Concentre-toi uniquement sur l'extrait de texte fourni par l'utilisateur. Ton analyse doit suivre cet ordre: a. Explique les concepts présents dans cet extrait. b. Si tu reconnais cet extrait ou des idées similaires dans ta base de connaissance, indique les sources possibles. c. Propose des enseignements connexes de la bibliothèque qui permettraient d'approfondir la compréhension de cet extrait.
+    \`.trim();
+    
+    await processStream(prompt, speak);
+  };
+  
+  const handleFindAdvice = async (topic: string) => {
+      addUserMessage(\`Je cherche un conseil concernant : "\${topic}"\`);
+      const prompt = \`
+[CONTEXTE PERTINENT]
+SITUATION DE L'UTILISATEUR: "\${topic}"
+---
+[INSTRUCTION]
+Trouve un conseil pertinent dans les enseignements de Rabbi Nahman qui peut offrir réconfort ou perspective sur cette situation. Présente-le avec compassion, explique brièvement pourquoi il est pertinent, et cite la source.
+      \`.trim();
+      await processStream(prompt, speak);
+  };
+
+  const handleSummarize = async (textToSummarize: string) => {
+      addUserMessage(\`Peux-tu me résumer les points clés du message précédent ?\`);
+      const prompt = \`
+[CONTEXTE PERTINENT]
+TEXTE À RÉSUMER: "\${textToSummarize}"
+---
+[INSTRUCTION]
+Résume le texte suivant en une liste de 3 à 5 points clés maximum. Sois clair, concis, et va directement à l'essentiel.
+      \`.trim();
+      await processStream(prompt, speak);
+  };
+
+  return (
+    <div className="flex h-screen">
+      <LibrarySidebar onSelectRef={handleSelectRef} isLoadingText={isFetchingText} />
+      <ChatView
+        messages={messages}
+        isLoading={isLoading || isFetchingText}
+        onSendGeneralQuestion={handleSendGeneralQuestion}
+        onAnalyzeSnippet={handleAnalyzeSnippet}
+        onFindAdvice={handleFindAdvice}
+        onSummarize={handleSummarize}
+        isTtsEnabled={isTtsEnabled}
+        onTtsToggle={setIsTtsEnabled}
+        language={language}
+        onLanguageChange={setLanguage}
+        currentText={currentText}
+        onCloseTextViewer={() => setCurrentText(null)}
+      />
+    </div>
+  );
+};
+export default App;
+EOL
+
+echo "✅ --- Tous les fichiers ont été créés avec succès."
+
+```
+
+#### **Étape 3 : Installer les Dépendances**
+
+Une fois que le script a terminé, le terminal affichera `✅ --- Tous les fichiers ont été créés avec succès.`.
+Tapez maintenant la commande suivante dans le **`Shell`** et appuyez sur **Entrée** :
+
+```bash
+npm install
+```
+
+#### **Étape 4 : Lancer l'Application**
+
+Après l'installation, tapez la dernière commande dans le **`Shell`** :
+
+```bash
+npm run dev
+```
+
+Une fenêtre de prévisualisation (WebView) s'ouvrira dans Replit, affichant l'application fonctionnelle. La bibliothèque se chargera, et les clics sur les livres et les enseignements déclencheront les actions correctes.
+
+Cette fois-ci, c'est la bonne.
+**Na Naḥ Naḥma Naḥman Méouman.**

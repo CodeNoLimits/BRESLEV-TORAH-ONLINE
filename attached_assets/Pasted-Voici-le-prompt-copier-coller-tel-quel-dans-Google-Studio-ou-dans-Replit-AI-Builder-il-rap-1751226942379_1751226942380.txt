@@ -1,0 +1,104 @@
+Voici le **prompt à copier-coller tel quel** dans Google Studio (ou dans Replit AI Builder) ; il rappelle l’objectif, précise la logique de récupération **exhaustive** des textes Breslev sur Sefaria, et liste les exigences fonctionnelles & techniques.
+*(Tout est rédigé en langage naturel, sans code, pour qu’un agent génératif comprenne parfaitement la mission.)*
+
+---
+
+## PROMPT « COMPAGNON DU CŒUR – VERSION FINALE »
+
+**Mission :**
+Construire, à partir de zéro, **Le Compagnon du Cœur**, application web réactive (React + TypeScript) qui sert de guide spirituel interactif aux enseignements de Rabbi Naḥman de Breslev.
+
+---
+
+### 1 . Sources de données & couverture intégrale
+
+1. **Index Sefaria**
+
+   * Interroger `https://www.sefaria.org/api/index/`
+   * Dans la réponse JSON, trouver la catégorie racine **“Chasidut”**, puis la sous-catégorie **“Breslov”**.
+   * Parcourir récursivement tous les enfants possibles : clés `contents`, `nodes`, ou `schema.nodes` (certains livres utilisent `schema`).
+   * Pour chaque nœud :
+
+     * S’il possède un `ref` et **aucun** sous-nœud : c’est un texte final accessible.
+     * Sinon : continuer la récursion.
+   * **Objectif** : obtenir *100 %* des références Breslev (Likutei Moharan, Sippurei Maasiyot, Likutei Etzot, etc.). **Aucun livre ne doit être omis.**
+
+2. **Contenu des textes**
+
+   * Pour chaque `ref` sélectionné par l’utilisateur, appeler
+
+     ```
+     GET https://www.sefaria.org/api/texts/{ref}?context=1&commentary=0
+     ```
+
+     (remplacer les espaces par `_`).
+   * Renvoyer les champs `text` (anglais) et `he` (hébreu).
+   * Si une traduction manque, afficher un message de remplacement (« Pas de version EN », « Pas de version HE »).
+
+3. **Cache & robustesse**
+
+   * Mémoriser l’index complet dans `sessionStorage` ou `IndexedDB` (TTL : 24 h) pour éviter un fetch massif à chaque chargement.
+   * Loader / spinner durant le premier fetch.
+   * Gestion d’erreurs réseau (timeouts, 4xx/5xx) : bulles rouges de type “isSafetyMessage”.
+
+---
+
+### 2 . Fonctionnalités IA (Gemini)
+
+* **Clé API** fournie séparément (variable d’environnement).
+* Modes d’analyse :
+
+  1. **Étude Approfondie** (analyse immédiate du texte intégral sélectionné).
+  2. **Question Générale**.
+  3. **Analyse Ciblée sur Extrait** (textarea “Analyser un extrait”).
+  4. **Conseil Personnalisé** (module “Trouver un conseil ✨”).
+  5. **Résumé Points Clés** (bouton sous les longues réponses IA).
+* Streaming temps réel + synthèse vocale (TTS) bidirectionnelle.
+* Interrompre la lecture TTS si l’utilisateur envoie une nouvelle question.
+
+---
+
+### 3 . Interface utilisateur
+
+| Zone                     | Exigences                                                                                                                                                                     |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Header**               | Logo (cœur), sélecteur de langue **FR/EN/HE**, bascule “Auto-Lecture” (TTS).                                                                                                  |
+| **Sidebar Bibliothèque** | Affiche tout l’arbre Breslev (accordion récursif). Spinner tant que l’index n’est pas chargé. Chaque feuille déclenche Mode 1.                                                |
+| **Zone Chat**            | Bulles utilisateur (sky) / IA (slate) ; loader animé pendant le streaming ; bouton “Points Clés ✨” sous les longues réponses IA.                                              |
+| **Modules bas de page**  | • **GuidanceCounselor** (textarea “Décrivez une situation” → Mode 4)  <br>• **SnippetAnalyzer** (textarea “Coller un extrait” → Mode 3)  <br>• **ChatInput** (texte + micro). |
+| **Design**               | Sombre, police Inter ou Poppins, palette proche de **tikounaolam.com** : background `#0f172a`, éléments slate/sky/amber/teal. Hover doux, ombres subtiles, coins 2xl.         |
+| **Responsive**           | <768 px : sidebar masquée → bouton hamburger ouvrant un panneau coulissant.                                                                                                   |
+
+---
+
+### 4 . Étapes de construction recommandées
+
+1. **Initialiser** projet Vite React + TS + Tailwind.
+2. **Servir l’index HTML** minimal puis monter `<App />`.
+3. **Implémenter le service `sefariaService`** (fetch index + fetch text).
+4. **Construire la sidebar récursive** -> tester couverture complète.
+5. **Brancher le service Gemini** avec streaming & modes.
+6. **Modules interactifs** (snippet, guidance, résumé).
+7. **TTS + micro** via Web Speech API.
+8. **Design** (CSS utilitaires + classes Tailwind).
+9. **Tests** :
+
+   * Sélectionner plusieurs livres => analyse instantanée.
+   * Coller un extrait => réponse ciblée.
+   * Conseiller sur une situation => enseignement cité + source.
+   * Fonctionnement hors-ligne partiel (index en cache).
+10. **Déploiement** (Replit ou autre) + variables `.env`.
+
+---
+
+### 5 . Critères de réussite
+
+* **0 texte manquant** : audit manuel de la liste Sefaria vs app → concordance parfaite.
+* Temps de première réponse < 3 s (grâce au cache).
+* Aucune dépendance aux données codées en dur.
+* UI conforme à la maquette (look & feel tikounaolam.com).
+* Accessibilité : contrastes AA, labels ARIA sur micro & TTS.
+
+---
+
+**Na Naḥ Naḥma Naḥman Méouman** – Que cette application diffuse pleinement la lumière de Rabbénou et de Saba !

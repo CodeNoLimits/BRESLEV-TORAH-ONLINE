@@ -1,0 +1,47 @@
+Absolument. Voici la description complète et détaillée de l'application "Le Compagnon du Cœur", expliquée en langage humain, sans une seule ligne de code.
+
+---
+
+### **Concept Global : Qu'est-ce que "Le Compagnon du Cœur" ?**
+
+Imaginez un guide spirituel personnel, un expert des enseignements profonds de la Hassidout de Breslev, disponible 24h/24. C'est exactement le but de "Le Compagnon du Cœur". Ce n'est pas simplement une application pour lire des textes ; c'est un partenaire d'étude interactif conçu pour rendre la sagesse de Rabbi Nahman de Breslev accessible, personnelle et vivante.
+
+L'application est construite autour de deux piliers : une **bibliothèque complète** pour l'exploration et un **compagnon intelligent (une IA)** pour la conversation et l'analyse.
+
+### **Partie 1 : La Bibliothèque - La Porte d'Entrée vers la Sagesse**
+
+Le côté gauche de l'écran est dédié à la bibliothèque. C'est votre portail pour accéder à l'ensemble des enseignements.
+
+* **Une Bibliothèque Toujours à Jour :** Au lieu d'avoir une liste de livres fixe, l'application se connecte directement à Sefaria, la plus grande bibliothèque juive en ligne. Elle demande dynamiquement : "Donne-moi tous les ouvrages de la catégorie Breslov". Cela garantit que la bibliothèque est toujours complète et à jour.
+* **Navigation Intuitive :** La bibliothèque est présentée comme un grand menu en accordéon. Vous voyez d'abord les titres des grands ouvrages (comme *Likoutey Moharan*, *Sippurei Maasiyot*, etc.). En cliquant sur un titre, le menu se déplie pour révéler sa table des matières : les leçons, les chapitres ou les contes qu'il contient.
+* **Le Début de l'Étude :** Lorsque vous trouvez un enseignement qui vous intéresse et que vous cliquez dessus, vous ne faites pas que l'ouvrir. Vous lancez une interaction profonde avec le compagnon IA.
+
+### **Partie 2 : Le Compagnon - Votre Partenaire d'Étude Intelligent**
+
+Le côté droit de l'écran est l'espace de conversation. C'est ici que l'intelligence artificielle, propulsée par l'API Gemini de Google, entre en jeu. Le compagnon ne se contente pas de répondre ; il comprend le *contexte* de votre demande et opère selon plusieurs modes spécialisés.
+
+* **Mode 1 : L'Étude Approfondie**
+    * **Déclenchement :** Automatiquement, lorsque vous cliquez sur un enseignement dans la bibliothèque.
+    * **Action :** L'application affiche le texte complet de l'enseignement pour que vous puissiez le lire. Simultanément, elle envoie ce même texte à l'IA avec l'instruction : "Analyse ce texte en profondeur". Le compagnon vous fournit alors une explication riche des concepts, des métaphores et des leçons pratiques contenues exclusivement dans ce passage.
+
+* **Mode 2 : L'Exploration Synthétique**
+    * **Déclenchement :** Lorsque vous posez une question générale dans la barre de chat principale.
+    * **Action :** Vous pouvez demander, par exemple, "Comment puis-je trouver de la joie dans les moments difficiles selon Rabbi Nahman ?". Le compagnon puise alors dans sa connaissance globale de tous les enseignements de Breslev pour construire une réponse complète, en faisant des liens entre différentes sources.
+
+* **Mode 3 : L'Analyse Ciblée**
+    * **Déclenchement :** En utilisant la zone de texte "Analyser un extrait".
+    * **Action :** Vous pouvez copier-coller un passage que vous avez trouvé ailleurs (un email, un autre site, etc.). L'IA se concentre alors uniquement sur cet extrait pour vous l'expliquer, tenter d'identifier sa source, et vous suggérer d'autres textes similaires dans la bibliothèque pour approfondir.
+
+* **Mode 4 : Le Conseil Personnalisé (La Fonction "Cœur")**
+    * **Déclenchement :** En utilisant le module "Trouver un Conseil Personnalisé".
+    * **Action :** C'est la fonction la plus personnelle. Vous ne posez pas une question académique, mais vous décrivez une situation : "Je me sens dépassé par mon travail cette semaine" ou "J'ai du mal à pardonner à un ami". L'IA agit alors avec compassion. Elle recherche dans les enseignements un conseil, une histoire ou une perspective qui résonne avec votre situation personnelle et vous le présente de manière réconfortante.
+
+### **Partie 3 : Les Outils pour Améliorer l'Expérience**
+
+Au-delà des modes de discussion, l'application est dotée de fonctionnalités pour rendre l'interaction plus fluide et utile.
+
+* **Le Résumé "Points Clés" :** Les réponses de l'IA peuvent être longues. Sous chaque réponse apparaît un bouton "Points Clés". Un clic, et l'IA résume sa propre réponse en une liste de 3 à 5 points essentiels, pour vous aider à retenir le message principal.
+* **La Voix du Compagnon :** Un interrupteur "Auto-Lecture" vous permet d'activer la synthèse vocale. Chaque réponse de l'IA vous sera alors lue à voix haute, transformant l'interaction en une véritable conversation.
+* **Une Application Multilingue :** Vous pouvez à tout moment basculer l'interface et la langue des réponses de l'IA entre le Français, l'Anglais et l'Hébreu, pour une expérience véritablement internationale.
+
+En somme, "Le Compagnon du Cœur" est conçu pour être un pont vivant entre une sagesse ancestrale et les questionnements de la vie moderne, en utilisant le meilleur de la technologie pour créer une expérience d'étude profondément personnelle et interactive.

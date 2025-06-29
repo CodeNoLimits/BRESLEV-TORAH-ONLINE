@@ -1,0 +1,100 @@
+---
+
+## Page-guide (sans code) pour bâtir **« Le Compagnon du Cœur »**
+
+### 1. Vision
+
+* **But** : offrir un compagnon d’étude et de conseil fondé exclusivement sur les enseignements de Rabbi Naḥman de Breslev.
+* **Expérience voulue** : l’utilisateur explore la bibliothèque Breslev, clique sur un texte → reçoit aussitôt une analyse profonde ; il peut aussi poser une question libre, coller un extrait à commenter, demander un conseil personnel ou un résumé-points-clés. Tout s’affiche dans la langue de la question (FR/EN/HE) et peut être lu à voix haute.
+
+### 2. Architecture générale (100 % front-end)
+
+| Couche      | Rôle                                                                                                                          | Technologies                                 |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| **Données** | Requêter l’API publique Sefaria, filtrer `Chasidut › Breslov` et récupérer textes                                             | `fetch()` REST                               |
+| **IA**      | Lancer un chat **Gemini 1.5-flash** avec un *prompt système* structuré en 5 modes (étude, synthèse, extrait, conseil, résumé) | SDK `@google/generative-ai`                  |
+| **UI**      | Afficher : sidebar arborescente, zone de chat, modules d’analyse et de conseil, lecteur TTS, reconnaissance vocale            | React 18, Tailwind CSS (CDN), Web Speech API |
+
+> Aucune compilation serveur : un fichier `index.html` + modules ES importés suffit (idéal Replit, GitHub Pages ou Netlify).
+
+### 3. Flux principal
+
+1. **Initialisation**
+
+   * Charger Tailwind et React via CDN/import map.
+   * Lire la variable d’environnement `GEMINI_API_KEY`.
+   * Créer la session Gemini avec le *prompt système*.
+
+2. **Chargement de la bibliothèque**
+
+   * `GET https://www.sefaria.org/api/index/`
+   * parcourir l’objet JSON → trouver `category === "Chasidut"` puis `contents…category === "Breslov"`.
+   * Construire une arborescence récursive (livres → chapitres → sections).
+   * Afficher dans la **sidebar** ; chaque nœud cliquable ouvre/ferme ; les feuilles déclenchent la suite.
+
+3. **Analyse d’un texte**
+
+   * Au clic feuille : `GET /api/texts/<Ref>?context=1&commentary=0`.
+   * Préparer le **Prompt Mode 1** :
+
+     ```
+     [CONTEXTE PERTINENT]
+     TEXTE COMPLET (Ref) : "…"
+     ---
+     [INSTRUCTION]
+     Analyse en profondeur…
+     ```
+   * Envoyer par `sendMessageStream`, afficher la réponse chunk par chunk dans le chat, jouer l’audio via TTS si activé.
+
+4. **Questions libres / Extrait / Conseil / Résumé**
+
+   * Selon le composant déclencheur (input chat, textarea extrait, textarea conseil, bouton résumé) formater l’un des 4 autres prompts.
+   * Envoyer, afficher, éventuellement prononcer.
+
+### 4. Composants clés
+
+* **Header** : logo cœur, sélecteur de langue, interrupteur TTS.
+* **LibrarySidebar** : liste repliable, scrollable ; titres traduits via prop `language`.
+* **ChatView** :
+
+  * Chat bubbles (IA ↔ utilisateur) avec option « Points Clés » si > 200 car.
+  * Modules :
+
+    * *SnippetAnalyzer* (analyse d’un extrait)
+    * *GuidanceCounselor* (conseil personnalisé)
+    * *ChatInput* (texte + micro)
+* **TextViewer** : volet top montrant le texte brut (EN/HE toggle).
+* **Loader** : trois points animés + icône cœur.
+* **useTTS** : hook qui précharge les voix, lit la réponse dans la bonne langue.
+
+### 5. Style & UX
+
+* Palette Slate/Turquoise façon **tikounaolam.com** :
+
+  * Fond #0f172a, textes #e2e8f0, accents #0ea5e9 (sky-500) et #38bdf8 (sky-400).
+* Cartes et bulles : coins 2xl, ombres douces, espacements généreux.
+* Transitions Tailwind (`transition-colors`, `hover:bg-…`) partout.
+* Scrollbar personnalisée en CSS.
+* Responsive : sidebar masquée < 768 px ; menu burger facultatif.
+
+### 6. Sécurité & quotas
+
+* Clé Gemini **jamais** en clair : utiliser variables d’environnement (Replit : Secrets, Netlify : Environment Variables).
+* Sefaria n’exige pas de clé mais limiter le rafraîchissement d’index.
+* Activer `window.speechSynthesis.cancel()` avant chaque lecture pour éviter la superposition d’audios.
+
+### 7. Checklist de déploiement
+
+1. Coller les fichiers (HTML, CSS, JS/JSX modules).
+2. Renseigner `GEMINI_API_KEY`.
+3. Tester :
+
+   * Chargement liste Breslev → OK ?
+   * Analyse d’un texte (stream) → OK ?
+   * Question libre, résumé, conseil → réponses cohérentes et multilingues.
+   * TTS et micro → fonctionnels.
+4. Publier le Repl / Netlify ; partager l’URL.
+
+---
+
+*Avec ces directives textuelles, tu disposes de la carte complète pour (re)construire l’application sans copier une ligne de code dans la conversation. Bonne édification — Na Naḥ Naḥma Naḥman Méouman.*
