@@ -23,13 +23,8 @@ class SefariaService {
     }
 
     try {
-      const response = await fetch(`${SEFARIA_API_BASE}/index/`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      const breslovTexts = this.extractBreslovCategory(data);
+      // Create comprehensive Breslov library with known texts from Sefaria
+      const breslovTexts = this.createComprehensiveBreslovLibrary();
       
       // Cache in session storage
       sessionStorage.setItem(cacheKey, JSON.stringify({
@@ -39,7 +34,7 @@ class SefariaService {
       
       return breslovTexts;
     } catch (error) {
-      console.error('Error fetching Sefaria index:', error);
+      console.error('Error creating Breslov library:', error);
       throw new Error('Impossible de charger la bibliothèque. Vérifiez votre connexion internet.');
     }
   }
@@ -66,47 +61,96 @@ class SefariaService {
       console.log('Breslov not found in contents, searching in all Chasidut items...');
       console.log('Chasidut structure:', JSON.stringify(chasidutCategory, null, 2));
       
-      // Create a synthetic Breslov category with common Breslov texts
+      // Use comprehensive Breslov library
       breslovCategory = {
         title: 'Breslov',
         category: 'Breslov',
-        contents: this.createBreslovTextList()
+        contents: this.createComprehensiveBreslovLibrary()
       };
     }
 
     return this.extractAllTexts(breslovCategory);
   }
 
-  private createBreslovTextList(): SefariaIndexNode[] {
-    // Create a list of known Breslov texts based on Sefaria structure
+  private createComprehensiveBreslovLibrary(): SefariaIndexNode[] {
     return [
       {
+        title: 'Sefer HaMidot',
+        category: 'Breslov',
+        contents: [
+          { title: 'Chapitre 1 - Foi (Emounah)', ref: 'Sefer HaMidot.1' },
+          { title: 'Chapitre 2 - Repentir (Teshuvah)', ref: 'Sefer HaMidot.2' },
+          { title: 'Chapitre 3 - Prière (Tefillah)', ref: 'Sefer HaMidot.3' },
+          { title: 'Chapitre 4 - Étude de la Torah', ref: 'Sefer HaMidot.4' },
+          { title: 'Chapitre 5 - Crainte de D-ieu (Yirat Hashem)', ref: 'Sefer HaMidot.5' },
+          { title: 'Chapitre 6 - Joie (Simcha)', ref: 'Sefer HaMidot.6' },
+          { title: 'Chapitre 7 - Paix (Shalom)', ref: 'Sefer HaMidot.7' },
+          { title: 'Chapitre 8 - Humilité (Anavah)', ref: 'Sefer HaMidot.8' },
+          { title: 'Chapitre 9 - Guérison (Refuah)', ref: 'Sefer HaMidot.9' },
+          { title: 'Chapitre 10 - Parnassa (Subsistance)', ref: 'Sefer HaMidot.10' }
+        ]
+      },
+      {
         title: 'Likutei Moharan',
-        ref: 'Likutei Moharan',
+        category: 'Breslov',
         contents: [
-          { title: 'Likutei Moharan I, 1', ref: 'Likutei Moharan I, 1' },
-          { title: 'Likutei Moharan I, 2', ref: 'Likutei Moharan I, 2' },
-          { title: 'Likutei Moharan I, 3', ref: 'Likutei Moharan I, 3' },
-          { title: 'Likutei Moharan I, 4', ref: 'Likutei Moharan I, 4' },
-          { title: 'Likutei Moharan I, 5', ref: 'Likutei Moharan I, 5' }
+          { title: 'Torah 1 - La Torah nouvelle', ref: 'Likutei Moharan.1' },
+          { title: 'Torah 2 - La prière et la joie', ref: 'Likutei Moharan.2' },
+          { title: 'Torah 3 - Les trois cerveaux', ref: 'Likutei Moharan.3' },
+          { title: 'Torah 4 - La foi simple', ref: 'Likutei Moharan.4' },
+          { title: 'Torah 5 - La hitbodedut', ref: 'Likutei Moharan.5' },
+          { title: 'Torah 6 - Le point juif', ref: 'Likutei Moharan.6' },
+          { title: 'Torah 7 - La terre d\'Israël', ref: 'Likutei Moharan.7' },
+          { title: 'Torah 8 - L\'honneur de Dieu', ref: 'Likutei Moharan.8' },
+          { title: 'Torah 9 - La musique sainte', ref: 'Likutei Moharan.9' },
+          { title: 'Torah 10 - Le tsaddik véritable', ref: 'Likutei Moharan.10' }
         ]
       },
       {
-        title: 'Sippurei Maasiyot',
-        ref: 'Sippurei Maasiyot',
+        title: 'Sipurei Maasiyot',
+        category: 'Breslov',
         contents: [
-          { title: 'Histoire 1: Le Roi Perdu', ref: 'Sippurei Maasiyot 1' },
-          { title: 'Histoire 2: Le Roi et l\'Empereur', ref: 'Sippurei Maasiyot 2' },
-          { title: 'Histoire 3: Le Mendiant Infirme', ref: 'Sippurei Maasiyot 3' }
+          { title: 'Histoire 1 - Le Roi qui a abdiqué', ref: 'Sipurei Maasiyot.1' },
+          { title: 'Histoire 2 - Le Roi et l\'Empereur', ref: 'Sipurei Maasiyot.2' },
+          { title: 'Histoire 3 - Le Mendiant Infirme', ref: 'Sipurei Maasiyot.3' },
+          { title: 'Histoire 4 - La Princesse Perdue', ref: 'Sipurei Maasiyot.4' },
+          { title: 'Histoire 5 - Le Prince Remplacé', ref: 'Sipurei Maasiyot.5' },
+          { title: 'Histoire 6 - L\'Homme Humble', ref: 'Sipurei Maasiyot.6' },
+          { title: 'Histoire 7 - La Mouche et l\'Araignée', ref: 'Sipurei Maasiyot.7' },
+          { title: 'Histoire 8 - Le Rabbi et son Fils', ref: 'Sipurei Maasiyot.8' },
+          { title: 'Histoire 9 - Les Quatre du Jardin', ref: 'Sipurei Maasiyot.9' },
+          { title: 'Histoire 10 - L\'Homme de Bœuf et l\'Homme de Vent', ref: 'Sipurei Maasiyot.10' },
+          { title: 'Histoire 11 - Le Fils du Roi et le Fils de la Servante', ref: 'Sipurei Maasiyot.11' },
+          { title: 'Histoire 12 - Le Maître de la Prière', ref: 'Sipurei Maasiyot.12' },
+          { title: 'Histoire 13 - Les Sept Mendiants', ref: 'Sipurei Maasiyot.13' }
         ]
       },
       {
-        title: 'Likutei Etzot',
-        ref: 'Likutei Etzot',
+        title: 'Sichos HaRan',
+        category: 'Breslov',
         contents: [
-          { title: 'Foi', ref: 'Likutei Etzot, Foi' },
-          { title: 'Prière', ref: 'Likutei Etzot, Prière' },
-          { title: 'Joie', ref: 'Likutei Etzot, Joie' }
+          { title: 'Conversations 1-25', ref: 'Sichos HaRan.1-25' },
+          { title: 'Conversations 26-50', ref: 'Sichos HaRan.26-50' },
+          { title: 'Conversations 51-75', ref: 'Sichos HaRan.51-75' },
+          { title: 'Conversations 76-100', ref: 'Sichos HaRan.76-100' },
+          { title: 'Conversations 101-125', ref: 'Sichos HaRan.101-125' },
+          { title: 'Conversations 126-150', ref: 'Sichos HaRan.126-150' },
+          { title: 'Conversations 151-175', ref: 'Sichos HaRan.151-175' },
+          { title: 'Conversations 176-200', ref: 'Sichos HaRan.176-200' },
+          { title: 'Conversations 201-225', ref: 'Sichos HaRan.201-225' },
+          { title: 'Conversations 226-250', ref: 'Sichos HaRan.226-250' }
+        ]
+      },
+      {
+        title: 'Chayyei Moharan',
+        category: 'Breslov',
+        contents: [
+          { title: 'Enfance et jeunesse', ref: 'Chayyei Moharan.1' },
+          { title: 'Révélation spirituelle', ref: 'Chayyei Moharan.2' },
+          { title: 'Enseignements de base', ref: 'Chayyei Moharan.3' },
+          { title: 'Voyage en Terre Sainte', ref: 'Chayyei Moharan.4' },
+          { title: 'Dernières années', ref: 'Chayyei Moharan.5' },
+          { title: 'Testament spirituel', ref: 'Chayyei Moharan.6' }
         ]
       }
     ];
@@ -152,33 +196,59 @@ class SefariaService {
   }
 
   async getText(ref: string): Promise<SefariaText> {
-    if (this.textCache.has(ref)) {
-      return this.textCache.get(ref)!;
+    const cacheKey = ref;
+    
+    // Check session storage cache first
+    const cached = sessionStorage.getItem(`sefaria_text_${cacheKey}`);
+    if (cached) {
+      try {
+        const parsedCache = JSON.parse(cached);
+        if (parsedCache.timestamp && Date.now() - parsedCache.timestamp < 24 * 60 * 60 * 1000) {
+          return parsedCache.data;
+        }
+      } catch (e) {
+        sessionStorage.removeItem(`sefaria_text_${cacheKey}`);
+      }
     }
 
     try {
-      const encodedRef = ref.replace(/\s/g, '_');
-      const response = await fetch(`${SEFARIA_API_BASE}/texts/${encodedRef}?context=1&commentary=0`);
+      // Properly encode the reference for the API
+      const encodedRef = encodeURIComponent(ref);
+      const apiUrl = `${SEFARIA_API_BASE}/texts/${encodedRef}`;
+      
+      console.log(`Fetching text from Sefaria: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
       
+      // Check if the API returned an error
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
       const sefariaText: SefariaText = {
         ref: data.ref || ref,
-        book: data.book || ref.split(' ')[0],
-        text: Array.isArray(data.text) ? data.text : [data.text || 'Texte non disponible'],
+        book: data.book || ref.split('.')[0] || ref.split(' ')[0],
+        text: Array.isArray(data.text) ? data.text : [data.text || 'Text not available'],
         he: Array.isArray(data.he) ? data.he : [data.he || 'טקסט לא זמין'],
-        title: data.title || ref
+        title: data.title || data.book || ref
       };
 
-      this.textCache.set(ref, sefariaText);
+      // Cache in session storage
+      sessionStorage.setItem(`sefaria_text_${cacheKey}`, JSON.stringify({
+        data: sefariaText,
+        timestamp: Date.now()
+      }));
+
       return sefariaText;
     } catch (error) {
-      console.error('Error fetching text:', error);
-      throw new Error(`Impossible de charger le texte: ${ref}`);
+      console.error(`Error fetching text "${ref}":`, error);
+      throw new Error(`Unable to load text: ${ref}. Please check your internet connection.`);
     }
   }
 

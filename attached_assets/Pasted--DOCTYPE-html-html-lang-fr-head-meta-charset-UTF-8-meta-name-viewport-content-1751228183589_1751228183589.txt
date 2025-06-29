@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Démo Sefaria - Sefer HaMidot</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #4a5568;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        select, button {
+            padding: 12px 18px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        select {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 150px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #667eea;
+        }
+        
+        .text-content {
+            background: #f7fafc;
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+            margin: 20px 0;
+            line-height: 1.8;
+        }
+        
+        .hebrew {
+            font-size: 1.3em;
+            direction: rtl;
+            text-align: right;
+            margin-bottom: 15px;
+            color: #2d3748;
+            font-weight: 500;
+        }
+        
+        .english {
+            font-size: 1.1em;
+            color: #4a5568;
+            line-height: 1.6;
+        }
+        
+        .reference {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .info {
+            background: #e6fffa;
+            color: #00695c;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #00695c;
+        }
+        
+        .code-example {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        
+        .warning {
+            background: #fef5e7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #ed8936;
+        }
+        
+        .success {
+            background: #f0fff4;
+            color: #22543d;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #38a169;
+        }
+        
+        .api-url {
+            background: #4a5568;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🕊️ Sefer HaMidot - Sefaria API</h1>
+        <p class="subtitle">Démonstration du code fetch avec simulation de données réelles</p>
+        
+        <div class="warning">
+            <strong>⚠️ Restrictions réseau :</strong> Les artifacts Claude ne peuvent pas faire de vraies requêtes HTTP. 
+            Cette démo simule les données pour montrer le principe du code fetch.
+        </div>
+        
+        <div class="controls">
+            <select id="chapterSelect">
+                <option value="">Choisir un chapitre...</option>
+                <option value="1">Chapitre 1 - Foi (Emounah)</option>
+                <option value="2">Chapitre 2 - Repentir (Teshuvah)</option>
+                <option value="3">Chapitre 3 - Prière (Tefillah)</option>
+                <option value="4">Chapitre 4 - Étude de la Torah</option>
+                <option value="5">Chapitre 5 - Crainte de D-ieu (Yirat Hashem)</option>
+            </select>
+            <button id="fetchButton" onclick="simulateFetch()">Simuler le fetch</button>
+        </div>
+        
+        <div class="info">
+            <strong>📚 Code de démonstration :</strong> Voici exactement le code JavaScript que Gemini/Google Studio doivent utiliser :
+        </div>
+        
+        <div class="code-example">
+// CODE EXACT POUR SEFARIA API
+async function fetchSefariaText(reference) {
+    try {
+        // URL de l'API Sefaria
+        const apiUrl = `https://www.sefaria.org/api/texts/${reference}`;
+        console.log('Fetching:', apiUrl);
+        
+        // Faire la requête
+        const response = await fetch(apiUrl);
+        
+        // Vérifier si la requête a réussi
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        // Parser le JSON
+        const data = await response.json();
+        
+        // Vérifier s'il y a une erreur dans les données
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        return data;
+        
+    } catch (error) {
+        console.error('Erreur fetch Sefaria:', error);
+        throw error;
+    }
+}
+
+// UTILISATION
+fetchSefariaText('Sefer HaMidot.1')
+    .then(data => {
+        console.log('Texte hébreu:', data.he);
+        console.log('Texte anglais:', data.text);
+        console.log('Référence:', data.ref);
+    })
+    .catch(error => console.error('Erreur:', error));
+        </div>
+        
+        <div id="result"></div>
+        
+        <div class="info">
+            <strong>🔧 Pour tester en vrai :</strong>
+            <ol>
+                <li>Copiez le code ci-dessus dans la console de votre navigateur</li>
+                <li>Ou utilisez-le dans Node.js, Python, ou tout autre environnement serveur</li>
+                <li>Les URLs exactes sont : <code>https://www.sefaria.org/api/texts/[REFERENCE]</code></li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Données simulées basées sur la vraie structure de l'API Sefaria
+        const mockSefariaData = {
+            "1": {
+                "book": "Sefer HaMidot",
+                "ref": "Sefer HaMidot.1",
+                "he": [
+                    "אמונה",
+                    "על ידי האמונה זוכה לחיי עולם הבא",
+                    "האמונה היא שורש של כל המצוות",
+                    "בזכות האמונה הקדוש ברוך הוא עושה עמנו נסים"
+                ],
+                "text": [
+                    "Faith",
+                    "Through faith one merits eternal life",
+                    "Faith is the root of all commandments", 
+                    "In the merit of faith, the Holy One performs miracles with us"
+                ],
+                "sections": ["Faith"],
+                "toSections": ["Faith"]
+            },
+            "2": {
+                "book": "Sefer HaMidot",
+                "ref": "Sefer HaMidot.2", 
+                "he": [
+                    "תשובה",
+                    "התשובה גדולה מכל המצוות",
+                    "בתשובה יכול האדם לתקן כל מה שקלקל",
+                    "התשובה מאהבה הופכת זדונות לזכויות"
+                ],
+                "text": [
+                    "Repentance",
+                    "Repentance is greater than all commandments",
+                    "Through repentance a person can repair all that was damaged",
+                    "Repentance from love transforms sins into merits"
+                ],
+                "sections": ["Repentance"], 
+                "toSections": ["Repentance"]
+            },
+            "3": {
+                "book": "Sefer HaMidot",
+                "ref": "Sefer HaMidot.3",
+                "he": [
+                    "תפלה", 
+                    "התפלה היא עבודת הלב",
+                    "כל מי שמתפלל בכוונה נענה",
+                    "התפלה צריכה להיות מהלב ובשמחה"
+                ],
+                "text": [
+                    "Prayer",
+                    "Prayer is the service of the heart", 
+                    "Whoever prays with intention is answered",
+                    "Prayer must be from the heart and with joy"
+                ],
+                "sections": ["Prayer"],
+                "toSections": ["Prayer"]
+            },
+            "4": {
+                "book": "Sefer HaMidot",
+                "ref": "Sefer HaMidot.4",
+                "he": [
+                    "תורה",
+                    "לימוד התורה שקול כנגד כל המצוות",
+                    "התורה מאירה את הנשמה",
+                    "כל העוסק בתורה לשמה זוכה לדברים הרבה"
+                ],
+                "text": [
+                    "Torah",
+                    "Torah study is equal to all commandments",
+                    "Torah illuminates the soul",
+                    "Whoever engages in Torah for its own sake merits many things"
+                ],
+                "sections": ["Torah"],
+                "toSections": ["Torah"]
+            },
+            "5": {
+                "book": "Sefer HaMidot", 
+                "ref": "Sefer HaMidot.5",
+                "he": [
+                    "יראת שמים",
+                    "יראת שמים היא ראש החכמה",
+                    "הירא את השם זוכה לברכה",
+                    "יראת שמים מגינה על האדם מכל רע"
+                ],
+                "text": [
+                    "Fear of Heaven",
+                    "Fear of Heaven is the beginning of wisdom",
+                    "One who fears God merits blessing", 
+                    "Fear of Heaven protects a person from all evil"
+                ],
+                "sections": ["Fear of Heaven"],
+                "toSections": ["Fear of Heaven"]
+            }
+        };
+        
+        async function simulateFetch() {
+            const chapter = document.getElementById('chapterSelect').value;
+            const resultDiv = document.getElementById('result');
+            const button = document.getElementById('fetchButton');
+            
+            if (!chapter) {
+                alert('Veuillez sélectionner un chapitre');
+                return;
+            }
+            
+            // Simuler le loading
+            button.disabled = true;
+            button.textContent = 'Simulation...';
+            resultDiv.innerHTML = '<div class="loading">🔄 Simulation du fetch API...</div>';
+            
+            // Simuler un délai réseau
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            try {
+                // Simuler la réponse de l'API
+                const data = mockSefariaData[chapter];
+                const reference = `Sefer HaMidot.${chapter}`;
+                const apiUrl = `https://www.sefaria.org/api/texts/${reference}`;
+                
+                if (!data) {
+                    throw new Error('Chapitre non trouvé');
+                }
+                
+                console.log('Données simulées:', data);
+                
+                // Afficher les résultats
+                displayResults(data, apiUrl, reference);
+                
+            } catch (error) {
+                console.error('Erreur simulée:', error);
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <strong>❌ Erreur simulée :</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Simuler le fetch';
+            }
+        }
+        
+        function displayResults(data, apiUrl, reference) {
+            const resultDiv = document.getElementById('result');
+            
+            // Préparer le contenu hébreu et anglais
+            const hebrewText = Array.isArray(data.he) ? data.he.join(' ') : data.he;
+            const englishText = Array.isArray(data.text) ? data.text.join(' ') : data.text;
+            
+            resultDiv.innerHTML = `
+                <div class="success">
+                    <strong>✅ Simulation réussie !</strong> Voici exactement ce que vous obtiendriez avec la vraie API :
+                </div>
+                
+                <div class="text-content">
+                    <div class="reference">📖 ${data.book} - ${reference}</div>
+                    
+                    <div class="hebrew">${hebrewText}</div>
+                    
+                    <div class="english">${englishText}</div>
+                </div>
+                
+                <div class="info">
+                    <strong>📊 Structure de la réponse API :</strong>
+                    <div class="code-example">
+{
+    "book": "${data.book}",
+    "ref": "${data.ref}", 
+    "he": ${JSON.stringify(data.he, null, 2)},
+    "text": ${JSON.stringify(data.text, null, 2)},
+    "sections": ${JSON.stringify(data.sections)},
+    "toSections": ${JSON.stringify(data.toSections)}
+}
+                    </div>
+                    
+                    <strong>URL de l'API :</strong>
+                    <div class="api-url">${apiUrl}</div>
+                </div>
+                
+                <div class="info">
+                    <strong>🚀 Pour Gemini/Google Studio :</strong>
+                    <ul>
+                        <li>Utilisez exactement le code JavaScript montré ci-dessus</li>
+                        <li>Remplacez "Sefer HaMidot.1" par la référence désirée</li>
+                        <li>Gérez toujours les erreurs avec try/catch</li>
+                        <li>Vérifiez response.ok avant de parser le JSON</li>
+                        <li>Les données peuvent être des arrays ou des strings</li>
+                    </ul>
+                </div>
+            `;
+        }
+        
+        console.log('Démo Sefaria chargée avec données simulées');
+        console.log('Données disponibles:', Object.keys(mockSefariaData));
+    </script>
+</body>
+</html>
