@@ -39,32 +39,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/sefaria/breslov-index', async (req, res) => {
     try {
-      console.log(`[Sefaria Proxy] Fetching Breslov index`);
+      console.log(`[Sefaria Proxy] Building Breslov index from known books`);
       
-      const response = await fetch('https://www.sefaria.org/api/category/Breslov', {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (compatible; BreslovStudyApp/1.0)'
-        }
-      });
+      // Known Breslov books that exist on Sefaria with their correct references
+      const breslovBooks = [
+        { title: 'Likutei Moharan', ref: 'Likutei Moharan.1.1.1' },
+        { title: 'Sichot HaRan', ref: 'Sichot HaRan.1' },
+        { title: 'Sippurei Maasiyot', ref: 'Sippurei Maasiyot.1.1' },
+        { title: 'Sefer HaMiddot', ref: 'Sefer HaMiddot.1.1' },
+        { title: 'Likutei Tefilot', ref: 'Likutei Tefilot.1.1' },
+        { title: 'Chayei Moharan', ref: 'Chayei Moharan.1.1' },
+        { title: 'Shivchei HaRan', ref: 'Shivchei HaRan.1' },
+        { title: 'Likutei Halakhot', ref: 'Likutei Halakhot.1.1.1.1' },
+        { title: 'Likkutei Etzot', ref: 'Likkutei Etzot.1.1' }
+      ];
       
-      if (!response.ok) {
-        console.error(`[Sefaria Proxy] Breslov index error ${response.status}: ${response.statusText}`);
-        return res.status(response.status).json({ error: 'Breslov index error' });
-      }
-      
-      const data = await response.json();
-      console.log(`[Sefaria Proxy] Breslov index fetched successfully, ${data.length || 0} items`);
+      console.log(`[Sefaria Proxy] Breslov index built with ${breslovBooks.length} books`);
       
       // Set CORS headers
       res.header('Access-Control-Allow-Origin', '*');
       res.header('Access-Control-Allow-Methods', 'GET');
       res.header('Access-Control-Allow-Headers', 'Content-Type');
       
-      res.json(data);
+      res.json(breslovBooks);
     } catch (error) {
-      console.error('[Sefaria Proxy] Breslov index fetch error:', error);
-      res.status(500).json({ error: `Failed to fetch Breslov index: ${error instanceof Error ? error.message : 'Unknown error'}` });
+      console.error('[Sefaria Proxy] Breslov index build error:', error);
+      res.status(500).json({ error: `Failed to build Breslov index: ${error instanceof Error ? error.message : 'Unknown error'}` });
     }
   });
 
