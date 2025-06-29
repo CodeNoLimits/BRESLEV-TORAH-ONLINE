@@ -95,32 +95,8 @@ function AppSimple() {
     
     preloadEssentialTexts();
     
-    // Auto-welcome message with TTS après 2 secondes
-    setTimeout(() => {
-      const welcomeMessages = {
-        fr: "Shalom et bienvenue dans Le Compagnon du Cœur. Voici comment utiliser l'application : D'abord, cliquez sur le menu à gauche pour ouvrir la bibliothèque de Rabbi Nahman. Ensuite, choisissez un texte. Une fois affiché, sélectionnez une partie avec votre souris, puis utilisez les boutons Analyser ou Guidance. Vous pouvez aussi poser des questions directement dans le champ de saisie. Le bouton rouge flottant arrête ma lecture à tout moment. Le micro vous permet de poser des questions vocalement.",
-        en: "Shalom and welcome to The Heart's Companion. Here's how to use the application: First, click the left menu to open Rabbi Nachman's library. Then choose a text. Once displayed, select a part with your mouse, then use Analyze or Guidance buttons. You can also ask questions directly in the input field. The floating red button stops my reading at any time. The microphone lets you ask questions vocally.",
-        he: "שלום וברוכים הבאים לחבר הלב. הנה איך להשתמש באפליקציה: ראשית, לחצו על התפריט משמאל לפתיחת ספריית רבי נחמן. אחר כך בחרו טקסט. לאחר הצגה, בחרו חלק עם העכבר, ואז השתמשו בכפתורי ניתוח או הדרכה. אפשר גם לשאול שאלות ישירות בשדה הקלט. הכפתור האדום הצף עוצר את הקריאה שלי בכל רגע. המיקרופון מאפשר לשאול שאלות קולית."
-      };
-      
-      const welcomeText = welcomeMessages[language];
-      
-      // Add welcome message to chat
-      const welcomeMsg: Message = {
-        id: generateId(),
-        type: 'ai',
-        content: welcomeText,
-        timestamp: new Date(),
-        mode: 'welcome'
-      };
-      setMessages([welcomeMsg]);
-      
-      // Speak welcome message if TTS enabled
-      if (ttsEnabled) {
-        console.log('[AppSimple] Speaking welcome message');
-        speak(welcomeText);
-      }
-    }, 2000);
+    // Initialize with empty messages - no auto-welcome to avoid TTS loop
+    setMessages([]);
   }, [language, ttsEnabled, speak]);
 
   // Build AI prompt based on mode
