@@ -344,8 +344,18 @@ ${text}`
                   onClick={() => {
                     const content = userSelectedText || selectedText.text.join('\n\n');
                     const prefix = userSelectedText ? 'ANALYSE DU TEXTE SÉLECTIONNÉ' : `ANALYSE SPIRITUELLE COMPLÈTE DE ${selectedText.title}`;
-                    console.log(`[AppSimple] Analysis - using ${userSelectedText ? 'selected' : 'full'} text (${content.length} chars)`);
-                    handleAIRequest(`${prefix}:\n\n${content}`, 'study');
+                    
+                    // Use intelligent segmentation for long texts
+                    if (!userSelectedText && content.length > 8000) {
+                      const segmentResult = TextSegmenter.segmentText(content, selectedText.title);
+                      const optimizedContent = TextSegmenter.formatForAI(segmentResult, selectedText.title);
+                      console.log(`[AppSimple] Analysis - using segmented text (${optimizedContent.length} chars from ${content.length} original)`);
+                      handleAIRequest(`${prefix}:\n\n${optimizedContent}`, 'study');
+                    } else {
+                      console.log(`[AppSimple] Analysis - using ${userSelectedText ? 'selected' : 'full'} text (${content.length} chars)`);
+                      handleAIRequest(`${prefix}:\n\n${content}`, 'study');
+                    }
+                    
                     if (userSelectedText) setUserSelectedText('');
                   }}
                   className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-black rounded font-medium transition-colors"
@@ -357,8 +367,18 @@ ${text}`
                   onClick={() => {
                     const content = userSelectedText || selectedText.text.join('\n\n');
                     const prefix = userSelectedText ? 'POINTS CLÉS DU TEXTE SÉLECTIONNÉ' : `POINTS CLÉS DU TEXTE COMPLET ${selectedText.title}`;
-                    console.log(`[AppSimple] Summary - using ${userSelectedText ? 'selected' : 'full'} text (${content.length} chars)`);
-                    handleAIRequest(`${prefix}:\n\n${content}`, 'summary');
+                    
+                    // Use intelligent segmentation for long texts
+                    if (!userSelectedText && content.length > 8000) {
+                      const segmentResult = TextSegmenter.segmentText(content, selectedText.title);
+                      const optimizedContent = TextSegmenter.formatForAI(segmentResult, selectedText.title);
+                      console.log(`[AppSimple] Summary - using segmented text (${optimizedContent.length} chars from ${content.length} original)`);
+                      handleAIRequest(`${prefix}:\n\n${optimizedContent}`, 'summary');
+                    } else {
+                      console.log(`[AppSimple] Summary - using ${userSelectedText ? 'selected' : 'full'} text (${content.length} chars)`);
+                      handleAIRequest(`${prefix}:\n\n${content}`, 'summary');
+                    }
+                    
                     if (userSelectedText) setUserSelectedText('');
                   }}
                   className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded transition-colors"
@@ -370,8 +390,18 @@ ${text}`
                   onClick={() => {
                     const content = userSelectedText || selectedText.text.join('\n\n');
                     const prefix = userSelectedText ? 'GUIDANCE SPIRITUELLE BASÉE SUR LE TEXTE SÉLECTIONNÉ' : `GUIDANCE SPIRITUELLE BASÉE SUR ${selectedText.title}`;
-                    console.log(`[AppSimple] Guidance - using ${userSelectedText ? 'selected' : 'full'} text (${content.length} chars)`);
-                    handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
+                    
+                    // Use intelligent segmentation for long texts
+                    if (!userSelectedText && content.length > 8000) {
+                      const segmentResult = TextSegmenter.segmentText(content, selectedText.title);
+                      const optimizedContent = TextSegmenter.formatForAI(segmentResult, selectedText.title);
+                      console.log(`[AppSimple] Guidance - using segmented text (${optimizedContent.length} chars from ${content.length} original)`);
+                      handleAIRequest(`${prefix}:\n\n${optimizedContent}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
+                    } else {
+                      console.log(`[AppSimple] Guidance - using ${userSelectedText ? 'selected' : 'full'} text (${content.length} chars)`);
+                      handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
+                    }
+                    
                     if (userSelectedText) setUserSelectedText('');
                   }}
                   className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded transition-colors"

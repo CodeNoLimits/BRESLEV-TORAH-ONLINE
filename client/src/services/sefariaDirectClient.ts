@@ -33,16 +33,16 @@ class SefariaDirectClient {
       // Convert ref format: "Likutei Moharan 1:1" → "Likutei_Moharan.1.1"
       const encodedRef = tref.replace(/\s+/g, '_').replace(/:/g, '.');
       
-      // Try V3 first
-      let url = `https://www.sefaria.org/api/v3/texts/${encodedRef}?context=0&commentary=0&pad=0&wrapLinks=false`;
-      console.log(`[SefariaClient] Fetching V3: ${url}`);
+      // Try V3 first via proxy
+      let url = `/sefaria/api/v3/texts/${encodedRef}?context=0&commentary=0&pad=0&wrapLinks=false`;
+      console.log(`[SefariaClient] Fetching V3 via proxy: ${url}`);
       
       let response = await fetch(url);
       
       if (!response.ok && response.status === 404) {
-        // Fallback to V1
-        url = `https://www.sefaria.org/api/texts/${encodedRef}?context=0&commentary=0`;
-        console.log(`[SefariaClient] Fallback to V1: ${url}`);
+        // Fallback to V1 via proxy
+        url = `/sefaria/api/texts/${encodedRef}?context=0&commentary=0`;
+        console.log(`[SefariaClient] Fallback to V1 via proxy: ${url}`);
         response = await fetch(url);
       }
 

@@ -1,0 +1,116 @@
+### Correctif « deux-en-un » : remettre d’aplomb **TTS**, **boutons Guidance/Analyser** et **segmentation intelligente** des enseignements
+
+*(applicable à vos deux branches : **SefariaTorah** & **BresleverLibrary**)*
+
+---
+
+## 1. Segmentation robuste des textes Breslev
+
+| Problème                                                                                        | Solution « plug & play »                                                                                                                                                                                                                                                                                        |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Les contes / enseignements arrivent en blocs massifs ; Gemini dépasse vite la limite de tokens. | Découper **côté client** dès la réception du JSON Sefaria. <br>•  repérer les marqueurs alphanumériques hébreux (א, ב, ג…) **ou** la numérotation latine (1., 2.). <br>•  créer un tableau `segments[]` *{id, he, en}*. <br>•  n’envoyer à Gemini qu’1 segment ≤ 900 car. ou 3 segments groupés si très courts. |
+| L’API v3 renvoie `text` (EN) & `he` (HE) sous forme de tableaux de paragraphes.                 | Utiliser le même découpage pour **les deux langues** ; conserver l’index pour recoller facilement.                                                                                                                                                                                                              |
+
+```ts
+/** utils/segmentText.ts */
+const hebMarker = /(?:^|\n)([א-ת]{1,2})[\).:]/g;
+const latMarker = /(?:^|\n)(\d{1,3})[\).:]/g;
+export function segmentArray(arr: string[], lang:'he'|'en') {
+  const joined = arr.join('\n');
+  const regex = lang==='he' ? hebMarker : latMarker;
+  const raw = joined.split(regex).map(t=>t.trim()).filter(Boolean);
+  // résultat : [marker1, section1, marker2, section2…]
+  const segs: {id:string, text:string}[] = [];
+  for (let i=0;i<raw.length;i+=2)
+       segs.push({id:raw[i], text:raw[i+1]||''});
+  return segs;
+}
+```
+
+**À brancher** dans `sefariaService.ts` juste après le `fetch()` :
+
+```ts
+const {text:enArr, he:heArr} = data;
+return {
+  ...data,
+  segments: {
+     en: segmentArray(enArr,'en'),
+     he: segmentArray(heArr,'he')
+  }
+};
+```
+
+---
+
+## 2. Réactivation des boutons **Guidance** & **Analyser**
+
+**Pattern unique** → `streamAiResponse(mode, payload)`
+
+| Composant                                               | Action                                                 | Payload envoyé                                              |
+| ------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------- |
+| **LibrarySidebar**<br>(clic sur un segment ou un titre) | `streamAiResponse('study', {tref, text: segmentText})` | texte du segment <u>ou</u> texte complet si aucun découpage |
+| **SnippetAnalyzer**                                     | `streamAiResponse('snippet', {text: textarea.value})`  | extrait collé                                               |
+| **GuidanceCounselor**                                   | `streamAiResponse('advice', {text: textarea.value})`   | situation utilisateur                                       |
+| **Points Clés** (bouton sous bulle)                     | `streamAiResponse('summary', {text: longAiMessage})`   | réponse IA > 200 car.                                       |
+
+> **Astuce** : si l’utilisateur clique sur « Analyser » ou « Guidance » avec un texte **sélectionné** dans la viewer, utilisez `window.getSelection().toString()`. Sinon, fallback sur la totalité du segment affiché.
+
+---
+
+## 3. TTS 100 % fiable (entrée & sortie)
+
+1. **Chargement asynchrone des voix** – Chrome ne remplit `speechSynthesis.getVoices()` qu’après l’événement `voiceschanged`.
+
+   ```ts
+   const [voicesLoaded, setVoicesLoaded] = useState(false);
+   useEffect(()=>{
+     const handler = ()=> setVoicesLoaded(true);
+     speechSynthesis.addEventListener('voiceschanged', handler);
+     return ()=>speechSynthesis.removeEventListener('voiceschanged', handler);
+   },[]);
+   ```
+
+2. **Langue dynamique** :
+
+   ```ts
+   utterance.lang = appLang==='he' ? 'he-IL'
+                 : appLang==='en' ? 'en-US' : 'fr-FR';
+   ```
+
+3. **Message d’accueil** (monté dans `<Header/>`) – lancé **une seule fois** après chargement des voix :
+
+   > « Sélectionnez la partie du texte que vous voulez que je lise, puis activez le bouton *TTS* en haut de la page.»
+
+4. **Reconnaissance vocale** :
+   *dans* `ChatInput` → même langue que `utterance.lang`, arrêt automatique avant nouvel `utterance`.
+
+---
+
+## 4. Front-end ↔ Sefaria sans backend ? (fallback)
+
+*Avec peu d’utilisateurs simultanés vous pouvez :*
+
+```ts
+const url = `https://cors.isomorphic-git.org/https://www.sefaria.org/api/v3/texts/${tref}?context=0&commentary=0`;  
+await fetch(url);
+```
+
+* `cors.isomorphic-git.org` : proxy gratuit <2 MB / requête, suffisant pour 1 section.
+* Gardez le **proxy Node** en production ; utilisez ce fallback seulement en dev ou si le proxy tombe.
+
+---
+
+## 5. Road-map express pour les deux repos
+
+1. `utils/segmentText.ts` → segmentation hébreu/anglais.
+2. `sefariaService.ts` → ajoute `segments` à l’objet texte.
+3. `TextViewer` → affiche liste cliquable des segments (∞ scroll).
+4. `streamAiResponse` → unique point d’entrée des 5 modes (voir tableau).
+5. `useTTS` → correctifs voix + message d’accueil.
+6. **Test** :
+
+   * sélecteur FR/EN/HE change bien `utterance.lang`.
+   * clic segment → IA répond → bouton *Points Clés* fonctionne.
+   * clic Guidance / Analyse sans sélection ↝ texte courant ; avec sélection ↝ sélection.
+
+Appliquez ces étapes **dans l’ordre** ; vous éliminerez les fetch 404, la surcharge Gemini et le silence du TTS.
