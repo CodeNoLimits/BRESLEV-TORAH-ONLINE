@@ -73,15 +73,42 @@ export class WorkingBreslovService {
 
       const data = await response.json();
       
-      // Vérifier que le texte contient du contenu réel
+      // Debug : afficher la structure des données reçues
+      console.log(`[WorkingBreslovService] DEBUG: Structure for ${ref}:`, {
+        hasVersions: !!data.versions,
+        versionsLength: data.versions?.length || 0,
+        firstVersionKeys: data.versions?.[0] ? Object.keys(data.versions[0]) : [],
+        firstVersionHasText: !!data.versions?.[0]?.text,
+        firstVersionTextLength: data.versions?.[0]?.text?.length || 0,
+        sampleText: data.versions?.[0]?.text?.[0]?.substring(0, 50) || 'N/A'
+      });
+      
+      // Vérifier le contenu dans la structure Sefaria v3
+      if (data.versions && Array.isArray(data.versions) && data.versions.length > 0) {
+        for (const version of data.versions) {
+          if (version.text && Array.isArray(version.text) && version.text.length > 0) {
+            const hasContent = version.text.some((segment: any) => 
+              segment && typeof segment === 'string' && segment.trim().length > 3
+            );
+            
+            if (hasContent) {
+              this.cache.set(ref, data);
+              console.log(`[WorkingBreslovService] ✅ Successfully loaded ${ref} (${version.language})`);
+              return data;
+            }
+          }
+        }
+      }
+      
+      // Fallback : vérifier l'ancienne structure
       if (data.text && Array.isArray(data.text) && data.text.length > 0) {
-        const hasContent = data.text.some(segment => 
-          segment && typeof segment === 'string' && segment.trim().length > 20
+        const hasContent = data.text.some((segment: any) => 
+          segment && typeof segment === 'string' && segment.trim().length > 3
         );
         
         if (hasContent) {
           this.cache.set(ref, data);
-          console.log(`[WorkingBreslovService] ✅ Successfully loaded ${ref}`);
+          console.log(`[WorkingBreslovService] ✅ Successfully loaded ${ref} (legacy format)`);
           return data;
         }
       }
