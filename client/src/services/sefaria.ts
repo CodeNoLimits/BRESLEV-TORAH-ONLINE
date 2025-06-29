@@ -608,7 +608,7 @@ class SefariaService {
       const textRef = breslovRefs[ref] || ref;
       console.log(`[SefariaService] Fetching real text for ${ref} using ref: ${textRef}`);
       
-      // Use v3 API with proper headers as specified in documentation
+      // Use proxy to fetch from Sefaria v3 API
       const response = await fetch(`${SEFARIA_API_BASE}/v3/texts/${encodeURIComponent(textRef)}?commentary=0&context=0`, {
         method: 'GET',
         headers: { 
