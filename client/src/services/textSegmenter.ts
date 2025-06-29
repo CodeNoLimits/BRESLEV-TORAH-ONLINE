@@ -55,64 +55,42 @@ export class TextSegmenter {
   }
 
   /**
-   * Split text by Hebrew markers (א, ב, ג, etc.)
+   * Split text by Hebrew markers (א, ב, ג, etc.) or Latin numerals
    */
   private static splitByHebrewMarkers(text: string): TextSegment[] {
     const segments: TextSegment[] = [];
     
-    // Pattern to match Hebrew markers at start of line or after whitespace
-    const markerPattern = new RegExp(`(^|\\s+)(${this.HEBREW_MARKERS.join('|')})[\\.\\s-]`, 'gm');
+    // Enhanced pattern for both Hebrew and Latin markers
+    const hebrewPattern = new RegExp(`(?:^|\\n)\\s*([${this.HEBREW_MARKERS.join('')}])[\\.\\s\\):]`, 'gm');
+    const latinPattern = /(?:^|\n)\s*(\d{1,3})[\.\)\s:]/gm;
     
-    let lastIndex = 0;
-    let match;
+    // Try Hebrew markers first
+    let matches = Array.from(text.matchAll(hebrewPattern));
+    if (matches.length === 0) {
+      // Fallback to Latin numerals
+      matches = Array.from(text.matchAll(latinPattern));
+    }
+    
+    if (matches.length === 0) {
+      return segments;
+    }
+    
     let segmentCounter = 0;
-
-    while ((match = markerPattern.exec(text)) !== null) {
-      // Add previous segment if it exists
-      if (match.index > lastIndex) {
-        const content = text.slice(lastIndex, match.index).trim();
-        if (content.length > this.MIN_SEGMENT_LENGTH) {
-          segments.push({
-            id: `seg-${segmentCounter++}`,
-            content,
-            length: content.length,
-            isComplete: true
-          });
-        }
-      }
-
-      const marker = match[2];
-      const markerStart = match.index + match[1].length;
+    
+    for (let i = 0; i < matches.length; i++) {
+      const currentMatch = matches[i];
+      const nextMatch = matches[i + 1];
       
-      // Find next marker or end of text
-      const nextMarkerMatch = markerPattern.exec(text);
-      const segmentEnd = nextMarkerMatch ? nextMarkerMatch.index : text.length;
+      const marker = currentMatch[1];
+      const startIndex = currentMatch.index! + currentMatch[0].length;
+      const endIndex = nextMatch ? nextMatch.index! : text.length;
       
-      // Reset regex position for next iteration
-      if (nextMarkerMatch) {
-        markerPattern.lastIndex = nextMarkerMatch.index;
-      }
-
-      const content = text.slice(markerStart, segmentEnd).trim();
+      const content = text.slice(startIndex, endIndex).trim();
+      
       if (content.length > this.MIN_SEGMENT_LENGTH) {
         segments.push({
           id: `seg-${marker}-${segmentCounter++}`,
           marker,
-          content,
-          length: content.length,
-          isComplete: true
-        });
-      }
-
-      lastIndex = segmentEnd;
-    }
-
-    // Add final segment if remaining text exists
-    if (lastIndex < text.length) {
-      const content = text.slice(lastIndex).trim();
-      if (content.length > this.MIN_SEGMENT_LENGTH) {
-        segments.push({
-          id: `seg-final-${segmentCounter}`,
           content,
           length: content.length,
           isComplete: true

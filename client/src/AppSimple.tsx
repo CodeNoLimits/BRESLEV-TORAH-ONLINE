@@ -126,7 +126,9 @@ ${text}`
       setMessages(prev => [...prev, aiMessage]);
       setStreamingText('');
 
-      if (ttsEnabled && fullResponse) {
+      // Speak complete response after streaming is done
+      if (ttsEnabled && fullResponse.trim()) {
+        console.log(`[AppSimple] TTS - Speaking complete response (${fullResponse.length} chars)`);
         speak(fullResponse);
       }
 
