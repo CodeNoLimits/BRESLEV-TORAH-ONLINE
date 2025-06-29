@@ -7,6 +7,7 @@ import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
 import { InputArea } from './components/InputArea';
 import { TextViewer } from './components/TextViewer';
+import { BookNavigator } from './components/BookNavigator';
 import { LoadingModal } from './components/LoadingModal';
 import { useTTS } from './hooks/useTTS';
 import { useGemini } from './hooks/useGemini';
@@ -19,6 +20,7 @@ function App() {
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedText, setSelectedText] = useState<SefariaText | null>(null);
+  const [selectedBook, setSelectedBook] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [streamingText, setStreamingText] = useState('');
   const [isListening, setIsListening] = useState(false);
