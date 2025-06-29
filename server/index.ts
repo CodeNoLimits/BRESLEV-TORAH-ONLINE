@@ -39,6 +39,54 @@ app.use((req, res, next) => {
   next();
 });
 
+// Add API routes first before Vite setup
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { extractCompleteBook, BRESLOV_BOOKS } = require('./fullTextExtractor');
+
+// Book sections endpoint
+app.get('/api/book-sections/:bookTitle', async (req, res) => {
+  try {
+    const { bookTitle } = req.params;
+    console.log(`[BookSections] Getting sections for: ${bookTitle}`);
+    
+    const book = BRESLOV_BOOKS[bookTitle];
+    if (!book) {
+      return res.status(404).json({ error: `Book ${bookTitle} not found` });
+    }
+    
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    
+    res.json(book.sections || []);
+    
+  } catch (error) {
+    console.error(`[BookSections] Error:`, error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
+
+// Complete text extraction endpoint
+app.get('/api/complete-text/:bookTitle/:section?', async (req, res) => {
+  try {
+    const { bookTitle, section } = req.params;
+    console.log(`[CompleteText] Extracting full content: ${bookTitle}${section ? ` section ${section}` : ''}`);
+    
+    const completeText = await extractCompleteBook(bookTitle, section ? parseInt(section) : null);
+    
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    
+    res.json(completeText);
+    
+  } catch (error) {
+    console.error(`[CompleteText] Error:`, error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
+
 (async () => {
   const server = await registerRoutes(app);
 

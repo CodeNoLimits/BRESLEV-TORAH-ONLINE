@@ -101,6 +101,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // NEW: Book sections endpoint
+  app.get('/api/book-sections/:bookTitle', async (req, res) => {
+    try {
+      const { bookTitle } = req.params;
+      console.log(`[BookSections] Getting sections for: ${bookTitle}`);
+      
+      const { BRESLOV_BOOKS } = require('./fullTextExtractor');
+      const book = BRESLOV_BOOKS[bookTitle];
+      
+      if (!book) {
+        return res.status(404).json({ error: `Book ${bookTitle} not found` });
+      }
+      
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET');
+      res.header('Access-Control-Allow-Headers', 'Content-Type');
+      
+      res.json(book.sections || []);
+      
+    } catch (error) {
+      console.error(`[BookSections] Error:`, error);
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   app.get('/api/sefaria/texts/:ref(*)', async (req, res) => {
     try {
       const ref = req.params.ref;

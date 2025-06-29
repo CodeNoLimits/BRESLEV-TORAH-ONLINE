@@ -24,6 +24,16 @@ export const BookNavigator = ({ bookTitle, onSectionSelect, onClose, language }:
         setLoading(true);
         console.log(`[BookNavigator] Fetching complete structure for: ${bookTitle}`);
         
+        // First try the new book sections endpoint
+        const sectionsResponse = await fetch(`/api/book-sections/${encodeURIComponent(bookTitle)}`);
+        if (sectionsResponse.ok) {
+          const bookSections = await sectionsResponse.json();
+          setSections(bookSections);
+          console.log(`[BookNavigator] Found ${bookSections.length} sections for ${bookTitle} via book sections endpoint`);
+          return;
+        }
+        
+        // Fallback to Sefaria index
         const response = await fetch(`/sefaria-api/index/${encodeURIComponent(bookTitle)}`);
         if (response.ok) {
           const indexData = await response.json();
@@ -53,10 +63,19 @@ export const BookNavigator = ({ bookTitle, onSectionSelect, onClose, language }:
                 number: i.toString()
               });
             }
+          } else {
+            // Default sections for known books
+            for (let i = 1; i <= 10; i++) {
+              bookSections.push({
+                ref: `${bookTitle} ${i}`,
+                title: `Section ${i}`,
+                number: i.toString()
+              });
+            }
           }
           
           setSections(bookSections);
-          console.log(`[BookNavigator] Found ${bookSections.length} sections for ${bookTitle}`);
+          console.log(`[BookNavigator] Found ${bookSections.length} sections for ${bookTitle} via Sefaria fallback`);
         } else {
           console.error(`[BookNavigator] Failed to fetch book index for ${bookTitle}`);
         }

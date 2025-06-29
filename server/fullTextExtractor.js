@@ -4,25 +4,54 @@
 const BRESLOV_BOOKS = {
   'Likutei Moharan': {
     baseRef: 'Likutei Moharan',
-    totalSections: 286, // Complete Likutei Moharan has 286 teachings
-    part1Sections: 286,
-    part2Sections: 125
+    sections: [
+      { ref: 'Likutei Moharan 1', title: 'Torah 1', number: '1' },
+      { ref: 'Likutei Moharan 2', title: 'Torah 2', number: '2' },
+      { ref: 'Likutei Moharan 3', title: 'Torah 3', number: '3' },
+      { ref: 'Likutei Moharan 4', title: 'Torah 4', number: '4' },
+      { ref: 'Likutei Moharan 5', title: 'Torah 5', number: '5' },
+      { ref: 'Likutei Moharan 6', title: 'Torah 6', number: '6' },
+      { ref: 'Likutei Moharan 7', title: 'Torah 7', number: '7' },
+      { ref: 'Likutei Moharan 8', title: 'Torah 8', number: '8' },
+      { ref: 'Likutei Moharan 9', title: 'Torah 9', number: '9' },
+      { ref: 'Likutei Moharan 10', title: 'Torah 10', number: '10' }
+    ]
   },
   'Sichot HaRan': {
     baseRef: 'Sichot HaRan',
-    totalSections: 305 // All conversations
+    sections: [
+      { ref: 'Sichot HaRan 1', title: 'Conversation 1', number: '1' },
+      { ref: 'Sichot HaRan 2', title: 'Conversation 2', number: '2' },
+      { ref: 'Sichot HaRan 3', title: 'Conversation 3', number: '3' },
+      { ref: 'Sichot HaRan 4', title: 'Conversation 4', number: '4' },
+      { ref: 'Sichot HaRan 5', title: 'Conversation 5', number: '5' }
+    ]
   },
   'Sippurei Maasiyot': {
     baseRef: 'Sippurei Maasiyot',
-    totalSections: 13 // 13 stories
+    sections: [
+      { ref: 'Sippurei Maasiyot 1', title: 'Story 1: The Lost Princess', number: '1' },
+      { ref: 'Sippurei Maasiyot 2', title: 'Story 2: The King and the Emperor', number: '2' },
+      { ref: 'Sippurei Maasiyot 3', title: 'Story 3: The Cripple', number: '3' },
+      { ref: 'Sippurei Maasiyot 4', title: 'Story 4: The Bull and the Ram', number: '4' },
+      { ref: 'Sippurei Maasiyot 5', title: 'Story 5: The Prince of Gems', number: '5' }
+    ]
   },
   'Chayei Moharan': {
     baseRef: 'Chayei Moharan',
-    totalSections: 600 // Biography sections
+    sections: [
+      { ref: 'Chayei Moharan 1', title: 'Biography Part 1', number: '1' },
+      { ref: 'Chayei Moharan 2', title: 'Biography Part 2', number: '2' },
+      { ref: 'Chayei Moharan 3', title: 'Biography Part 3', number: '3' }
+    ]
   },
   'Shivchei HaRan': {
     baseRef: 'Shivchei HaRan',
-    totalSections: 50 // Praise sections
+    sections: [
+      { ref: 'Shivchei HaRan 1', title: 'Praise 1', number: '1' },
+      { ref: 'Shivchei HaRan 2', title: 'Praise 2', number: '2' },
+      { ref: 'Shivchei HaRan 3', title: 'Praise 3', number: '3' }
+    ]
   }
 };
 
