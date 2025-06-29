@@ -536,11 +536,50 @@ class SefariaService {
     return !!(node.contents || node.nodes || (node.schema && node.schema.nodes));
   }
 
+  // Get the first available section reference for a book
+  private async getFirstSectionRef(bookTitle: string): Promise<string> {
+    try {
+      // First try to get the book's index to find valid references
+      const indexUrl = `${SEFARIA_API_BASE}/v3/texts/${encodeURIComponent(bookTitle)}?commentary=0&context=0`;
+      console.log(`[SefariaService] Getting index for: ${indexUrl}`);
+      
+      const response = await fetch(indexUrl, {
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // If we got actual text content, return the book title as-is
+        if (data.versions && data.versions.length > 0) {
+          return bookTitle;
+        }
+      }
+    } catch (error) {
+      console.log(`[SefariaService] Could not get index for ${bookTitle}, using fallback references`);
+    }
+    
+    // Use known working references for each book
+    const knownRefs: { [key: string]: string } = {
+      'Likutei Moharan': 'Likutei Moharan, I, 1',
+      'Sichot HaRan': 'Sichot HaRan 1',
+      'Sippurei Maasiyot': 'Sippurei Maasiyot, The Lost Princess',
+      'Chayei Moharan': 'Chayei Moharan 1:1',
+      'Shivchei HaRan': 'Shivchei HaRan 1',
+      'Likutei Halakhot': 'Likutei Halakhot, Orach Chaim, Tefillah 1',
+      'Likutei Tefilot': 'Likutei Tefilot 1',
+      'Sefer HaMiddot': 'Sefer HaMiddot, Truth 1',
+      'Likkutei Etzot': 'Likkutei Etzot, Emunah 1'
+    };
+    
+    return knownRefs[bookTitle] || bookTitle;
+  }
+
   async getText(ref: string): Promise<SefariaText> {
     const cacheKey = ref;
     
-    // Check session storage cache first
-    const cached = sessionStorage.getItem(`sefaria_v3_${cacheKey}`);
+    // Check cache first
+    const cached = sessionStorage.getItem(`sefaria_text_${cacheKey}`);
     if (cached) {
       try {
         const parsedCache = JSON.parse(cached);
@@ -548,118 +587,72 @@ class SefariaService {
           return parsedCache.data;
         }
       } catch (e) {
-        sessionStorage.removeItem(`sefaria_v3_${cacheKey}`);
+        sessionStorage.removeItem(`sefaria_text_${cacheKey}`);
       }
     }
 
     try {
-      // Use direct approach: fetch the full book table of contents first
-      let actualRef = ref;
-      let isMainBook = false;
+      // Use known working references for each Breslov book
+      const breslovRefs: { [key: string]: string } = {
+        'Likutei Moharan': 'Likutei Moharan, I, 1',
+        'Sichot HaRan': 'Sichot HaRan 1',
+        'Sippurei Maasiyot': 'Sippurei Maasiyot, The Lost Princess',
+        'Chayei Moharan': 'Chayei Moharan 1:1',
+        'Shivchei HaRan': 'Shivchei HaRan 1',
+        'Likutei Halakhot': 'Likutei Halakhot, Orach Chaim, Tefillah 1',
+        'Likutei Tefilot': 'Likutei Tefilot 1',
+        'Sefer HaMiddot': 'Sefer HaMiddot, Truth 1',
+        'Likkutei Etzot': 'Likkutei Etzot, Emunah 1'
+      };
       
-      // Check if this is a main book reference that needs content discovery
-      const mainBooks = ['Likutei Moharan', 'Sichot HaRan', 'Sippurei Maasiyot', 'Chayei Moharan', 'Shivchei HaRan', 'Likutei Halakhot', 'Likutei Tefilot', 'Sefer HaMiddot', 'Likkutei Etzot'];
+      const textRef = breslovRefs[ref] || ref;
+      console.log(`[SefariaService] Fetching real text for ${ref} using ref: ${textRef}`);
       
-      if (mainBooks.includes(ref)) {
-        isMainBook = true;
-        // First, try to get the book's index to find available sections
-        try {
-          const bookIndexUrl = `${SEFARIA_API_BASE}/index/${encodeURIComponent(ref.replace(/\s/g, '_'))}`;
-          console.log(`[SefariaService] Fetching book index: ${bookIndexUrl}`);
-          
-          const indexResponse = await fetch(bookIndexUrl);
-          if (indexResponse.ok) {
-            const indexData = await indexResponse.json();
-            console.log(`[SefariaService] Book index for ${ref}:`, indexData);
-            
-            // Extract available sections from the index
-            if (indexData.schema && indexData.schema.nodes) {
-              const firstSection = indexData.schema.nodes[0];
-              if (firstSection && firstSection.addressTypes) {
-                actualRef = `${ref}.1`;
-              }
-            }
-          }
-        } catch (indexError) {
-          console.log(`[SefariaService] Could not fetch index for ${ref}, trying direct access`);
+      // Use v3 API with proper headers as specified in documentation
+      const response = await fetch(`${SEFARIA_API_BASE}/v3/texts/${encodeURIComponent(textRef)}?commentary=0&context=0`, {
+        method: 'GET',
+        headers: { 
+          'Accept': 'application/json'
         }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      const data = await response.json();
       
-      // Try v3 API first, fallback to v1 if needed
-      let response: Response;
-      let data: any;
-      let apiUrl: string;
+      console.log(`[SefariaService] API Response for ${textRef}:`, data);
       
-      try {
-        // Attempt v3 API
-        const normalizedRef = actualRef.replace(/\s/g, '_');
-        const encodedRef = encodeURIComponent(normalizedRef);
-        
-        const params = new URLSearchParams({
-          context: '0',
-          commentary: '0', 
-          pad: '0',
-          wrapLinks: 'false'
-        });
-        
-        apiUrl = `${SEFARIA_API_BASE}/v3/texts/${encodedRef}?${params}`;
-        console.log(`[SefariaService] Trying v3 API: ${apiUrl} (original ref: ${ref})`);
-        
-        response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`v3 API failed: ${response.status}`);
-        }
-        
-        data = await response.json();
-        
-      } catch (v3Error) {
-        console.log(`[SefariaService] v3 API failed, trying v1 API fallback`);
-        
-        // Fallback to v1 API
-        const v1Ref = actualRef.replace(/_/g, ' ');
-        const encodedV1Ref = encodeURIComponent(v1Ref);
-        apiUrl = `${SEFARIA_API_BASE}/texts/${encodedV1Ref}`;
-        
-        console.log(`[SefariaService] Trying v1 API: ${apiUrl}`);
-        
-        response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Both v3 and v1 APIs failed: ${response.status}: ${response.statusText}`);
-        }
-        
-        data = await response.json();
-      }
-      
-      // Check if the API returned an error
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      
-      // Handle different API response formats
+      // Extract text content from v3 API response
       let englishText: string[] = [];
       let hebrewText: string[] = [];
       
-      // V3 API format with versions array
-      if (data.versions && Array.isArray(data.versions) && data.versions.length > 0) {
-        data.versions.forEach((version: any) => {
+      // V3 API format - check for versions array
+      if (data.versions && Array.isArray(data.versions)) {
+        console.log(`[SefariaService] Found ${data.versions.length} versions`);
+        
+        data.versions.forEach((version: any, index: number) => {
+          console.log(`[SefariaService] Version ${index}:`, version.versionTitle, version.language);
+          
           if (version.language === 'en' && version.text) {
-            englishText = Array.isArray(version.text) ? version.text : [version.text];
+            const text = Array.isArray(version.text) ? version.text : [version.text];
+            englishText = text.filter((t: any) => t && t.trim().length > 0);
+            console.log(`[SefariaService] English text found: ${englishText.length} segments`);
           }
+          
           if (version.language === 'he' && version.text) {
-            hebrewText = Array.isArray(version.text) ? version.text : [version.text];
+            const text = Array.isArray(version.text) ? version.text : [version.text];
+            hebrewText = text.filter((t: any) => t && t.trim().length > 0);
+            console.log(`[SefariaService] Hebrew text found: ${hebrewText.length} segments`);
           }
         });
       }
-      // V1 API format or direct text fields
-      else {
+      
+      // If no versions found, check direct fields
+      if (englishText.length === 0 && hebrewText.length === 0) {
+        console.log(`[SefariaService] No versions found, checking direct fields`);
+        
         if (data.text) {
           englishText = Array.isArray(data.text) ? data.text : [data.text];
         }
@@ -671,184 +664,49 @@ class SefariaService {
         }
       }
       
-      // Clean up text arrays - remove empty strings and HTML
+      // Clean HTML and empty entries
       const cleanText = (textArray: string[]): string[] => {
         return textArray
-          .filter(text => text && text.trim().length > 0)
-          .map(text => text.replace(/<[^>]*>/g, '').trim())
+          .map(text => text ? text.replace(/<[^>]*>/g, '').trim() : '')
           .filter(text => text.length > 0);
       };
       
       englishText = cleanText(englishText);
       hebrewText = cleanText(hebrewText);
       
-      // If no text found, provide meaningful content for main book references
+      console.log(`[SefariaService] Final text: EN=${englishText.length} segments, HE=${hebrewText.length} segments`);
+      
+      // If still no content, this reference doesn't exist on Sefaria
       if (englishText.length === 0 && hebrewText.length === 0) {
-        console.warn('No direct text content found, providing book overview for', ref);
-        
-        const bookOverviews: { [key: string]: { en: string[], he: string[] } } = {
-          'Likutei Moharan': {
-            en: [
-              'Likutei Moharan contains the central teachings of Rabbi Nachman of Breslov.',
-              'This collection includes profound insights on faith, prayer, Torah study, and spiritual growth.',
-              'The work is divided into two parts with hundreds of lessons covering all aspects of Jewish spirituality.',
-              'Each lesson begins with a verse and develops deep mystical and practical teachings.'
-            ],
-            he: [
-              'ליקוטי מוהר״ן מכיל את התורות המרכזיות של רבי נחמן מברסלב.',
-              'אוסף זה כולל תובנות עמוקות על אמונה, תפילה, לימוד תורה וצמיחה רוחנית.',
-              'החיבור מחולק לשני חלקים עם מאות שיעורים המכסים את כל היבטי הרוחניות היהודית.',
-              'כל שיעור מתחיל בפסוק ומפתח תורות מיסטיות ומעשיות עמוקות.'
-            ]
-          },
-          'Sichot HaRan': {
-            en: [
-              'Sichot HaRan records the conversations and teachings of Rabbi Nachman.',
-              'These intimate discussions cover practical spiritual guidance and deep wisdom.',
-              'The work provides insight into Rabbi Nachman\'s personality and approach to serving God.',
-              'Topics include faith, prayer, study, and overcoming spiritual obstacles.'
-            ],
-            he: [
-              'שיחות הר״ן מתעד את השיחות והתורות של רבי נחמן.',
-              'דיונים אינטימיים אלה מכסים הדרכה רוחנית מעשית וחכמה עמוקה.',
-              'החיבור מספק תובנה על אישיותו של רבי נחמן וגישתו לעבודת ה\'.',
-              'הנושאים כוללים אמונה, תפילה, לימוד והתגברות על מכשולים רוחניים.'
-            ]
-          },
-          'Likutei Halakhot': {
-            en: [
-              'Likutei Halakhot presents Jewish law through the lens of Rabbi Nachman\'s teachings.',
-              'Written by Rabbi Nathan, it connects practical halakha with spiritual insights.',
-              'This work bridges the gap between mystical teachings and daily religious practice.',
-              'Each section relates legal principles to deeper spiritual understanding.'
-            ],
-            he: [
-              'ליקוטי הלכות מציג את ההלכה היהודית דרך עדשת תורות רבי נחמן.',
-              'נכתב על ידי רבי נתן, הוא מחבר בין הלכה מעשית לתובנות רוחניות.',
-              'חיבור זה מגשר בין תורות מיסטיות לבין מעשה דתי יומיומי.',
-              'כל קטע מקשר בין עקרונות הלכתיים להבנה רוחנית עמוקה יותר.'
-            ]
-          },
-          'Likutei Tefilot': {
-            en: [
-              'Likutei Tefilot transforms Rabbi Nachman\'s teachings into personal prayers.',
-              'These heartfelt supplications were composed by Rabbi Nathan of Breslov.',
-              'Each prayer corresponds to specific lessons from Likutei Moharan.',
-              'They provide a direct path to connect with God through Rabbi Nachman\'s wisdom.'
-            ],
-            he: [
-              'ליקוטי תפילות הופך את תורות רבי נחמן לתפילות אישיות.',
-              'תחנונים לבביים אלה נכתבו על ידי רבי נתן מברסלב.',
-              'כל תפילה מתכתבת עם שיעורים ספציפיים מליקוטי מוהר״ן.',
-              'הם מספקים דרך ישירה להתחבר לאלוקים דרך חכמת רבי נחמן.'
-            ]
-          },
-          'Sefer HaMiddot': {
-            en: [
-              'Sefer HaMiddot is an alphabetical guide to character traits and spiritual qualities.',
-              'Each entry provides practical wisdom for improving one\'s spiritual character.',
-              'Topics range from Faith and Prayer to Joy and Repentance.',
-              'This work serves as a practical handbook for spiritual development.'
-            ],
-            he: [
-              'ספר המידות הוא מדריך אלפביתי למידות אופי ותכונות רוחניות.',
-              'כל ערך מספק חכמה מעשית לשיפור האופי הרוחני.',
-              'הנושאים נעים מאמונה ותפילה ועד שמחה ותשובה.',
-              'חיבור זה משמש כמדריך מעשי לפיתוח רוחני.'
-            ]
-          },
-          'Sippurei Maasiyot': {
-            en: [
-              'Sippurei Maasiyot contains Rabbi Nachman\'s mystical stories.',
-              'These 13 tales convey deep spiritual truths through allegory and symbol.',
-              'Each story operates on multiple levels of meaning and interpretation.',
-              'They represent the pinnacle of Hasidic storytelling tradition.'
-            ],
-            he: [
-              'ספורי מעשיות מכיל את הסיפורים המיסטיים של רבי נחמן.',
-              'שלושה עשר סיפורים אלה מעבירים אמיתות רוחניות עמוקות דרך משל וסמל.',
-              'כל סיפור פועל על מספר רמות של משמעות ופירוש.',
-              'הם מייצגים את פסגת מסורת הסיפור החסידית.'
-            ]
-          },
-          'Chayei Moharan': {
-            en: [
-              'Chayei Moharan chronicles the life and daily practices of Rabbi Nachman.',
-              'This biographical work reveals the Rabbi\'s personal spiritual methods.',
-              'It provides intimate glimpses into how a great tzaddik lived and served God.',
-              'The work serves as a guide for implementing Rabbi Nachman\'s teachings.'
-            ],
-            he: [
-              'חיי מוהר״ן מתעד את חייו ונוהגיו היומיומיים של רבי נחמן.',
-              'חיבור ביוגרפי זה חושף את השיטות הרוחניות האישיות של הרבי.',
-              'הוא מספק הצצות אינטימיות לאופן שבו צדיק גדול חי ועבד את ה\'.',
-              'החיבור משמש כמדריך ליישום תורות רבי נחמן.'
-            ]
-          },
-          'Shivchei HaRan': {
-            en: [
-              'Shivchei HaRan records the praises and miraculous stories of Rabbi Nachman.',
-              'These accounts demonstrate the Rabbi\'s spiritual powers and holy character.',
-              'The work inspires faith and devotion through remarkable testimonies.',
-              'It shows how a true tzaddik impacts the world through divine connection.'
-            ],
-            he: [
-              'שבחי הר״ן מתעד את השבחים והסיפורים הנפלאים של רבי נחמן.',
-              'דיווחים אלה מפגינים את כוחותיו הרוחניים ואופיו הקדוש של הרבי.',
-              'החיבור מעורר אמונה והתמסרות דרך עדויות יוצאות דופן.',
-              'הוא מראה כיצד צדיק אמיתי משפיע על העולם דרך חיבור אלוהי.'
-            ]
-          },
-          'Likkutei Etzot': {
-            en: [
-              'Likkutei Etzot provides practical spiritual advice organized by topic.',
-              'This collection distills Rabbi Nachman\'s wisdom into accessible guidance.',
-              'Topics include faith, prayer, repentance, joy, and many other spiritual themes.',
-              'Each entry offers concrete steps for spiritual growth and improvement.'
-            ],
-            he: [
-              'ליקוטי עצות מספק עצות רוחניות מעשיות מאורגנות לפי נושא.',
-              'אוסף זה מזקק את חכמת רבי נחמן להדרכה נגישה.',
-              'הנושאים כוללים אמונה, תפילה, תשובה, שמחה ועוד נושאים רוחניים רבים.',
-              'כל ערך מציע צעדים קונקרטיים לצמיחה ושיפור רוחניים.'
-            ]
-          }
-        };
-        
-        const overview = bookOverviews[ref];
-        if (overview) {
-          englishText = overview.en;
-          hebrewText = overview.he;
-        } else {
-          englishText = [`Welcome to ${ref}`, 'This sacred text contains profound spiritual teachings.', 'Please select a specific chapter or section to view the complete text.'];
-          hebrewText = [`ברוכים הבאים ל${ref}`, 'טקסט קדוש זה מכיל תורות רוחניות עמוקות.', 'אנא בחרו פרק או קטע ספציפי לצפייה בטקסט המלא.'];
-        }
+        throw new Error(`No text content available for ${textRef} on Sefaria`);
       }
       
       const sefariaText: SefariaText = {
-        ref: data.ref || ref,
-        book: data.book || ref.split('.')[0] || ref.split(' ')[0],
+        ref: textRef,
+        book: ref,
         text: englishText,
         he: hebrewText,
-        title: data.title || data.book || ref
+        title: `${ref} - ${textRef}`
       };
       
-      console.log(`[SefariaService] Successfully loaded text for ${ref}:`, {
-        englishParagraphs: englishText.length,
-        hebrewParagraphs: hebrewText.length,
+      console.log(`[SefariaService] Successfully loaded authentic text for ${ref}:`, {
+        actualRef: textRef,
+        englishSegments: englishText.length,
+        hebrewSegments: hebrewText.length,
         title: sefariaText.title
       });
 
-      // Cache in session storage
-      sessionStorage.setItem(`sefaria_v3_${cacheKey}`, JSON.stringify({
+      // Cache successful results
+      sessionStorage.setItem(`sefaria_text_${cacheKey}`, JSON.stringify({
         data: sefariaText,
         timestamp: Date.now()
       }));
 
       return sefariaText;
+      
     } catch (error) {
-      console.error(`[SefariaService] Error fetching v3 text "${ref}":`, error);
-      throw new Error(`Unable to load text: ${ref}. Please check your internet connection.`);
+      console.error(`[SefariaService] Error fetching authentic text "${ref}":`, error);
+      throw new Error(`Unable to load text: ${ref}. This text may not be available on Sefaria.`);
     }
   }
 
