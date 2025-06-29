@@ -31,7 +31,7 @@ function AppSimple() {
   const [currentInput, setCurrentInput] = useState('');
 
   // TTS
-  const { speak, speakGreeting, stop: stopTTS, isSpeaking } = useTTS({ language, enabled: ttsEnabled });
+  const { speak, speakGreeting, stop: stopTTS, isSpeaking } = useTTSFixed({ language, enabled: ttsEnabled });
 
   // Initialize crawler cache on app start
   useEffect(() => {
