@@ -15,7 +15,7 @@ export const ALL_BRESLOV_TEXTS: CompleteBreslovText[] = [
   // Likutei Moharan - Œuvre principale (405 sections)
   ...Array.from({ length: 405 }, (_, i) => ({
     title: `Likutei Moharan ${i + 1}`,
-    ref: `Likutei Moharan.${i + 1}`,
+    ref: `Likutei Moharan ${i + 1}`,
     hebrewTitle: `ליקוטי מוהר"ן ${i + 1}`,
     category: "Likutei Moharan",
     verified: true
@@ -24,7 +24,7 @@ export const ALL_BRESLOV_TEXTS: CompleteBreslovText[] = [
   // Likutei Moharan Tinyana (125 sections)
   ...Array.from({ length: 125 }, (_, i) => ({
     title: `Likutei Moharan Tinyana ${i + 1}`,
-    ref: `Likutei Moharan Tinyana.${i + 1}`,
+    ref: `Likutei Moharan Tinyana ${i + 1}`,
     hebrewTitle: `ליקוטי מוהר"ן תניינא ${i + 1}`,
     category: "Likutei Moharan Tinyana",
     verified: true
@@ -33,7 +33,7 @@ export const ALL_BRESLOV_TEXTS: CompleteBreslovText[] = [
   // Sichot HaRan (142 sections)
   ...Array.from({ length: 142 }, (_, i) => ({
     title: `Sichot HaRan ${i + 1}`,
-    ref: `Sichot HaRan.${i + 1}`,
+    ref: `Sichot HaRan ${i + 1}`,
     hebrewTitle: `שיחות הר"ן ${i + 1}`,
     category: "Sichot HaRan",
     verified: true
@@ -42,7 +42,7 @@ export const ALL_BRESLOV_TEXTS: CompleteBreslovText[] = [
   // Sippurei Maasiyot (13 histoires)
   ...Array.from({ length: 13 }, (_, i) => ({
     title: `Sippurei Maasiyot ${i + 1}`,
-    ref: `Sippurei Maasiyot.${i + 1}`,
+    ref: `Sippurei Maasiyot ${i + 1}`,
     hebrewTitle: `סיפורי מעשיות ${i + 1}`,
     category: "Sippurei Maasiyot",
     verified: true
@@ -51,7 +51,7 @@ export const ALL_BRESLOV_TEXTS: CompleteBreslovText[] = [
   // Likutei Tefilot (210 prières)
   ...Array.from({ length: 210 }, (_, i) => ({
     title: `Likutei Tefilot ${i + 1}`,
-    ref: `Likutei Tefilot.${i + 1}`,
+    ref: `Likutei Tefilot ${i + 1}`,
     hebrewTitle: `ליקוטי תפילות ${i + 1}`,
     category: "Likutei Tefilot",
     verified: true
@@ -60,7 +60,7 @@ export const ALL_BRESLOV_TEXTS: CompleteBreslovText[] = [
   // Chayei Moharan (sections biographiques)
   ...Array.from({ length: 50 }, (_, i) => ({
     title: `Chayei Moharan ${i + 1}`,
-    ref: `Chayei Moharan.${i + 1}`,
+    ref: `Chayei Moharan ${i + 1}`,
     hebrewTitle: `חיי מוהר"ן ${i + 1}`,
     category: "Chayei Moharan",
     verified: true
@@ -69,7 +69,7 @@ export const ALL_BRESLOV_TEXTS: CompleteBreslovText[] = [
   // Sefer HaMiddot (traits de caractère)
   ...Array.from({ length: 100 }, (_, i) => ({
     title: `Sefer HaMiddot ${i + 1}`,
-    ref: `Sefer HaMiddot.${i + 1}`,
+    ref: `Sefer HaMiddot ${i + 1}`,
     hebrewTitle: `ספר המידות ${i + 1}`,
     category: "Sefer HaMiddot",
     verified: true
@@ -78,7 +78,7 @@ export const ALL_BRESLOV_TEXTS: CompleteBreslovText[] = [
   // Likkutei Etzot (conseils pratiques)
   ...Array.from({ length: 200 }, (_, i) => ({
     title: `Likkutei Etzot ${i + 1}`,
-    ref: `Likkutei Etzot.${i + 1}`,
+    ref: `Likkutei Etzot ${i + 1}`,
     hebrewTitle: `ליקוטי עצות ${i + 1}`,
     category: "Likkutei Etzot",
     verified: true
@@ -87,7 +87,7 @@ export const ALL_BRESLOV_TEXTS: CompleteBreslovText[] = [
   // Kitzur Likutei Moharan (résumé)
   ...Array.from({ length: 50 }, (_, i) => ({
     title: `Kitzur Likutei Moharan ${i + 1}`,
-    ref: `Kitzur Likutei Moharan.${i + 1}`,
+    ref: `Kitzur Likutei Moharan ${i + 1}`,
     hebrewTitle: `קיצור ליקוטי מוהר"ן ${i + 1}`,
     category: "Kitzur Likutei Moharan",
     verified: true
@@ -96,7 +96,7 @@ export const ALL_BRESLOV_TEXTS: CompleteBreslovText[] = [
   // Rimzei Maasiyot (allusions des histoires)
   ...Array.from({ length: 30 }, (_, i) => ({
     title: `Rimzei Maasiyot ${i + 1}`,
-    ref: `Rimzei Maasiyot.${i + 1}`,
+    ref: `Rimzei Maasiyot ${i + 1}`,
     hebrewTitle: `רמזי מעשיות ${i + 1}`,
     category: "Rimzei Maasiyot",
     verified: true

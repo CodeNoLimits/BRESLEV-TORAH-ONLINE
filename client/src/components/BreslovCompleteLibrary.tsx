@@ -58,42 +58,34 @@ export const BreslovCompleteLibrary: React.FC<BreslovCompleteLibraryProps> = ({
   };
 
   const handleTextClick = async (text: CompleteBreslovText) => {
-    console.log(`[BreslovCompleteLibrary] Selecting text: ${text.title}`);
+    console.log(`[BreslovCompleteLibrary] ⚡ CLICK DETECTED: ${text.title}`);
     
     try {
-      // Utiliser la référence correcte pour Sefaria
-      const correctedRef = text.ref.replace(/\./g, ' ');
-      console.log(`[BreslovCompleteLibrary] Using corrected ref: ${correctedRef}`);
+      // Fermer immédiatement l'interface pour feedback utilisateur
+      onClose();
+      
+      // Sélectionner le texte avec la référence corrigée
+      const correctedRef = text.ref;
+      console.log(`[BreslovCompleteLibrary] Using ref: ${correctedRef}`);
       
       const content = await breslovComplete.getAuthenticText(correctedRef);
       if (content) {
         onTextSelect(correctedRef, text.title);
-        onClose();
         console.log(`[BreslovCompleteLibrary] ✅ Successfully selected: ${text.title}`);
       } else {
         console.warn(`[BreslovCompleteLibrary] No content available for ${text.title}`);
-        // Essayer avec la référence originale en fallback
-        const fallbackContent = await breslovComplete.getAuthenticText(text.ref);
-        if (fallbackContent) {
-          onTextSelect(text.ref, text.title);
-          onClose();
-          console.log(`[BreslovCompleteLibrary] ✅ Fallback success: ${text.title}`);
-        }
+        // Continuer avec la sélection même sans contenu pour l'instant
+        onTextSelect(correctedRef, text.title);
       }
     } catch (error) {
       console.error(`[BreslovCompleteLibrary] Error selecting text ${text.title}:`, error);
+      // Continuer avec la sélection même en cas d'erreur
+      onTextSelect(text.ref, text.title);
     }
   };
 
-  const handleButtonClick = (text: CompleteBreslovText) => {
-    console.log(`[BreslovCompleteLibrary] Button clicked: ${text.title}`);
-    handleTextClick(text);
-  };
-
-  const handleTouchStart = (text: CompleteBreslovText, event: React.TouchEvent) => {
-    console.log(`[BreslovCompleteLibrary] Touch started: ${text.title}`);
-    event.preventDefault();
-    event.stopPropagation();
+  const handleButtonInteraction = (text: CompleteBreslovText, eventType: string) => {
+    console.log(`[BreslovCompleteLibrary] ${eventType} interaction: ${text.title}`);
     handleTextClick(text);
   };
 
@@ -182,8 +174,8 @@ export const BreslovCompleteLibrary: React.FC<BreslovCompleteLibraryProps> = ({
               {filteredTexts.map((text, index) => (
                 <button
                   key={text.ref}
-                  onClick={() => handleButtonClick(text)}
-                  onTouchStart={(e) => handleTouchStart(text, e)}
+                  onClick={() => handleButtonInteraction(text, "CLICK")}
+                  onTouchEnd={() => handleButtonInteraction(text, "TOUCH")}
                   className="w-full text-left p-3 rounded-lg bg-slate-700 hover:bg-slate-600 
                            transition-colors group border border-slate-600 hover:border-amber-400
                            touch-target mobile-touch-optimize"
