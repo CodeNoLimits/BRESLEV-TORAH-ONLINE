@@ -14,69 +14,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-  // Gemini API proxy for AI interactions
-  app.post('/gemini-api/chat', async (req, res) => {
+  // Gemini proxy (stream) - simplified route
+  app.post('/gemini/chat', async (req, res) => {
     try {
       const { prompt } = req.body;
-      if (!prompt) {
-        return res.status(400).json({ error: 'Prompt is required' });
-      }
+      console.log(`[Gemini Proxy] Processing request`);
+      const chat = model.startChat();
+      const result = await chat.sendMessageStream(prompt);
 
-      console.log('[GeminiProxy] Processing AI request');
-      
-      const result = await model.generateContentStream(prompt);
-      
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.setHeader('Transfer-Encoding', 'chunked');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      
+      res.flushHeaders();
+
       for await (const chunk of result.stream) {
-        const chunkText = chunk.text();
-        res.write(chunkText);
+        res.write(chunk.text());
       }
       res.end();
-      
-      console.log('[GeminiProxy] AI response completed');
-    } catch (error) {
-      console.error('[GeminiProxy] Error:', error);
-      res.status(500).json({ error: 'AI service error' });
+    } catch (e) {
+      console.error('[Gemini Error]', e);
+      res.status(500).json({ error: 'Gemini fail' });
     }
   });
 
-  // Universal Sefaria proxy to eliminate ALL CORS issues
-  app.get('/sefaria-api/*', async (req, res) => {
+  // Universal Sefaria proxy - route ALL /sefaria/* requests
+  app.get('/sefaria/*', async (req, res) => {
     try {
-      const path = req.path.replace('/sefaria-api', '');
-      const queryString = req.url.includes('?') ? req.url.split('?')[1] : '';
-      const sefariaUrl = `https://www.sefaria.org/api${path}${queryString ? '?' + queryString : ''}`;
+      const target = 'https://www.sefaria.org' + req.originalUrl.replace('/sefaria', '');
+      console.log(`[Sefaria Proxy] ${target}`);
+      const response = await fetch(target);
       
-      console.log(`[SefariaProxy] Proxying request to: ${sefariaUrl}`);
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET');
+      res.header('Access-Control-Allow-Headers', 'Content-Type');
       
-      const response = await fetch(sefariaUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'LeCompagnonDuCoeur/1.0'
-        }
-      });
-      
-      if (!response.ok) {
-        console.error(`[SefariaProxy] Error ${response.status}: ${response.statusText}`);
-        return res.status(response.status).json({ error: response.statusText });
-      }
-      
+      res.status(response.status);
       const data = await response.json();
-      console.log(`[SefariaProxy] Successfully proxied request for: ${path}`);
-      
-      res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      
       res.json(data);
     } catch (error) {
-      console.error('[SefariaProxy] Proxy error:', error);
-      res.status(500).json({ error: 'Proxy server error' });
+      console.error('[Sefaria Proxy Error]', error);
+      res.status(500).json({ error: 'Sefaria proxy failed' });
     }
   });
 
