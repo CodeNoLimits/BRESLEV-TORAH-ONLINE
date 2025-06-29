@@ -1,0 +1,85 @@
+# Instructions immédiates pour le « constructeur » Replit
+
+*(version faible trafic : appels Sefaria en direct depuis le navigateur, appels Gemini toujours via le proxy Node.js)*
+
+---
+
+## 1. Création d’un **service Sefaria** côté front-end
+
+1. **End-points autorisés** :
+
+   * V3 : `https://www.sefaria.org/api/v3/texts/{tref}?context=0&commentary=0&pad=0&wrapLinks=false`
+   * Fallback V1 : `https://www.sefaria.org/api/texts/{tref}?context=0&commentary=0`
+2. **Format du `tref`** : remplace tous les espaces par des underscores, sépare chapitres/sections par un point.
+   *Ex.* `Likutei Moharan 1:1` → `Likutei_Moharan.1.1`
+3. **CORS** : aucune configuration spéciale ; Sefaria renvoie `Access-Control-Allow-Origin: *`.
+4. **Implémentation** :
+
+   * une fonction `fetchSection(tref)` qui :
+
+     1. tente la v3 ; si 404 → re-tente v1 ;
+     2. lève une exception si le second appel échoue ;
+   * stocke la réponse **dans `sessionStorage`** (`key = tref`, TTL = 1 h).
+
+---
+
+## 2. Chargement de la **bibliothèque Breslev**
+
+1. Un appel unique : `https://www.sefaria.org/api/index`
+2. Naviguer jusqu’à `category === "Chasidut"`, puis sous-catégorie `category === "Breslov"`.
+3. Récursivement parcourir `contents || nodes || schema.nodes` pour lister **chaque entrée possédant `ref`**.
+4. Construire le **sidebar** avec ces références.
+5. Au clic :
+
+   * appeler `fetchSection(ref)` ;
+   * passer le texte complet en **Mode 1 “Étude approfondie”** au proxy Gemini.
+
+---
+
+## 3. Gestion de cache et d’erreurs côté client
+
+```pseudo
+if (sessionStorage.has(tref) && withinTTL) {
+    return JSON.parse(sessionStorage[tref])
+}
+try {
+   data = await fetchSection(tref)
+   sessionStorage[tref] = JSON.stringify({ expires: Date.now()+3600000, data })
+   return data
+} catch(err) {
+   showToast("Impossible de charger « "+tref+" » ("+err.message+")")
+}
+```
+
+* Une 4xx/5xx doit être loguée : `console.error('[Sefaria]', tref, status)`.
+
+---
+
+## 4. Rappels **Gemini**
+
+* Les requêtes Gemini **restent** proxifiées (`POST /gemini-api/chat`), car la clé est dans les secrets.
+* Aucune logique IA ne doit être déplacée côté navigateur.
+
+---
+
+## 5. Tâches à cocher avant de livrer
+
+* [ ] `services/sefaria.ts` (ou .js) créé avec la logique ci-dessus.
+* [ ] Sidebar construit dynamiquement depuis l’index et **se replie** correctement.
+* [ ] Au clic sur un texte :
+
+  * récupère le contenu complet ;
+  * l’affiche dans la modale/zone de lecture ;
+  * déclenche `streamAiResponse('study', { text })`.
+* [ ] Cache : lecture/écriture `sessionStorage`, TTL = 1 h.
+* [ ] Console n’affiche plus d’erreurs 404/500 non gérées.
+
+---
+
+## 6. Pourquoi cette solution suffit pour l’instant ?
+
+* Faible audience ⇢ risque de quota négligeable (< 50 req/session).
+* CORS ouvert ⇢ pas besoin de proxy dédié pour Sefaria.
+* Simplicité ⇢ moins de code back-end à maintenir ; latence plus faible.
+
+*Si l’audience ou le volume monte : migrer vers un micro-service Node qui met en cache Redis et sert le JSON au front.*

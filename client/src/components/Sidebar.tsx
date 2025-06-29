@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { SefariaIndexNode, Language } from '../types';
-import { getBreslovIndex } from '../services/sefariaSimple';
+import { Language } from '../types';
+import { sefariaClient, SefariaIndexNode } from '../services/sefariaDirectClient';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 interface SidebarProps {
@@ -24,9 +24,9 @@ export const Sidebar = ({ isOpen, onClose, onTextSelect, language }: SidebarProp
     try {
       setLoading(true);
       setError(null);
-      console.log('[Sidebar] Loading Breslov index via simple proxy');
-      const breslovBooks = await getBreslovIndex();
-      console.log('[Sidebar] Breslov library loaded:', breslovBooks.length, 'books');
+      console.log('[Sidebar] Loading Breslov library directly from Sefaria');
+      const breslovBooks = await sefariaClient.getBreslovLibrary();
+      console.log('[Sidebar] Breslov library loaded:', breslovBooks.length, 'texts with refs');
       setBreslovTexts(breslovBooks);
     } catch (err) {
       console.error('[Sidebar] Failed to load Breslov library:', err);

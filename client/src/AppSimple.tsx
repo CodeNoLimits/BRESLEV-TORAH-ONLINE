@@ -2,9 +2,9 @@ import { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { useTTS } from './hooks/useTTS';
-import { getBreslovIndex, getText } from './services/sefariaSimple';
+import { sefariaClient, SefariaText } from './services/sefariaDirectClient';
 import { streamGemini } from './services/geminiSimple';
-import { Language, SefariaText, InteractionMode } from './types';
+import { Language, InteractionMode } from './types';
 
 interface Message {
   id: string;
@@ -118,7 +118,7 @@ ${text}`
   const handleTextSelect = useCallback(async (ref: string, title: string) => {
     try {
       console.log(`[AppSimple] Loading text: ${title} (${ref})`);
-      const text = await getText(ref);
+      const text = await sefariaClient.fetchSection(ref);
       setSelectedText(text);
       setSidebarOpen(false);
 
