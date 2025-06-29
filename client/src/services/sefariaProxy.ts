@@ -3,35 +3,35 @@ import { SefariaIndexNode, SefariaText } from '../types';
 // Base URL for proxy - NO direct calls to sefaria.org
 const BASE_URL = '/sefaria-api';
 
+// Fonction pour extraire tous les textes Breslov récursivement
+const extractAllTextRefs = (nodes: any[]): SefariaIndexNode[] => {
+    let allRefs: SefariaIndexNode[] = [];
+    if (!nodes || !Array.isArray(nodes)) return allRefs;
+
+    for (const node of nodes) {
+        if (node.ref) {
+            allRefs.push({ 
+                title: node.title, 
+                ref: node.ref,
+                category: 'Breslov'
+            });
+        }
+        if (node.contents) {
+            allRefs = allRefs.concat(extractAllTextRefs(node.contents));
+        }
+    }
+    return allRefs;
+};
+
 /**
  * Isole la catégorie Breslev et extrait toutes ses références de texte.
  * @param {Array} fullIndex - La réponse JSON complète de l'endpoint /api/index.
  * @returns {Array} Une liste d'objets { title, ref } pour toute la bibliothèque Breslev.
  */
-function getFullBreslovLibrary(fullIndex: any[]): SefariaIndexNode[] {
+const getFullBreslovLibrary = (fullIndex: any[]): SefariaIndexNode[] => {
     try {
         const chasidutCategory = fullIndex.find(cat => cat.category === "Chasidut");
         const breslovCategory = chasidutCategory.contents.find((subCat: any) => subCat.category === "Breslov");
-
-        // Fonction interne pour le parcours récursif
-        function extractAllTextRefs(nodes: any[]): SefariaIndexNode[] {
-            let allRefs: SefariaIndexNode[] = [];
-            if (!nodes || !Array.isArray(nodes)) return allRefs;
-
-            for (const node of nodes) {
-                if (node.ref) {
-                    allRefs.push({ 
-                        title: node.title, 
-                        ref: node.ref,
-                        category: 'Breslov'
-                    });
-                }
-                if (node.contents) {
-                    allRefs = allRefs.concat(extractAllTextRefs(node.contents));
-                }
-            }
-            return allRefs;
-        }
 
         return extractAllTextRefs(breslovCategory.contents);
 
@@ -39,7 +39,7 @@ function getFullBreslovLibrary(fullIndex: any[]): SefariaIndexNode[] {
         console.error("Impossible de trouver ou de parcourir la catégorie Breslev.", error);
         return []; // Retourne une liste vide en cas d'erreur
     }
-}
+};
 
 export const getBreslovIndex = async (): Promise<SefariaIndexNode[]> => {
   console.log(`[SefariaProxy] Fetching complete Sefaria index via proxy`);

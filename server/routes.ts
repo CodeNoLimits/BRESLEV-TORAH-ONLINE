@@ -3,6 +3,42 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Universal Sefaria proxy to eliminate ALL CORS issues
+  app.use('/sefaria-api/*', async (req, res) => {
+    try {
+      const path = req.path.replace('/sefaria-api', '');
+      const sefariaUrl = `https://www.sefaria.org/api${path}`;
+      
+      console.log(`[SefariaProxy] Proxying request to: ${sefariaUrl}`);
+      
+      const response = await fetch(sefariaUrl, {
+        method: req.method,
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'LeCompagnonDuCoeur/1.0'
+        }
+      });
+      
+      if (!response.ok) {
+        console.error(`[SefariaProxy] Error ${response.status}: ${response.statusText}`);
+        return res.status(response.status).json({ error: response.statusText });
+      }
+      
+      const data = await response.json();
+      console.log(`[SefariaProxy] Successfully proxied request for: ${path}`);
+      
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      
+      res.json(data);
+    } catch (error) {
+      console.error('[SefariaProxy] Proxy error:', error);
+      res.status(500).json({ error: 'Proxy server error' });
+    }
+  });
+
   // Sefaria Breslov-specific proxy routes
   app.get('/api/sefaria/texts/:ref(*)', async (req, res) => {
     try {
