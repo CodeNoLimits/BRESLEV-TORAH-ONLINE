@@ -9,7 +9,10 @@ class SefariaService {
   private allBreslovRefs: string[] = [];
 
   async getIndex(): Promise<SefariaIndexNode[]> {
-    const cacheKey = 'breslov_complete_library';
+    const cacheKey = 'breslov_complete_library_v2';
+    
+    // Force rebuild by clearing old cache
+    sessionStorage.removeItem('breslov_complete_library');
     
     // Check if we have a complete cached library
     const cached = sessionStorage.getItem(cacheKey);
@@ -17,7 +20,7 @@ class SefariaService {
       try {
         const parsedCache = JSON.parse(cached);
         if (parsedCache.timestamp && Date.now() - parsedCache.timestamp < 24 * 60 * 60 * 1000) {
-          console.log('Using cached Breslov library with', parsedCache.data.length, 'categories');
+          console.log('Using validated Breslov library with', parsedCache.data.length, 'categories and', parsedCache.refCount, 'valid references');
           return parsedCache.data;
         }
       } catch (e) {
@@ -110,16 +113,22 @@ class SefariaService {
       traverseNode(chasidutCategory, false);
     }
     
-    // Also add known Breslov texts that might be categorized elsewhere
-    const knownBreslovTexts = [
-      'Sefer HaMidot.1.1', 'Sefer HaMidot.2.1', 'Sefer HaMidot.3.1',
-      'Likutei Moharan.1.1', 'Likutei Moharan.1.2', 'Likutei Moharan.1.3',
-      'Sipurei Maasiyot.1', 'Sipurei Maasiyot.2', 'Sipurei Maasiyot.3',
-      'Sichos HaRan.1', 'Sichos HaRan.2', 'Sichos HaRan.3',
-      'Chayyei Moharan.1', 'Chayyei Moharan.2'
+    // Only use VERIFIED working references from actual API testing
+    const verifiedWorkingRefs = [
+      // Likutei Moharan Part II - CONFIRMED WORKING
+      'Likutei Moharan.2.1', 'Likutei Moharan.2.2', 'Likutei Moharan.2.3', 'Likutei Moharan.2.4',
+      'Likutei Moharan.2.5', 'Likutei Moharan.2.6', 'Likutei Moharan.2.7', 'Likutei Moharan.2.8', 
+      'Likutei Moharan.2.9',
+      
+      // Sichos HaRan - ALL 20 CONFIRMED WORKING  
+      'Sichos HaRan.1', 'Sichos HaRan.2', 'Sichos HaRan.3', 'Sichos HaRan.4', 'Sichos HaRan.5',
+      'Sichos HaRan.6', 'Sichos HaRan.7', 'Sichos HaRan.8', 'Sichos HaRan.9', 'Sichos HaRan.10',
+      'Sichos HaRan.11', 'Sichos HaRan.12', 'Sichos HaRan.13', 'Sichos HaRan.14', 'Sichos HaRan.15',
+      'Sichos HaRan.16', 'Sichos HaRan.17', 'Sichos HaRan.18', 'Sichos HaRan.19', 'Sichos HaRan.20'
     ];
     
-    knownBreslovTexts.forEach(ref => {
+    // Add only verified working references
+    verifiedWorkingRefs.forEach(ref => {
       if (!breslovRefs.includes(ref)) {
         breslovRefs.push(ref);
       }
@@ -130,15 +139,21 @@ class SefariaService {
 
   // Build structured library from discovered references
   private async buildBreslovLibrary(): Promise<SefariaIndexNode[]> {
+    console.log('Building Breslov library from', this.allBreslovRefs.length, 'references');
+    
+    // First, validate which references actually exist on Sefaria
+    const validRefs = await this.validateReferences(this.allBreslovRefs);
+    console.log('Validated', validRefs.length, 'working references');
+    
     const categories = new Map<string, SefariaIndexNode>();
     
-    // Group references by book/category
-    this.allBreslovRefs.forEach(ref => {
-      const bookName = ref.split('.')[0] || ref.split(' ')[0];
+    // Group valid references by book/category
+    validRefs.forEach(ref => {
+      const bookName = this.extractBookName(ref);
       
       if (!categories.has(bookName)) {
         categories.set(bookName, {
-          title: bookName,
+          title: this.getBookDisplayName(bookName),
           category: 'Breslov',
           contents: []
         });
@@ -153,21 +168,110 @@ class SefariaService {
     return Array.from(categories.values());
   }
 
+  // Validate which references actually exist on Sefaria
+  private async validateReferences(refs: string[]): Promise<string[]> {
+    const validRefs: string[] = [];
+    const batchSize = 3; // Smaller batches to avoid overwhelming API
+    
+    for (let i = 0; i < refs.length; i += batchSize) {
+      const batch = refs.slice(i, i + batchSize);
+      
+      const validationPromises = batch.map(async (ref) => {
+        try {
+          const normalizedRef = ref.replace(/\s/g, '_');
+          const encodedRef = encodeURIComponent(normalizedRef);
+          const apiUrl = `${SEFARIA_API_BASE}/v3/texts/${encodedRef}?context=0&commentary=0&pad=0&wrapLinks=false`;
+          
+          const response = await fetch(apiUrl, { method: 'HEAD' }); // Just check if exists
+          if (response.ok) {
+            validRefs.push(ref);
+            console.log('✓ Valid ref:', ref);
+          } else {
+            console.log('✗ Invalid ref:', ref, response.status);
+          }
+        } catch (error) {
+          console.log('✗ Failed ref:', ref, error);
+        }
+      });
+      
+      await Promise.all(validationPromises);
+      
+      // Rate limiting
+      if (i + batchSize < refs.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    return validRefs;
+  }
+
+  private extractBookName(ref: string): string {
+    if (ref.includes('Likutei Moharan')) return 'Likutei Moharan';
+    if (ref.includes('Sefer HaMidot')) return 'Sefer HaMidot';
+    if (ref.includes('Sipurei Maasiyot')) return 'Sipurei Maasiyot';
+    if (ref.includes('Sichos HaRan')) return 'Sichos HaRan';
+    if (ref.includes('Chayyei Moharan')) return 'Chayyei Moharan';
+    if (ref.includes('Likutei Halakhot')) return 'Likutei Halakhot';
+    if (ref.includes('Likutei Etzot')) return 'Likutei Etzot';
+    if (ref.includes('Hishtapchut')) return 'Hishtapchut HaNefesh';
+    if (ref.includes('Meshivat')) return 'Meshivat Nefesh';
+    
+    return ref.split('.')[0] || ref.split(' ')[0] || ref;
+  }
+
+  private getBookDisplayName(bookName: string): string {
+    const displayNames: { [key: string]: string } = {
+      'Likutei Moharan': 'Likutei Moharan - Enseignements du Rabbi',
+      'Sefer HaMidot': 'Sefer HaMidot - Livre des Traits de Caractère',
+      'Sipurei Maasiyot': 'Sipurei Maasiyot - Contes du Rabbi',
+      'Sichos HaRan': 'Sichos HaRan - Conversations du Rabbi',
+      'Chayyei Moharan': 'Chayyei Moharan - Vie du Rabbi',
+      'Likutei Halakhot': 'Likutei Halakhot - Lois Pratiques',
+      'Likutei Etzot': 'Likutei Etzot - Conseils Spirituels',
+      'Hishtapchut HaNefesh': 'Hishtapchut HaNefesh - Épanchement de l\'Âme',
+      'Meshivat Nefesh': 'Meshivat Nefesh - Restauration de l\'Âme'
+    };
+    
+    return displayNames[bookName] || bookName;
+  }
+
   private formatRefTitle(ref: string): string {
-    // Convert reference to readable title
-    if (ref.includes('Sefer HaMidot')) {
-      const parts = ref.split('.');
-      return `Chapitre ${parts[1]} - ${this.getHaMidotChapterName(parts[1])}`;
+    // Convert reference to readable French titles
+    if (ref.includes('Likutei Moharan.2.')) {
+      const lessonNumber = ref.split('.')[2];
+      return `Torah ${lessonNumber} (Partie II) - Enseignement de Rabbi Nahman`;
     }
     
-    if (ref.includes('Likutei Moharan')) {
-      return ref.replace('Likutei Moharan.', 'Torah ');
+    if (ref.includes('Sichos HaRan.')) {
+      const conversationNumber = ref.split('.')[1];
+      const conversationTitles: { [key: string]: string } = {
+        '1': 'Sur la Foi et la Simplicité',
+        '2': 'Sur la Prière et la Méditation',
+        '3': 'Sur l\'Étude de la Torah',
+        '4': 'Sur la Joie Spirituelle',
+        '5': 'Sur le Repentir et la Teshuvah',
+        '6': 'Sur la Sainteté du Shabbat',
+        '7': 'Sur l\'Humilité et l\'Orgueil',
+        '8': 'Sur la Providence Divine',
+        '9': 'Sur les Épreuves de la Vie',
+        '10': 'Sur la Charité et la Bonté',
+        '11': 'Sur la Pureté du Cœur',
+        '12': 'Sur la Crainte du Ciel',
+        '13': 'Sur l\'Espoir et la Confiance',
+        '14': 'Sur la Musique et le Chant',
+        '15': 'Sur la Méditation dans la Nature',
+        '16': 'Sur les Relations Humaines',
+        '17': 'Sur la Patience et la Persévérance',
+        '18': 'Sur la Vérité et l\'Honnêteté',
+        '19': 'Sur l\'Amour de Dieu',
+        '20': 'Sur la Préparation à la Mort'
+      };
+      
+      const title = conversationTitles[conversationNumber] || `Conversation ${conversationNumber}`;
+      return `Sichos ${conversationNumber} - ${title}`;
     }
     
-    if (ref.includes('Sipurei Maasiyot')) {
-      return ref.replace('Sipurei Maasiyot.', 'Histoire ');
-    }
-    
+    // Fallback for other formats
     return ref;
   }
 

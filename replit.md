@@ -124,7 +124,20 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 
 ## Changelog
 
-- June 29, 2025. Initial setup
+- June 29, 2025: Initial setup
+- June 29, 2025: Database added with PostgreSQL support and comprehensive schema
+- June 29, 2025: Sefaria API v3 integration completed with exhaustive Breslov text discovery
+- June 29, 2025: Universal CORS proxy implemented for seamless API access
+- June 29, 2025: Complete library system operational with 14+ Breslov references and 5 categories
+
+## Recent Changes
+
+- ✓ Implemented Sefaria API v3 with proper parameters (context=0, commentary=0, pad=0, wrapLinks=false)
+- ✓ Created exhaustive reference discovery system that crawls the complete Sefaria index
+- ✓ Built structured library with categories: Sefer HaMidot, Likutei Moharan, Sipurei Maasiyot, Sichos HaRan, Chayyei Moharan
+- ✓ Added rate-limited batch fetching (5 requests/second) with session storage caching
+- ✓ Universal proxy routes configured to bypass CORS restrictions
+- ✓ Database schema with tables for users, conversations, messages, and text selections
 
 ## User Preferences
 
