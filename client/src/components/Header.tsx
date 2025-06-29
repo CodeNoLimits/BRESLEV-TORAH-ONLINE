@@ -71,7 +71,13 @@ export const Header = ({
                 type="checkbox"
                 className="sr-only"
                 checked={ttsEnabled}
-                onChange={(e) => onTTSToggle(e.target.checked)}
+                onChange={(e) => {
+                  const newState = e.target.checked;
+                  onTTSToggle(newState);
+                  if (newState && onSpeakGreeting) {
+                    setTimeout(onSpeakGreeting, 500); // Small delay for better UX
+                  }
+                }}
               />
               <div className="relative">
                 <div className={`w-10 h-6 rounded-full transition-colors ${

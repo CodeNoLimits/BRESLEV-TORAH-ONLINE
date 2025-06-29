@@ -1,0 +1,145 @@
+### Correctif ciblé : remettre en route **TTS + Guidance + Analyser**
+
+et éviter la surcharge de Gemini en découpant les enseignements « א / ב / ג … »
+
+---
+
+## 1. Pourquoi le **TTS** est muet ?
+
+| Cause probable                                                                                                  | Correctif concret                                                                                                                                                                                                                                                                              |
+| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Voix absente** : le hook appelle `speechSynthesis.getVoices()` trop tôt (avant que les voix soient chargées). | Dans `useTTS`, ajouter un *lazy-loader* :  `js const loadVoices = () => new Promise(r => { let v = speechSynthesis.getVoices(); if (v.length) return r(v); speechSynthesis.onvoiceschanged = () => r(speechSynthesis.getVoices()); });`  Et n’appeler `speak()` qu’après `await loadVoices()`. |
+| **Contexte navigateur bloqué** : le premier son doit être déclenché par une action utilisateur (Chrome/Edge).   | Au premier clic sur **Analyse** / **Guidance** / **Btn TTS**, appeler `window.speechSynthesis.resume()` puis lancer un court essai (`new SpeechSynthesisUtterance('')`) pour lever le blocage.                                                                                                 |
+| **Langue mal mappée** : `utterance.lang` ≠ voix disponible (he-IL, fr-FR, en-US).                               | Sélectionner la première voix qui **commence** par le code voulu :  `js const v = voices.find(v=>v.lang.startsWith(langCode));`                                                                                                                                                                |
+| **Lecture interrompue** parce que `speak()` est appelé chunk par chunk.                                         | Accumuler le texte complet puis appeler `speak(fullText)` **une fois** le stream terminé (`reader.read()` → done).                                                                                                                                                                             |
+| **HTTPS requis** sur Chrome pour TTS.                                                                           | Tester en [https://repl.co](https://repl.co) ; sinon activer le flag *Always use HTTPS* ou servir en `https://<project>.<username>.repl.co`.                                                                                                                                                   |
+
+### Patch minimal – `useTTS.ts`
+
+```ts
+export const useTTS = (enabled: boolean, lang: 'fr'|'en'|'he') => {
+  const loadVoices = () => new Promise<SpeechSynthesisVoice[]>(resolve=>{
+      const v = speechSynthesis.getVoices();
+      if (v.length) return resolve(v);
+      speechSynthesis.onvoiceschanged = () => resolve(speechSynthesis.getVoices());
+  });
+
+  const speak = async (text: string) => {
+    if (!enabled || !text) return;
+    const voices = await loadVoices();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = lang==='he' ? 'he-IL' : lang==='en' ? 'en-US' : 'fr-FR';
+    utter.voice = voices.find(v=>v.lang.startsWith(utter.lang)) ?? null;
+    utter.rate = .95;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utter);
+  };
+  return { speak };
+};
+```
+
+Call `speak(fullResponse)` **après** que le streaming Gemini soit terminé.
+
+---
+
+## 2. Pourquoi **Guidance** et **Analyser** n’envoient rien ?
+
+1. **Handlers absents**
+   *Vérifie :* dans `ChatView` les props sont bien passées :
+
+   ```tsx
+   <GuidanceCounselor onFindAdvice={handleFindAdvice} …/>
+   <SnippetAnalyzer  onAnalyze={handleAnalyzeSnippet} …/>
+   ```
+
+2. **streamAiResponse** ne reçoit pas le bon `mode`
+   *Patch :*
+
+   ```js
+   onFindAdvice={txt=>streamAiResponse('advice',{text:txt})}
+   onAnalyze={txt=>streamAiResponse('snippet',{text:txt})}
+   ```
+
+3. **Route proxy manquante**
+   *test terminal :*
+
+   ```bash
+   curl -X POST https://<repl>.repl.co/gemini-api/chat -d '{"prompt":"ping"}' -H 'Content-Type: application/json'
+   ```
+
+   → doit renvoyer du texte. Sinon revoir `proxy.js` (§ précédent).
+
+4. **CORS** front→proxy
+   Ajoute dans proxy :
+
+   ```js
+   app.use(require('cors')({ origin:'*' }));
+   ```
+
+---
+
+## 3. Découper automatiquement les longs enseignements « א / ב / ג »
+
+### 3-a. Algorithme
+
+1. Après avoir récupéré `text.he` (ou `text.en`) :
+
+   ```js
+   const raw = text.he.join('\n');         // tableau → grande string
+   const parts = raw.split(/(?:^|\n)([א-ת]\s?[.:])/g); // garde le délimiteur
+   ```
+2. Reconstituer en paires `[marker, paragraph]` et filtrer vide.
+3. Dans `TextViewer` : afficher une table des sous-sections cliquables (liste de marqueurs).
+4. Quand l’utilisateur clique *Analyse* avec **rien sélectionné** :
+   *Frontend* envoie **par lot ≤ 1 000 caractères** :
+
+   ```js
+   for(const slice of chunk(parts.join('\n\n'), 1000)){ await streamAiResponse('study',{text:slice}); }
+   ```
+
+   Gemini reçoit chaque chunk indépendamment ⇒ évite l’explosion de tokens.
+
+### 3-b. UX rapide
+
+```tsx
+{paragraphs.map((p,i)=>(
+  <p key={i} onClick={()=>selectParagraph(i)}
+     className={i===selected ? 'bg-sky-900/20' : ''}>
+     <span className="font-bold text-amber-400">{p.marker}</span> {p.text}
+  </p>
+))}
+```
+
+---
+
+## 4. Checklist « Ça doit marcher tout de suite »
+
+| ✅ | À vérifier                                                                                                   | Fichier                                        |
+| - | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| ☐ | `POST /gemini-api/chat` renvoie du texte dans Postman                                                        | `proxy.js`                                     |
+| ☐ | `useTTS` charge les voix (>0) avant `speak()`                                                                | `useTTS.ts`                                    |
+| ☐ | `streamAiResponse` appelle `speak(fullText)` après le `done` du stream                                       | `App.tsx`                                      |
+| ☐ | Boutons appellent correctement leurs handlers avec `mode` adéquat                                            | `GuidanceCounselor.tsx`, `SnippetAnalyzer.tsx` |
+| ☐ | Sélection vide → découpage en sous-paragraphes ≤ 1000 car.                                                   | `GeminiContextSvc.ts`                          |
+| ☐ | TTS greeting :  `useEffect(() => speak('Sélectionnez la partie du texte que vous voulez que je lise…'), [])` | `App.tsx`                                      |
+
+---
+
+💡 **Astuce debug TTS** :
+
+```js
+console.table(speechSynthesis.getVoices().map(v=>({name:v.name, lang:v.lang})));
+```
+
+Si aucune voix française ou hébraïque → Chrome/Edge lit quand même via fallback US ; Safari iOS bloque sans HTTPS.
+
+---
+
+### En résumé
+
+1. **Fixe le hook TTS** (lazy voice loader + speak après stream).
+2. **Vérifie la route `/gemini-api/chat`** – si elle renvoie « pong » depuis curl, le front fonctionnera.
+3. **Passe le mode correct** aux fonctions `streamAiResponse`.
+4. **Découpe les enseignements** par marqueurs א/ב/ג et envoie en petits blocs à Gemini.
+
+Applique ces correctifs ; les trois boutons fonctionneront et la lecture vocale saluera l’utilisateur puis lira exactement le passage choisi, dans la bonne langue.

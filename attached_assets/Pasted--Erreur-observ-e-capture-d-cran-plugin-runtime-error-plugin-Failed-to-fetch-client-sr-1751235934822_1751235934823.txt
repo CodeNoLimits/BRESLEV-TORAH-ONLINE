@@ -1,0 +1,118 @@
+**❗️Erreur observée (capture d’écran)**
+`[plugin:runtime-error->plugin] Failed to fetch`
+→ client/src/services/**sefariaDirectClient.ts:40:28**
+
+```ts
+let response = await fetch(url);   // url = https://www.sefaria.org/api/v3/texts/<tref>
+if (!response.ok && response.status === 404) { … }
+```
+
+Le fetch échoue parce que :
+
+1. **Mauvais tref ou mauvais format** → Sefaria renvoie 404.
+2. **CORS** : appel direct depuis le navigateur → bloqué.
+3. **Overlay Vite** masque l’app avec la boîte rouge.
+
+---
+
+## Correctif en trois volets
+
+### 1. Corriger l’URL v3 et gérer les underscores
+
+```ts
+export const buildV3Url = (tref: string) =>
+  `https://www.sefaria.org/api/v3/texts/${encodeURIComponent(
+       tref.replace(/ /g,'_')      // espaces → _  
+            .replace(/\./g, '.')    // laisse les points  
+   )}?context=0&commentary=0&pad=0&wrapLinks=false`;
+```
+
+### 2. Passer **tous** les appels Sefaria par le proxy Node (évite CORS)
+
+**proxy.js**
+
+```js
+const fetch = (...args)=> import('node-fetch').then(({default:fetch})=>fetch(...args));
+app.get('/sefaria/*', async (req,res)=>{
+  const target = 'https://www.sefaria.org' + req.originalUrl.replace('/sefaria','');
+  try{
+     const r = await fetch(target);
+     res.set('Content-Type','application/json');
+     res.status(r.status).send(await r.text());
+  }catch(e){
+     console.error('[Proxy] Sefaria error',e);
+     res.status(502).json({error:'Proxy failure'});
+  }
+});
+```
+
+↳ **Dans le client :**
+
+```ts
+const url = `/sefaria/api/v3/texts/${trefFormatted}`;
+```
+
+### 3. Fallback & découpage pour éviter 404/429
+
+```ts
+export async function fetchSection(tref: string) {
+  const url = buildV3Url(tref);
+  const r = await fetch(url);
+  if (r.ok) return r.json();
+
+  /* --- Fallback v2 / v1 --- */
+  const v2 = `/sefaria/api/texts/${tref.replace(/ /g,'_')}?context=0&commentary=0`;
+  const r2 = await fetch(v2);
+  if (r2.ok) return r2.json();
+
+  throw new Error(`Sefaria 404: ${tref}`);
+}
+```
+
+---
+
+## Bonus : segmentation א/ב/ג pour éviter la saturation Gemini
+
+```ts
+export function splitHebrewSections(rawHe: string){
+  const parts = rawHe.split(/(?:^|\n)([א-ת]\s?[.:])/g);
+  const segs: {marker:string;text:string}[] = [];
+  for(let i=1;i<parts.length;i+=2){
+     segs.push({marker:parts[i].trim(), text:parts[i+1]?.trim()||''});
+  }
+  return segs.filter(s=>s.text);
+}
+```
+
+* Si l’utilisateur ne sélectionne rien : envoyer chaque `text` < 1 000 car. à `streamAiResponse('study',…)`.
+
+---
+
+### Désactiver l’overlay Vite (facultatif)
+
+*Vite.config.ts*
+
+```ts
+export default defineConfig({
+  server:{ hmr:{ overlay:false } },
+  …
+});
+```
+
+---
+
+## À appliquer immédiatement
+
+1. **Proxy Node** opérationnel (`/sefaria/**`).
+2. **Client** : toutes les requêtes passent par `/sefaria/…`, plus de fetch direct.
+3. **buildV3Url** + fallback.
+4. **Découpage par paragraphes א/ב/ג** avant d’envoyer à Gemini.
+5. Test rapide :
+
+   ```bash
+   curl https://<your-repl>.repl.co/sefaria/api/v3/texts/Likutei_Moharan.1.1
+   ```
+
+   → doit renvoyer le JSON du texte.
+
+Une fois ces points en place, la bibliothèque se remplira, les clics chargeront les textes complets, et le TTS/Gemini pourront fonctionner sans erreur.
