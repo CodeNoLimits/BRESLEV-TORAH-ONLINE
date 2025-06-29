@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Language } from '../types';
 import { sefariaClient, SefariaIndexNode } from '../services/sefariaDirectClient';
+import { BookContents } from './BookContents';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 interface SidebarProps {
@@ -15,6 +16,20 @@ export const Sidebar = ({ isOpen, onClose, onTextSelect, language }: SidebarProp
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedBook, setSelectedBook] = useState<{title: string, key: string} | null>(null);
+
+  // Liste complète des 9 livres Breslov avec leurs clés Sefaria
+  const breslovBooks = [
+    { title: 'Likoutei Moharan', key: 'Likutei_Moharan', description: '286 Torah (Part I) + 125 Torah (Part II)' },
+    { title: 'Sippurei Maasiyot', key: 'Sippurei_Maasiyot', description: '13 contes principaux + contes additionnels' },
+    { title: 'Sichot HaRan', key: 'Sichot_HaRan', description: '332 sections de conversations' },
+    { title: 'Likoutei Tefilot', key: 'Likutei_Tefilot', description: '210 prières spirituelles' },
+    { title: 'Sefer HaMiddot', key: 'Sefer_HaMiddot', description: 'Traits de caractère et conseils' },
+    { title: 'Likoutei Halakhot', key: 'Likutei_Halakhot', description: 'Lois spirituelles et halakha' },
+    { title: 'Likkutei Etzot', key: 'Likkutei_Etzot', description: 'Conseils spirituels par sujets' },
+    { title: 'Chayei Moharan', key: 'Chayei_Moharan', description: 'Biographie de Rabbi Nahman' },
+    { title: 'Shivchei HaRan', key: 'Shivchei_HaRan', description: 'Éloges et récits du Rabbi' }
+  ];
 
   useEffect(() => {
     loadBreslovTexts();
@@ -34,6 +49,11 @@ export const Sidebar = ({ isOpen, onClose, onTextSelect, language }: SidebarProp
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBookSelect = (title: string, key: string) => {
+    console.log('[Sidebar] Opening complete book contents:', title, key);
+    setSelectedBook({ title, key });
   };
 
   const renderTextNode = (node: SefariaIndexNode, level: number = 0): JSX.Element => {
@@ -75,6 +95,16 @@ export const Sidebar = ({ isOpen, onClose, onTextSelect, language }: SidebarProp
 
   return (
     <>
+      {/* BookContents Modal */}
+      {selectedBook && (
+        <BookContents 
+          bookTitle={selectedBook.title}
+          bookKey={selectedBook.key}
+          onTextSelect={onTextSelect}
+          onClose={() => setSelectedBook(null)}
+        />
+      )}
+      
       {/* Overlay */}
       {isOpen && (
         <div 
