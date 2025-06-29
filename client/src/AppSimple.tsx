@@ -21,7 +21,7 @@ const generateId = () => Date.now().toString(36) + Math.random().toString(36).su
 function AppSimple() {
   // Core state
   const [language, setLanguage] = useState<Language>('fr');
-  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(true); // TTS activé par défaut
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedText, setSelectedText] = useState<SefariaText | null>(null);
   const [userSelectedText, setUserSelectedText] = useState('');
@@ -60,7 +60,34 @@ function AppSimple() {
     };
     
     preloadEssentialTexts();
-  }, []);
+    
+    // Auto-welcome message with TTS après 2 secondes
+    setTimeout(() => {
+      const welcomeMessages = {
+        fr: "Shalom et bienvenue dans Le Compagnon du Cœur. Je suis votre guide spirituel basé sur les enseignements de Rabbi Nahman de Breslov. Ouvrez la bibliothèque pour sélectionner un texte, et je vous fournirai une analyse spirituelle approfondie avec lecture automatique.",
+        en: "Shalom and welcome to The Heart's Companion. I am your spiritual guide based on the teachings of Rabbi Nahman of Breslov. Open the library to select a text, and I will provide you with deep spiritual analysis with automatic reading.",
+        he: "שלום וברוכים הבאים לחבר הלב. אני המדריך הרוחני שלכם המבוסס על תורת רבי נחמן מברסלב. פתחו את הספרייה לבחירת טקסט, ואספק לכם ניתוח רוחני עמוק עם קריאה אוטומטית."
+      };
+      
+      const welcomeText = welcomeMessages[language];
+      
+      // Add welcome message to chat
+      const welcomeMsg: Message = {
+        id: generateId(),
+        type: 'ai',
+        content: welcomeText,
+        timestamp: new Date(),
+        mode: 'welcome'
+      };
+      setMessages([welcomeMsg]);
+      
+      // Speak welcome message if TTS enabled
+      if (ttsEnabled) {
+        console.log('[AppSimple] Speaking welcome message');
+        speak(welcomeText);
+      }
+    }, 2000);
+  }, [language, ttsEnabled, speak]);
 
   // Build AI prompt based on mode
   const buildPrompt = useCallback((mode: string, text: string) => {
@@ -90,13 +117,31 @@ ${text}`
     return prompts[mode as keyof typeof prompts] || prompts.general;
   }, []);
 
-  // Handle AI streaming
+  // Enhanced AI handler with authentic Sefaria integration
   const handleAIRequest = useCallback(async (text: string, mode: string = 'general') => {
     setIsAILoading(true);
     setStreamingText('');
 
     try {
-      const prompt = buildPrompt(mode, text);
+      // Check if user is asking for specific Sefaria content
+      const sefariaRequest = detectSefariaRequest(text);
+      let enhancedText = text;
+      
+      if (sefariaRequest) {
+        console.log(`[AppSimple] Detected Sefaria request: ${sefariaRequest.ref}`);
+        try {
+          const sefariaContent = await breslovCrawler.getTextByRef(sefariaRequest.ref);
+          if (sefariaContent && sefariaContent.versions && sefariaContent.versions[0]) {
+            const textContent = sefariaContent.versions[0].text.join('\n\n');
+            enhancedText = `CONTENU AUTHENTIQUE SEFARIA - ${sefariaRequest.ref}:\n\n${textContent}\n\nQUESTION UTILISATEUR: ${text}`;
+            mode = 'study'; // Force study mode for authentic content
+          }
+        } catch (error) {
+          console.error('[AppSimple] Error fetching Sefaria content:', error);
+        }
+      }
+
+      const prompt = buildPrompt(mode, enhancedText);
       console.log(`[AppSimple] AI request - Mode: ${mode}`);
 
       // Add user message
@@ -147,6 +192,34 @@ ${text}`
       setStreamingText('');
     }
   }, [buildPrompt, ttsEnabled, speak]);
+
+  // Detect if user is asking for specific Sefaria content
+  const detectSefariaRequest = (text: string) => {
+    const patterns = [
+      /sichot haran (?:chapitre|chapter|section)?\s*(\d+)/i,
+      /likutei moharan (?:torah|chapitre|chapter)?\s*(\d+)/i,
+      /sippurei maasiyot (?:conte|story|tale)?\s*(\d+)/i,
+      /sefer hamiddot/i,
+      /likutei tefilot (?:prière|prayer)?\s*(\d+)/i
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const number = match[1] || '1';
+        if (text.includes('sichot haran')) {
+          return { ref: `Sichot_HaRan.${number}`, title: `Sichot HaRan ${number}` };
+        } else if (text.includes('likutei moharan')) {
+          return { ref: `Likutei_Moharan.${number}`, title: `Likutei Moharan ${number}` };
+        } else if (text.includes('sippurei maasiyot')) {
+          return { ref: `Sippurei_Maasiyot.${number}`, title: `Sippurei Maasiyot ${number}` };
+        } else if (text.includes('likutei tefilot')) {
+          return { ref: `Likutei_Tefilot.${number}`, title: `Likutei Tefilot ${number}` };
+        }
+      }
+    }
+    return null;
+  };
 
   // Handle text selection from Sidebar with complete content crawler
   const handleTextSelect = useCallback(async (ref: string, title: string) => {

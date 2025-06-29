@@ -38,7 +38,7 @@ export class BreslovCrawler {
     }
 
     try {
-      const response = await fetch(`https://www.sefaria.org/api/index/${title}`);
+      const response = await fetch(`/sefaria/api/index/${title}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch TOC for ${title}: ${response.status}`);
       }
@@ -82,7 +82,7 @@ export class BreslovCrawler {
     }
 
     try {
-      const url = `https://www.sefaria.org/api/v3/texts/${ref}?context=0&commentary=0&pad=0&wrapLinks=false`;
+      const url = `/sefaria/api/v3/texts/${ref}?context=0&commentary=0&pad=0&wrapLinks=false`;
       const response = await fetch(url);
       
       if (!response.ok) {
