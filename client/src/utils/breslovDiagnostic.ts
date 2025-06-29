@@ -36,15 +36,22 @@ export class BreslovDiagnostic {
         console.log(`[BreslovDiagnostic] Checking ${ref}...`);
         const text = await breslovCrawler.getTextByRef(ref);
         
+        // Compter correctement les segments non-vides
+        const englishCount = Array.isArray(text?.text) ? 
+          text.text.filter(segment => segment && typeof segment === 'string' && segment.trim().length > 10).length : 0;
+        
+        const hebrewCount = Array.isArray(text?.he) ? 
+          text.he.filter(segment => segment && typeof segment === 'string' && segment.trim().length > 5).length : 0;
+
         const diagnostic: BookDiagnostic = {
           ref,
           displayName: this.getDisplayName(ref),
           status: 'success',
-          englishSegments: text?.text?.length || 0,
-          hebrewSegments: text?.he?.length || 0
+          englishSegments: englishCount,
+          hebrewSegments: hebrewCount
         };
         
-        if ((!text?.text || text.text.length === 0) && (!text?.he || text.he.length === 0)) {
+        if (englishCount === 0 && hebrewCount === 0) {
           diagnostic.status = 'empty';
         }
         

@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
-import { BreslovLibrary } from './components/BreslovLibrary';
+import { BreslovLibrary } from './components/BreslovLibraryFixed';
 import { FloatingTTSControl } from './components/FloatingTTSControl';
 import { useTTSFixed } from './hooks/useTTSFixed';
+import { MobileTTS, isMobile, MobileUtils } from './services/mobileOptimized';
 import { useVoiceInput } from './hooks/useVoiceInput';
 import { TextSegmenter } from './services/textSegmenter';
 import { sefariaClient, SefariaText } from './services/sefariaDirectClient';
