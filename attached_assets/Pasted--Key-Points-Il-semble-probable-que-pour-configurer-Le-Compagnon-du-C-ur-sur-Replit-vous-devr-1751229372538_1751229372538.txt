@@ -1,0 +1,207 @@
+### Key Points
+- Il semble probable que pour configurer "Le Compagnon du Cœur" sur Replit, vous devriez commencer par créer un nouveau projet Vite React TypeScript.
+- La recherche suggère d'installer des dépendances comme Tailwind CSS et intégrer les API Sefaria et Gemini.
+- Les preuves penchent vers une structure de fichiers spécifique et une implémentation détaillée des modes d'application.
+
+### Configuration Initiale
+Commencez par créer un nouveau Repl sur Replit en sélectionnant "JavaScript" comme langage. Exécutez ensuite `npm init vite@latest . -- --template react-ts` pour initialiser un projet Vite React TypeScript. Installez les dépendances avec `npm install`, puis configurez Tailwind CSS en exécutant `npm install -D tailwindcss postcss autoprefixer` et `npx tailwindcss init -p`.
+
+### Intégration des Services
+Implémentez l'intégration de l'API Sefaria dans `src/services/sefariaService.ts` pour récupérer les textes Breslev, en respectant les limites de taux (180 req/min). Configurez également le service Gemini AI dans `src/services/geminiService.ts` en installant `@google/generative-ai` et en utilisant la clé API fournie.
+
+### Développement de l'Interface
+Créez des composants comme `LibrarySidebar.tsx` pour afficher la hiérarchie des textes et `ChatView.tsx` pour l'interface de chat. Assurez-vous d'implémenter les cinq modes de l'application, y compris l'analyse automatique et la synthèse vocale via le Web Speech API.
+
+### Test et Déploiement
+Testez l'application en exécutant `npm run dev` et vérifiez que tout fonctionne, notamment la sélection de textes et les réponses de l'IA. Replit déploiera automatiquement l'application, mais vous pouvez configurer `replit.nix` si nécessaire.
+
+---
+
+### Note Détaillée
+
+Cette note fournit une analyse approfondie et détaillée des étapes nécessaires pour configurer l'application "Le Compagnon du Cœur" sur Replit, en se basant sur le brief fourni et les recherches effectuées. Elle vise à offrir une compréhension complète pour un développement réussi, en suivant une approche professionnelle et structurée.
+
+#### Contexte et Objectifs
+L'application "Le Compagnon du Cœur" est une application web React + TypeScript conçue comme un compagnon d'étude Breslev, avec cinq modes d'IA : analyse automatique, chat libre, analyse d'extrait, conseil personnalisé et résumé de points clés. Elle s'appuie sur des textes Breslev de [Sefaria](https://www.sefaria.org/), utilisant le moteur IA Gemini 1.5 Flash, avec un design sombre inspiré de [tikounaolam.com](https://tikounaolam.com). L'environnement cible est Replit, avec un serveur Vite en développement.
+
+Les œuvres Breslev racines incluent :
+| Œuvre                  | URL Sefaria                                      |
+|------------------------|--------------------------------------------------|
+| Chayei Moharan         | https://www.sefaria.org/Chayei_Moharan           |
+| Likkutei Etzot         | https://www.sefaria.org/Likkutei_Etzot           |
+| Likutei Halakhot       | https://www.sefaria.org/Likutei_Halakhot         |
+| Likutei Moharan        | https://www.sefaria.org/Likutei_Moharan          |
+| Likutei Tefilot        | https://www.sefaria.org/Likutei_Tefilot          |
+| Sefer HaMiddot         | https://www.sefaria.org/Sefer_HaMiddot           |
+| Shivchei HaRan         | https://www.sefaria.org/Shivchei_HaRan           |
+| Sichot HaRan           | https://www.sefaria.org/Sichot_HaRan             |
+| Sippurei Maasiyot      | https://www.sefaria.org/Sippurei_Maasiyot        |
+
+#### Étapes de Configuration sur Replit
+
+1. **Création d'un Nouveau Repl**
+   - Accédez à [Replit](https://replit.com/) et créez un nouveau Repl en sélectionnant "JavaScript" comme langage. Nommez-le, par exemple, "LeCompagnonDuCoeur".
+
+2. **Initialisation du Projet Vite React TypeScript**
+   - Exécutez dans le shell de Replit :
+     ```
+     npm init vite@latest . -- --template react-ts
+     ```
+   - Cela crée une structure de base pour un projet React avec TypeScript, utilisant Vite. Installez les dépendances avec `npm install`.
+   - Les recherches, comme [Getting Started | Vite](https://vite.dev/guide/), confirment que cette méthode est standard et adaptée, avec des performances rapides, comme mentionné dans [Replit — Why We Switched From Webpack To Vite](https://blog.replit.com/vite).
+
+3. **Installation des Dépendances Additionnelles**
+   - Installez Tailwind CSS pour le style, essentiel pour le thème sombre spécifié :
+     ```
+     npm install -D tailwindcss postcss autoprefixer
+     npx tailwindcss init -p
+     ```
+   - Configurez `tailwind.config.js` avec :
+     ```js
+     module.exports = {
+       content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+       theme: {
+         extend: {},
+       },
+       plugins: [],
+     }
+     ```
+   - Ajoutez les directives Tailwind dans `src/index.css` :
+     ```css
+     @tailwind base;
+     @tailwind components;
+     @tailwind utilities;
+     ```
+   - Installez également `@google/generative-ai` pour l'intégration Gemini :
+     ```
+     npm install @google/generative-ai
+     ```
+   - Ces étapes sont soutenues par des guides comme [Complete Guide to Setting Up React with TypeScript and Vite (2025)](https://medium.com/@robinviktorsson/complete-guide-to-setting-up-react-with-typescript-and-vite-2025-468f6556aaf2).
+
+4. **Structure du Projet**
+   - Créez la structure de fichiers selon le brief :
+     ```
+     mkdir src/components src/hooks src/services
+     touch src/constants.ts src/services/sefariaService.ts src/services/geminiService.ts src/components/LibrarySidebar.tsx src/components/ChatView.tsx src/hooks/useTTS.ts
+     ```
+   - Placez `SYSTEM_INSTRUCTION` dans `src/constants.ts` pour les prompts IA.
+   - Cette organisation suit les recommandations pour une architecture React/TS, comme détaillé dans [Setting up a React project using Vite + TypeScript + Vitest](https://dev.to/janoskocs/setting-up-a-react-project-using-vite-typescript-vitest-2gl2).
+
+5. **Intégration de l'API Sefaria**
+   - Implémentez `src/services/sefariaService.ts` pour gérer les appels API. Utilisez les endpoints spécifiés :
+     | Action                            | Endpoint v3                                                             | Notes                                                                |
+     |-----------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------|
+     | Récupérer l’arbre Breslev complet | GET https://www.sefaria.org/api/v3/category/Breslov?recursive=1         | Descend récursivement `contents`, `nodes` et `schema.nodes`.         |
+     | Récupérer un texte                | GET https://www.sefaria.org/api/v3/texts/<ref>?commentary=0&context=0   | Exemple : `.../texts/Likutei_Moharan.1`.                             |
+     | Limites                           | Environ 180 req/min                                                     | Implémenter un `throttle` (≥ 200 ms) ou un `PromisePool` ≤ 4 req/s.  |
+     | CORS                              | Ouvert                                                                  | `fetch(url, {mode:"cors"})` côté client suffit.                      |
+   - Implémentez un mécanisme de throttle, par exemple avec `throttle-debounce` :
+     ```typescript
+     import { throttle } from 'throttle-debounce';
+
+     const API_URL = 'https://www.sefaria.org/api/v3';
+
+     export const getBreslovCategory = async () => {
+       const response = await fetch(`${API_URL}/category/Breslov?recursive=1`);
+       return response.json();
+     };
+
+     export const getText = async (ref: string) => {
+       const response = await fetch(`${API_URL}/texts/${ref}?commentary=0&context=0`);
+       return response.json();
+     };
+
+     const throttledGetText = throttle(200, getText);
+
+     export { throttledGetText as getText };
+     ```
+   - Stockez les références dans `sessionStorage` pour éviter des appels redondants, en gérant la pagination pour des œuvres comme `Likutei Halakhot`.
+
+6. **Intégration de Gemini AI**
+   - Dans `src/services/geminiService.ts`, configurez le client Gemini :
+     ```typescript
+     import { GenerativeModel } from '@google/generative-ai';
+
+     const API_KEY = 'YOUR_API_KEY'; // Remplacez par la clé fournie
+     const model = new GenerativeModel(API_KEY);
+
+     export const sendMessageStream = async (prompt: string) => {
+       const result = await model.generateContent(prompt);
+       return result;
+     };
+     ```
+   - Gérez le streaming avec une boucle `for await`, par exemple :
+     ```typescript
+     for await (const chunk of result.stream) {
+       setAiText(prev => prev + chunk.text());
+     }
+     ```
+
+7. **Développement des Composants UI**
+   - Créez `src/components/LibrarySidebar.tsx` pour afficher une arborescence des textes, potentiellement avec une bibliothèque comme `react-treeview`.
+   - Implémentez `src/components/ChatView.tsx` avec un en-tête, une zone de chat et deux zones supplémentaires pour `SnippetAnalyzer` (Mode 3) et `GuidanceCounselor` (Mode 4).
+   - Ajoutez un bouton "Points Clés" dans `ChatBubble` pour le Mode 5, déclenché quand `message.text.length > 200`.
+   - Assurez-vous que le design suit la palette spécifiée : primaire `sky-500`, accent `amber-400`, surface `slate-800/900`, coins `rounded-2xl`, ombres `shadow-lg`, avec CSS Tailwind comme :
+     ```css
+     @tailwind base;
+     @tailwind components;
+     @tailwind utilities;
+
+     body { @apply bg-slate-900 text-slate-200; }
+     ::-webkit-scrollbar { width: 8px; }
+     ::-webkit-scrollbar-track { @apply bg-slate-800; }
+     ::-webkit-scrollbar-thumb { @apply bg-slate-600 rounded-md; }
+     ::-webkit-scrollbar-thumb:hover { @apply bg-slate-500; }
+     ```
+
+8. **Fonctionnalité TTS**
+   - Implémentez `src/hooks/useTTS.ts` avec l'API Web Speech :
+     ```typescript
+     import { useState } from 'react';
+
+     export const useTTS = () => {
+       const [isSpeaking, setIsSpeaking] = useState(false);
+
+       const speak = (text: string) => {
+         const utterance = new SpeechSynthesisUtterance(text);
+         speechSynthesis.speak(utterance);
+         setIsSpeaking(true);
+         utterance.onend = () => setIsSpeaking(false);
+       };
+
+       const cancel = () => {
+         speechSynthesis.cancel();
+         setIsSpeaking(false);
+       };
+
+       return { speak, cancel, isSpeaking };
+     };
+     ```
+   - Assurez-vous que la synthèse vocale peut être interrompue lors de nouveaux chunks.
+
+9. **Orchestration et Modes**
+   - Dans `App.tsx`, gérez les cinq modes, notamment :
+     - **Mode 1 (Analyse automatique)** : Lors de `onSelectRef(ref)` dans `LibrarySidebar`, construisez le prompt et appelez `processStream()` sans question intermédiaire.
+     - Assurez-vous que l'analyse automatique prend moins de 2 secondes pour un court enseignement, comme critère de succès.
+
+10. **Test et Déploiement**
+    - Testez en lançant `npm run dev` et vérifiez que cliquer sur "Likutei Moharan 1" déclenche une réponse instantanée de l'IA.
+    - Vérifiez que `sessionStorage.refs.length` correspond au nombre de feuilles renvoyées par l'endpoint catégorie, sans texte manquant.
+    - Replit déploiera automatiquement, mais configurez `replit.nix` avec `nodejs` si nécessaire, en utilisant `npm run dev` comme commande.
+
+#### Considérations Techniques
+- Assurez-vous que l'application est responsive : pour une largeur < 768 px, la sidebar doit se cacher derrière un burger.
+- Gérez les limites CORS avec `fetch(url, {mode:"cors"})`, car l'API Sefaria est ouverte.
+- Pour des œuvres multi-volumes comme `Likutei Halakhot`, gérez la pagination via les références, par exemple `"Likutei Halakhot, Yoreh Deah 1"`.
+
+#### Conclusion
+Cette approche garantit une implémentation complète de "Le Compagnon du Cœur" sur Replit, en respectant les spécifications du brief et en utilisant les meilleures pratiques pour Vite, React et TypeScript. Les tests doivent confirmer les critères de succès, notamment la rapidité de l'analyse automatique et la fonctionnalité TTS.
+
+### Key Citations
+- [Getting Started Vite Guide](https://vite.dev/guide/)
+- [Replit Blog on Vite Switch](https://blog.replit.com/vite)
+- [React Vite TypeScript Setup Guide](https://thirdygayares.com/react/set-up-react-vite-typescript)
+- [Sefaria API Documentation](https://www.sefaria.org/api)
+- [Tailwind CSS Installation Guide](https://tailwindcss.com/docs/installation)
+- [Complete React TypeScript Vite Guide](https://medium.com/@robinviktorsson/complete-guide-to-setting-up-react-with-typescript-and-vite-2025-468f6556aaf2)
+- [React Project Setup with Vite Tutorial](https://dev.to/janoskocs/setting-up-a-react-project-using-vite-typescript-vitest-2gl2)
