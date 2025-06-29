@@ -10,7 +10,7 @@ import { sefariaClient, SefariaText } from './services/sefariaDirectClient';
 import { streamGemini } from './services/geminiSimple';
 import { breslovCrawler } from './services/breslovCrawler';
 import { getCurrentSelection, clearSelection } from './services/textSelection';
-import { breslovDirect } from './services/breslovDirect';
+import { breslovComplete } from './services/breslovComplete';
 import { Language, InteractionMode } from './types';
 
 interface Message {
@@ -407,7 +407,7 @@ ${text}`
       {/* Main Content */}
       <div className="flex-1 flex">
         {/* Breslov Library */}
-        <BreslovLibraryDirect
+        <BreslovCompleteLibrary
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           onTextSelect={handleTextSelect}
