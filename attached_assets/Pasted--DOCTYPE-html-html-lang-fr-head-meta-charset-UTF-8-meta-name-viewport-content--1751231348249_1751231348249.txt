@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Le Compagnon du Cœur</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="text/babel" data-presets="react,es2015">
+    // Types
+    const TYPES = {
+      SefariaText: ({ ref: String, he: Array, text: Array }),
+      TreeNode: ({ title: String, ref: String, nodes: Array }),
+      AppContextType: ({
+        selectedRef: String,
+        setSelectedRef: Function,
+        chatHistory: Array,
+        setChatHistory: Function,
+        mode: String,
+        setMode: Function,
+        aiText: String,
+        setAiText: Function,
+        isSpeaking: Boolean,
+        toggleSpeaking: Function,
+      }),
+    };
+
+    // Utils
+    const throttle = (func, delay) => {
+      let lastCall = 0;
+      return (...args) => {
+        const now = Date.now();
+        if (now - lastCall >= delay) {
+          lastCall = now;
+          return func(...args);
+        }
+      };
+    };
+
+    // Services
+    const API_URL = '[invalid url, do not cite]api/v3';
+    const GEMINI_API_KEY = 'YOUR_API_KEY'; // Remplacez par une clé via .env dans un vrai projet
+
+    const sefariaService = {
+      getBreslovCategory: throttle(async () => {
+        try {
+          const response = await fetch(`${API_URL}/category/Breslov?recursive=1`, {
+            headers: { 'Accept': 'application/json' },
+          });
+          if (!response.ok) throw new Error(`Erreur HTTP : ${response.status}`);
+          const data = await response.json();
+          return data.contents || [];
+        } catch (error) {
+          console.error('Erreur lors de la récupération de la catégorie Breslov :', error);
+          return [];
+        }
+      }, 200),
+
+      getText: throttle(async (ref) => {
+        try {
+          const response = await fetch(`${API_URL}/texts/${ref}?commentary=0&context=0`, {
+            headers: { 'Accept': 'application/json' },
+          });
+          if (!response.ok) throw new Error(`Erreur HTTP : ${response.status}`);
+          return await response.json();
+        } catch (error) {
+          console.error(`Erreur lors de la récupération du texte pour ${ref} :`, error);
+          return null;
+        }
+      }, 200),
+    };
+
+    const geminiService = {
+      sendMessageStream: async (prompt) => {
+        try {
+          // Simulation d'une API Gemini (remplacez par une vraie implémentation)
+          const response = await fetch('https://api.mock.gemini/stream', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${GEMINI_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt }),
+          });
+          return response.body.getReader();
+        } catch (error) {
+          console.error('Erreur avec l’API Gemini :', error);
+          throw error;
+        }
+      },
+    };
+
+    // Context
+    const AppContext = React.createContext();
+
+    const AppProvider = ({ children }) => {
+      const [selectedRef, setSelectedRef] = React.useState(null);
+      const [chatHistory, setChatHistory] = React.useState([]);
+      const [mode, setMode] = React.useState('auto');
+      const [aiText, setAiText] = React.useState('');
+      const [isSpeaking, setIsSpeaking] = React.useState(false);
+
+      const toggleSpeaking = (text) => {
+        if (isSpeaking) {
+          speechSynthesis.cancel();
+          setIsSpeaking(false);
+        } else {
+          const utterance = new SpeechSynthesisUtterance(text);
+          speechSynthesis.speak(utterance);
+          setIsSpeaking(true);
+          utterance.onend = () => setIsSpeaking(false);
+        }
+      };
+
+      return (
+        <AppContext.Provider
+          value={{
+            selectedRef,
+            setSelectedRef,
+            chatHistory,
+            setChatHistory,
+            mode,
+            setMode,
+            aiText,
+            setAiText,
+            isSpeaking,
+            toggleSpeaking,
+          }}
+        >
+          {children}
+        </AppContext.Provider>
+      );
+    };
+
+    const useAppContext = () => {
+      const context = React.useContext(AppContext);
+      if (!context) throw new Error('useAppContext doit être utilisé dans un AppProvider');
+      return context;
+    };
+
+    // Hooks
+    const useGemini = () => {
+      const [isLoading, setIsLoading] = React.useState(false);
+
+      const processStream = async (prompt, callback) => {
+        setIsLoading(true);
+        try {
+          const reader = await geminiService.sendMessageStream(prompt);
+          let result = '';
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = new TextDecoder().decode(value);
+            result += chunk;
+            callback(result);
+          }
+          return result;
+        } catch (error) {
+          console.error('Erreur lors du traitement du flux :', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      return { isLoading, processStream };
+    };
+
+    // Composants
+    const TreeNode = ({ node, onSelectRef }) => (
+      <li>
+        {node.ref ? (
+          <button
+            onClick={() => onSelectRef(node.ref)}
+            className="text-sky-500 hover:text-sky-400 w-full text-left p-2 rounded-md hover:bg-slate-800"
+          >
+            {node.title}
+          </button>
+        ) : (
+          <span className="text-slate-400">{node.title}</span>
+        )}
+        {node.nodes && (
+          <ul className="pl-4">
+            {node.nodes.map((child, index) => (
+              <TreeNode key={index} node={child} onSelectRef={onSelectRef} />
+            ))}
+          </ul>
+        )}
+      </li>
+    );
+
+    const LibrarySidebar = ({ onSelectRef }) => {
+      const [treeData, setTreeData] = React.useState([]);
+      const [loading, setLoading] = React.useState(true);
+
+      React.useEffect(() => {
+        const fetchData = async () => {
+          setLoading(true);
+          const data = await sefariaService.getBreslovCategory();
+          setTreeData(data);
+          setLoading(false);
+        };
+        fetchData();
+      }, []);
+
+      return (
+        <div className="w-64 p-4 bg-slate-800 h-screen overflow-y-auto">
+          <h2 className="text-xl font-bold mb-4 text-amber-400">Bibliothèque Breslev</h2>
+          {loading ? (
+            <p className="text-slate-400">Chargement...</p>
+          ) : (
+            <ul className="space-y-2">
+              {treeData.map((node, index) => (
+                <TreeNode key={index} node={node} onSelectRef={onSelectRef} />
+              ))}
+            </ul>
+          )}
+        </div>
+      );
+    };
+
+    const ChatBubble = ({ message, isUser }) => (
+      <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
+        <div
+          className={`max-w-xs p-3 rounded-lg ${isUser ? 'bg-sky-500 text-white' : 'bg-slate-700 text-slate-200'}`}
+        >
+          {message}
+        </div>
+      </div>
+    );
+
+    const InputArea = ({ onSubmit, disabled }) => {
+      const [input, setInput] = React.useState('');
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (input.trim() && !disabled) {
+          onSubmit(input.trim());
+          setInput('');
+        }
+      };
+
+      return (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Entrez votre message..."
+            className="flex-1 p-2 bg-slate-600 text-slate-200 rounded-md disabled:opacity-50"
+            disabled={disabled}
+          />
+          <button
+            onClick={handleSubmit}
+            className="bg-sky-500 hover:bg-sky-400 text-white p-2 rounded-md disabled:opacity-50"
+            disabled={disabled}
+          >
+            Envoyer
+          </button>
+        </div>
+      );
+    };
+
+    const ModeSelector = ({ currentMode, onModeChange }) => {
+      const modes = ['auto', 'chat', 'analyze', 'counsel', 'summary'];
+      return (
+        <div className="flex gap-2 mb-4">
+          {modes.map((m) => (
+            <button
+              key={m}
+              onClick={() => onModeChange(m)}
+              className={`px-3 py-1 rounded-md ${
+                currentMode === m ? 'bg-amber-400 text-slate-900' : 'bg-slate-600 text-slate-200'
+              }`}
+            >
+              {m.charAt(0).toUpperCase() + m.slice(1)}
+            </button>
+          ))}
+        </div>
+      );
+    };
+
+    const ChatView = ({ chatHistory, aiText, onChat, isLoading }) => {
+      const { mode, setMode, isSpeaking, toggleSpeaking } = useAppContext();
+
+      return (
+        <div className="flex-1 p-4 flex flex-col">
+          <ModeSelector currentMode={mode} onModeChange={setMode} />
+          <div className="flex-1 overflow-y-auto mb-4 p-2 bg-slate-800 rounded-md">
+            {chatHistory.map((msg, index) => (
+              <ChatBubble key={index} message={msg} isUser={msg.startsWith('Utilisateur :')} />
+            ))}
+            {aiText && <ChatBubble message={`Compagnon : ${aiText}`} isUser={false} />}
+          </div>
+          <div className="flex gap-2">
+            <InputArea onSubmit={onChat} disabled={isLoading} />
+            <button
+              onClick={() => toggleSpeaking(aiText)}
+              className={`p-2 rounded-md ${
+                isSpeaking ? 'bg-red-500' : 'bg-green-500'
+              } text-white`}
+            >
+              {isSpeaking ? 'Arrêter' : 'Parler'}
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    // Composant Principal
+    const App = () => {
+      const {
+        selectedRef,
+        setSelectedRef,
+        chatHistory,
+        setChatHistory,
+        mode,
+        aiText,
+        setAiText,
+      } = useAppContext();
+      const { isLoading, processStream } = useGemini();
+
+      const SYSTEM_INSTRUCTION = `Tu es un compagnon d'étude Breslev, basé sur les textes de Rebbe Nachman de Breslov. Réponds avec sagesse et simplicité, en te basant uniquement sur les œuvres : Chayei Moharan, Likkutei Etzot, Likutei Halakhot, Likutei Moharan, Likutei Tefilot, Sefer HaMiddot, Shivchei HaRan, Sichot HaRan, Sippurei Maasiyot. Utilise un ton chaleureux et spirituel.`;
+
+      const handleSelectRef = async (ref) => {
+        setSelectedRef(ref);
+        setChatHistory([]);
+        setAiText('');
+
+        const textData = await sefariaService.getText(ref);
+        const textContent = textData?.he?.join(' ') || textData?.text?.join(' ') || 'Texte non disponible';
+        setChatHistory([`Texte sélectionné : ${textContent}`]);
+
+        if (mode === 'auto' || mode === 'analyze') {
+          await processAutoAnalysis(ref, textContent);
+        }
+      };
+
+      const processAutoAnalysis = async (ref, text) => {
+        const prompt = `${SYSTEM_INSTRUCTION}\n${mode === 'auto' ? 'Analyse automatiquement' : 'Analyse en détail'} ce texte : ${text}`;
+        await processStream(prompt, setAiText);
+      };
+
+      const handleChat = async (message) => {
+        const prompt = `${SYSTEM_INSTRUCTION}\nUtilisateur : ${message}\nTexte de référence : ${selectedRef || 'Aucun'}`;
+        await processStream(prompt, (text) => {
+          setAiText(text);
+          setChatHistory([...chatHistory, `Utilisateur : ${message}`, `Compagnon : ${text}`]);
+        });
+      };
+
+      return (
+        <div className="flex h-screen bg-slate-900 text-slate-200">
+          <LibrarySidebar onSelectRef={handleSelectRef} />
+          <ChatView
+            chatHistory={chatHistory}
+            aiText={aiText}
+            onChat={handleChat}
+            isLoading={isLoading}
+          />
+        </div>
+      );
+    };
+
+    // Rendu
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(
+      <AppProvider>
+        <App />
+      </AppProvider>
+    );
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>
