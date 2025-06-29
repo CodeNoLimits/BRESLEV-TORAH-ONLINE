@@ -217,6 +217,21 @@ ${text}`
     setCurrentInput('');
   }, [handleAIRequest]);
 
+  // Handle text analysis events from TextViewer
+  useEffect(() => {
+    const handleAnalyzeText = (event: CustomEvent) => {
+      const { text, mode } = event.detail;
+      console.log(`[AppSimple] Received analysis request: ${mode}, text length: ${text.length}`);
+      handleAIRequest(text, mode);
+    };
+    
+    window.addEventListener('analyzeText', handleAnalyzeText as EventListener);
+    
+    return () => {
+      window.removeEventListener('analyzeText', handleAnalyzeText as EventListener);
+    };
+  }, [handleAIRequest]);
+
   return (
     <div className="h-screen bg-slate-950 text-slate-300 flex flex-col">
       {/* Header */}

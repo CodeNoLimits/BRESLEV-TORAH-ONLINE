@@ -34,6 +34,18 @@ export const TextViewer = ({ selectedText, onClose, language, onTextSelection }:
     }
   };
 
+  const handleAnalyze = (mode: 'snippet' | 'advice' | 'summary') => {
+    // Use selected text if available, otherwise use complete text
+    const textToAnalyze = userSelectedText || getDisplayText();
+    console.log(`[TextViewer] Analyzing with mode: ${mode}, selected: ${!!userSelectedText}, length: ${textToAnalyze.length}`);
+    
+    // Trigger analysis through custom event
+    const event = new CustomEvent('analyzeText', {
+      detail: { text: textToAnalyze, mode }
+    });
+    window.dispatchEvent(event);
+  };
+
   if (!selectedText) return null;
 
   const getDisplayText = () => {
@@ -106,6 +118,40 @@ export const TextViewer = ({ selectedText, onClose, language, onTextSelection }:
           className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-black rounded text-sm font-medium transition-colors"
         >
           {showFullText ? 'Réduire' : 'Texte complet'}
+        </button>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-wrap gap-2 mb-4 p-3 bg-slate-800 rounded-lg">
+        <div className="text-sm text-slate-400 mb-2 w-full">
+          {userSelectedText ? `Texte sélectionné: ${userSelectedText.substring(0, 50)}...` : 'Sélectionnez du texte ou utilisez le texte complet'}
+        </div>
+        <button
+          onClick={() => handleAnalyze('snippet')}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors text-sm flex items-center gap-2"
+        >
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"></path>
+          </svg>
+          Analyser
+        </button>
+        <button
+          onClick={() => handleAnalyze('advice')}
+          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors text-sm flex items-center gap-2"
+        >
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path>
+          </svg>
+          Guidance
+        </button>
+        <button
+          onClick={() => handleAnalyze('summary')}
+          className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-md transition-colors text-sm flex items-center gap-2"
+        >
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"></path>
+          </svg>
+          Points clés
         </button>
       </div>
 
