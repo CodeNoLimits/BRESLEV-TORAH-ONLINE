@@ -1,0 +1,94 @@
+### Pourquoi « ça ne marche toujours pas » ?
+
+D’après tous les cas similaires vus sur Replit + Sefaria, **90 % des blocages viennent d’un même trio de causes** :
+
+| Cause                                                                                                                                       | Symptôme observé                                                 | Correctif immédiat                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. Mauvais endpoint** (`/api/index/` ou `/api/texts/…` au lieu de `/api/v3/…`)                                                            | 404 ou 302 vers page HTML                                        | Utiliser **uniquement** les routes v3 : <br>`https://www.sefaria.org/api/v3/category/Breslov?recursive=1` <br>`https://www.sefaria.org/api/v3/texts/<REF>?commentary=0&context=0`                                                |
+| **2. En-tête `Accept` absent** (v3 l’exige)                                                                                                 | Réponse : *“Unsupported Media Type”* ou 406                      | `fetch(url,{ headers:{ "Accept":"application/json" } })`                                                                                                                                                                         |
+| **3. CORS préflight bloqué dans Replit** (dev server tourne en HTTPS, Sefaria aussi, mais Replit injecte parfois un header Origin exotique) | Console Chrome : *CORS policy: No ‘Access-Control-Allow-Origin’* | a) **Proxy léger** coté Vite : `/api/*` ➜ `https://www.sefaria.org` <br>   (Vite `server.proxy`), **ou** <br>b) Passer les requêtes via un worker Cloudflare / Netlify, ou encore `https://cors.isomorphic-git.org/<URLencodée>` |
+
+---
+
+## Check-list en 7 min
+
+1. **Ouvre les DevTools → Network**
+   Recharge la page, clique sur un texte Breslev.
+   • Si tu vois **404/302** : endpoint faux (cause 1).
+   • Si tu vois **415/406** : pas d’`Accept` : `application/json` (cause 2).
+   • Si tu vois **CORS** : cause 3.
+
+2. **Teste manuellement dans le navigateur**
+   Copie :
+
+   ```
+   curl -H "Accept: application/json" \
+   https://www.sefaria.org/api/v3/category/Breslov?recursive=1
+   ```
+
+   → Si ça renvoie bien le JSON, ton réseau Replit est OK ; le bug est dans le code.
+
+3. **Patch rapide dans `sefariaService.ts`**
+
+   ```ts
+   const headers = { "Accept": "application/json" };
+
+   export async function getBreslovIndex() {
+     const r = await fetch(
+       "https://www.sefaria.org/api/v3/category/Breslov?recursive=1",
+       { headers }
+     );
+     if (!r.ok) throw new Error(r.statusText);
+     return r.json();
+   }
+   ```
+
+4. **Si CORS persiste** : ajoute un proxy Vite
+
+   ```ts
+   // vite.config.ts
+   export default defineConfig({
+     plugins: [react()],
+     server: {
+       proxy: {
+         "/sefaria": {
+           target: "https://www.sefaria.org",
+           changeOrigin: true,
+           rewrite: p => p.replace(/^\/sefaria/, "/api/v3"),
+         },
+       },
+     },
+   });
+   ```
+
+   Puis dans le code : `fetch("/sefaria/category/Breslov?recursive=1")`
+
+5. **Throttle / PromisePool**
+   Sefaria v3 tolère \~180 req/min.
+   Implémente un petit pool (4 requêtes simultanées, 250 ms d’intervalle) quand tu parcours les centaines de `ref`.
+
+---
+
+## Si tu veux un diagnostic plus poussé
+
+* **Zip du projet** : partage le dossier `src/` seulement, je repère l’appel exact et je renvoie le diff.
+* **Copie du message d’erreur complet** (console + stack).
+* **Liste des refs** déjà récupérées (pour voir si le crawl s’est arrêté au milieu).
+
+---
+
+### TL;DR : à tester tout de suite
+
+```ts
+// test hors appli : doit retourner un JSON long
+fetch("https://www.sefaria.org/api/v3/category/Breslov?recursive=1",
+      { headers:{ "Accept":"application/json" } })
+  .then(r => r.json())
+  .then(console.log)
+  .catch(console.error);
+```
+
+Si ceci fonctionne dans le navigateur **mais pas** dans Replit → mets le proxy (étape 4).
+Si ça ne fonctionne pas du tout → endpoint ou header incorrect ; corrige (étapes 1-2).
+
+Une fois ces trois points réglés, le reste (Gemini, UI, TTS) ne bloquera plus.

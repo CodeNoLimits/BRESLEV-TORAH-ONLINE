@@ -553,28 +553,36 @@ class SefariaService {
     }
 
     try {
-      // Map to correct Sefaria references based on official URLs
-      const sefariaRefMap: { [key: string]: string } = {
-        'Chayei Moharan': 'Chayei_Moharan',
-        'Likkutei Etzot': 'Likkutei_Etzot', 
-        'Likutei Halakhot': 'Likutei_Halakhot',
-        'Likutei Moharan': 'Likutei_Moharan',
-        'Likutei Tefilot': 'Likutei_Tefilot',
-        'Sefer HaMiddot': 'Sefer_HaMiddot',
-        'Shivchei HaRan': 'Shivchei_HaRan',
-        'Sichot HaRan': 'Sichot_HaRan',
-        'Sippurei Maasiyot': 'Sippurei_Maasiyot'
-      };
+      // Use direct approach: fetch the full book table of contents first
+      let actualRef = ref;
+      let isMainBook = false;
       
-      let actualRef = sefariaRefMap[ref] || ref;
+      // Check if this is a main book reference that needs content discovery
+      const mainBooks = ['Likutei Moharan', 'Sichot HaRan', 'Sippurei Maasiyot', 'Chayei Moharan', 'Shivchei HaRan', 'Likutei Halakhot', 'Likutei Tefilot', 'Sefer HaMiddot', 'Likkutei Etzot'];
       
-      // For some works, we need to access a specific section
-      if (ref === 'Likutei Moharan') {
-        actualRef = 'Likutei_Moharan.1.1';
-      } else if (ref === 'Sichot HaRan') {
-        actualRef = 'Sichot_HaRan.1';
-      } else if (ref === 'Chayei Moharan') {
-        actualRef = 'Chayei_Moharan.1.1';
+      if (mainBooks.includes(ref)) {
+        isMainBook = true;
+        // First, try to get the book's index to find available sections
+        try {
+          const bookIndexUrl = `${SEFARIA_API_BASE}/index/${encodeURIComponent(ref.replace(/\s/g, '_'))}`;
+          console.log(`[SefariaService] Fetching book index: ${bookIndexUrl}`);
+          
+          const indexResponse = await fetch(bookIndexUrl);
+          if (indexResponse.ok) {
+            const indexData = await indexResponse.json();
+            console.log(`[SefariaService] Book index for ${ref}:`, indexData);
+            
+            // Extract available sections from the index
+            if (indexData.schema && indexData.schema.nodes) {
+              const firstSection = indexData.schema.nodes[0];
+              if (firstSection && firstSection.addressTypes) {
+                actualRef = `${ref}.1`;
+              }
+            }
+          }
+        } catch (indexError) {
+          console.log(`[SefariaService] Could not fetch index for ${ref}, trying direct access`);
+        }
       }
       
       // Try v3 API first, fallback to v1 if needed
