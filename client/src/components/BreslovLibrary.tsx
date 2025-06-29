@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BookContents } from './BookContents';
-import { BRESLOV_REFERENCES_FIXED, getAvailableBreslovBooks, BreslovReference } from '../services/breslovReferencesFix';
+import { BRESLOV_BOOKS_WORKING, getWorkingBooks, SefariaBook } from '../services/sefariaFix';
 
 interface BreslovLibraryProps {
   isOpen: boolean;
@@ -10,19 +10,20 @@ interface BreslovLibraryProps {
 
 export const BreslovLibrary = ({ isOpen, onClose, onTextSelect }: BreslovLibraryProps) => {
   const [selectedBook, setSelectedBook] = useState<{title: string, key: string} | null>(null);
-  const [availableBooks, setAvailableBooks] = useState<BreslovReference[]>(BRESLOV_REFERENCES_FIXED);
+  const [availableBooks, setAvailableBooks] = useState<SefariaBook[]>(BRESLOV_BOOKS_WORKING);
   const [loadingBooks, setLoadingBooks] = useState(false);
 
   // Vérifier les livres disponibles au chargement
   useEffect(() => {
     if (isOpen && !loadingBooks) {
       setLoadingBooks(true);
-      getAvailableBreslovBooks().then(books => {
+      getWorkingBooks().then(books => {
         setAvailableBooks(books);
         setLoadingBooks(false);
-        console.log(`[BreslovLibrary] Loaded ${books.length} verified books`);
+        console.log(`[BreslovLibrary] Loaded ${books.length} working books`);
       }).catch(error => {
         console.error('[BreslovLibrary] Error loading books:', error);
+        setAvailableBooks(BRESLOV_BOOKS_WORKING); // Fallback to static list
         setLoadingBooks(false);
       });
     }
