@@ -1,0 +1,228 @@
+# Guide d'utilisation de l'API Sefaria
+
+## Introduction
+Sefaria est une bibliothèque numérique de textes juifs qui propose une API REST gratuite pour accéder à ses contenus. Voici comment l'utiliser correctement.
+
+## URL de base de l'API
+```
+https://www.sefaria.org/api/
+```
+
+## Endpoints principaux
+
+### 1. Obtenir la liste des textes disponibles
+```
+GET https://www.sefaria.org/api/index/
+```
+
+### 2. Récupérer un texte spécifique
+```
+GET https://www.sefaria.org/api/texts/[REFERENCE]
+```
+
+### 3. Rechercher dans les textes
+```
+GET https://www.sefaria.org/api/search-wrapper?q=[TERME_RECHERCHE]
+```
+
+## Exemples pratiques
+
+### Exemple 1: Récupérer un verset de la Torah
+```javascript
+// Récupérer Genèse 1:1
+fetch('https://www.sefaria.org/api/texts/Genesis.1.1')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Texte hébreu:', data.he);
+    console.log('Texte anglais:', data.text);
+    console.log('Référence:', data.ref);
+  })
+  .catch(error => console.error('Erreur:', error));
+```
+
+### Exemple 2: Récupérer un chapitre complet
+```javascript
+// Récupérer tout le chapitre 1 de la Genèse
+fetch('https://www.sefaria.org/api/texts/Genesis.1')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Titre:', data.book);
+    console.log('Versets en hébreu:', data.he);
+    console.log('Versets en anglais:', data.text);
+  })
+  .catch(error => console.error('Erreur:', error));
+```
+
+### Exemple 3: Rechercher un terme
+```javascript
+// Rechercher le mot "lumière"
+fetch('https://www.sefaria.org/api/search-wrapper?q=light')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Résultats de recherche:', data.hits);
+  })
+  .catch(error => console.error('Erreur:', error));
+```
+
+### Exemple 4: Obtenir des métadonnées sur un livre
+```javascript
+// Obtenir des informations sur un livre
+fetch('https://www.sefaria.org/api/v2/index/Genesis')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Titre:', data.title);
+    console.log('Catégories:', data.categories);
+    console.log('Nombre de chapitres:', data.length);
+  })
+  .catch(error => console.error('Erreur:', error));
+```
+
+## Format des références
+
+Les références Sefaria suivent un format spécifique :
+- `Genesis.1.1` = Genèse chapitre 1, verset 1
+- `Genesis.1` = Genèse chapitre 1 complet
+- `Talmud.Berakhot.2a` = Talmud Berakhot page 2a
+- `Mishnah.Berakhot.1.1` = Mishna Berakhot chapitre 1, mishna 1
+
+## Exemples avec Python
+```python
+import requests
+
+# Récupérer un texte
+def get_sefaria_text(reference):
+    url = f"https://www.sefaria.org/api/texts/{reference}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Erreur: {response.status_code}")
+        return None
+
+# Utilisation
+data = get_sefaria_text("Genesis.1.1")
+if data:
+    print(f"Hébreu: {data.get('he', 'Non disponible')}")
+    print(f"Anglais: {data.get('text', 'Non disponible')}")
+```
+
+## Paramètres utiles
+
+### Paramètres pour les textes
+- `context=0` : Récupère seulement le verset demandé
+- `context=1` : Inclut le contexte (versets adjacents)
+- `commentary=0` : Exclut les commentaires
+- `pad=0` : N'ajoute pas de padding
+
+Exemple :
+```
+https://www.sefaria.org/api/texts/Genesis.1.1?context=0&commentary=0
+```
+
+## Gestion des erreurs communes
+
+### 1. Référence invalide
+```javascript
+fetch('https://www.sefaria.org/api/texts/InvalidReference')
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.error) {
+      console.error('Erreur API:', data.error);
+    } else {
+      console.log('Données récupérées:', data);
+    }
+  })
+  .catch(error => console.error('Erreur de réseau:', error));
+```
+
+### 2. Vérifier la disponibilité du texte
+```javascript
+async function checkTextAvailability(reference) {
+  try {
+    const response = await fetch(`https://www.sefaria.org/api/texts/${reference}`);
+    const data = await response.json();
+    
+    if (data.error) {
+      console.log(`Texte "${reference}" non trouvé:`, data.error);
+      return false;
+    }
+    
+    console.log(`Texte "${reference}" disponible`);
+    return true;
+  } catch (error) {
+    console.error('Erreur de connexion:', error);
+    return false;
+  }
+}
+```
+
+## Bonnes pratiques
+
+1. **Respecter les limites de taux** : Ne pas faire trop de requêtes simultanées
+2. **Gérer les erreurs** : Toujours vérifier les codes de réponse
+3. **Utiliser HTTPS** : Toujours utiliser https://
+4. **Cache les résultats** : Éviter les requêtes répétées pour les mêmes données
+5. **Références correctes** : Vérifier le format des références
+
+## Exemple complet d'application
+```javascript
+class SefariaAPI {
+  constructor() {
+    this.baseURL = 'https://www.sefaria.org/api';
+  }
+  
+  async getText(reference, options = {}) {
+    const params = new URLSearchParams(options);
+    const url = `${this.baseURL}/texts/${reference}?${params}`;
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Erreur lors de la récupération du texte:', error);
+      throw error;
+    }
+  }
+  
+  async search(query) {
+    const url = `${this.baseURL}/search-wrapper?q=${encodeURIComponent(query)}`;
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Erreur lors de la recherche:', error);
+      throw error;
+    }
+  }
+}
+
+// Utilisation
+const sefaria = new SefariaAPI();
+
+// Récupérer un texte
+sefaria.getText('Genesis.1.1')
+  .then(data => console.log(data))
+  .catch(error => console.error(error));
+
+// Effectuer une recherche
+sefaria.search('création')
+  .then(results => console.log(results))
+  .catch(error => console.error(error));
+```
+
+## Ressources supplémentaires
+- Documentation officielle : https://github.com/Sefaria/Sefaria-Project/wiki/API-Documentation
+- Explorer l'API : https://www.sefaria.org/developers
+- Liste des textes disponibles : https://www.sefaria.org/texts

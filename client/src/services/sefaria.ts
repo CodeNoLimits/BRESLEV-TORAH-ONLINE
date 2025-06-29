@@ -7,10 +7,19 @@ class SefariaService {
   private textCache: Map<string, SefariaText> = new Map();
 
   async getIndex(): Promise<SefariaIndexNode[]> {
-    const cacheKey = 'main_index';
+    const cacheKey = 'breslov_texts';
     
-    if (this.indexCache.has(cacheKey)) {
-      return this.indexCache.get(cacheKey);
+    // Check session storage cache first
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsedCache = JSON.parse(cached);
+        if (parsedCache.timestamp && Date.now() - parsedCache.timestamp < 24 * 60 * 60 * 1000) {
+          return parsedCache.data;
+        }
+      } catch (e) {
+        sessionStorage.removeItem(cacheKey);
+      }
     }
 
     try {
@@ -22,7 +31,12 @@ class SefariaService {
       const data = await response.json();
       const breslovTexts = this.extractBreslovCategory(data);
       
-      this.indexCache.set(cacheKey, breslovTexts);
+      // Cache in session storage
+      sessionStorage.setItem(cacheKey, JSON.stringify({
+        data: breslovTexts,
+        timestamp: Date.now()
+      }));
+      
       return breslovTexts;
     } catch (error) {
       console.error('Error fetching Sefaria index:', error);
