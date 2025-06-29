@@ -374,40 +374,37 @@ ${text}`
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Hebrew Text - Original */}
-                {selectedText.he && selectedText.he.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-400 mb-2">Texte original (Hébreu)</h3>
-                    <div 
-                      className="bg-slate-900 rounded p-4 max-h-64 overflow-y-auto cursor-text select-text" 
-                      dir="rtl"
-                      onMouseUp={() => {
-                        const selection = window.getSelection();
-                        const selectedContent = selection?.toString().trim() || '';
-                        if (selectedContent) {
-                          console.log('[AppSimple] Hebrew text selected:', selectedContent.substring(0, 100));
-                          setUserSelectedText(selectedContent);
-                        }
-                      }}
-                    >
-                      {selectedText.he.slice(0, 5).map((segment, idx) => (
-                        <p key={idx} className="mb-3 text-slate-200 font-crimson text-lg leading-relaxed">
-                          {segment}
-                        </p>
-                      ))}
-                      {selectedText.he.length > 5 && (
-                        <p className="text-slate-500 italic text-center">
-                          ... {selectedText.he.length - 5} segments supplémentaires
-                        </p>
-                      )}
-                    </div>
+                {/* Hebrew Text - Always show in left column as original */}
+                <div>
+                  <h3 className="text-sm font-medium text-slate-400 mb-2">Texte original (Hébreu)</h3>
+                  <div 
+                    className="bg-slate-900 rounded p-4 max-h-64 overflow-y-auto cursor-text select-text" 
+                    dir="rtl"
+                    onMouseUp={() => {
+                      const selection = window.getSelection();
+                      const selectedContent = selection?.toString().trim() || '';
+                      if (selectedContent) {
+                        console.log('[AppSimple] Hebrew text selected:', selectedContent.substring(0, 100));
+                        setUserSelectedText(selectedContent);
+                      }
+                    }}
+                  >
+                    {(selectedText.he && selectedText.he.length > 0 ? selectedText.he : ['טקסט עברי לא זמין']).slice(0, 5).map((segment, idx) => (
+                      <p key={idx} className="mb-3 text-slate-200 font-crimson text-lg leading-relaxed">
+                        {segment}
+                      </p>
+                    ))}
+                    {selectedText.he && selectedText.he.length > 5 && (
+                      <p className="text-slate-500 italic text-center">
+                        ... {selectedText.he.length - 5} segments supplémentaires
+                      </p>
+                    )}
                   </div>
-                )}
+                </div>
                 
-                {/* English Text - Translation */}
-                {selectedText.text && selectedText.text.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-400 mb-2">Traduction (Anglais)</h3>
+                {/* English Text - Always show in right column as translation */}
+                <div>
+                  <h3 className="text-sm font-medium text-slate-400 mb-2">Traduction (Anglais)</h3>
                     <div 
                       className="bg-slate-900 rounded p-4 max-h-64 overflow-y-auto cursor-text select-text"
                       onMouseUp={() => {
