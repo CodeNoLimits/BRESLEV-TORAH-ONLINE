@@ -58,17 +58,43 @@ export const BreslovCompleteLibrary: React.FC<BreslovCompleteLibraryProps> = ({
   };
 
   const handleTextClick = async (text: CompleteBreslovText) => {
+    console.log(`[BreslovCompleteLibrary] Selecting text: ${text.title}`);
+    
     try {
-      const content = await breslovComplete.getAuthenticText(text.ref);
+      // Utiliser la référence correcte pour Sefaria
+      const correctedRef = text.ref.replace(/\./g, ' ');
+      console.log(`[BreslovCompleteLibrary] Using corrected ref: ${correctedRef}`);
+      
+      const content = await breslovComplete.getAuthenticText(correctedRef);
       if (content) {
-        onTextSelect(text.ref, text.title);
+        onTextSelect(correctedRef, text.title);
         onClose();
+        console.log(`[BreslovCompleteLibrary] ✅ Successfully selected: ${text.title}`);
       } else {
         console.warn(`[BreslovCompleteLibrary] No content available for ${text.title}`);
+        // Essayer avec la référence originale en fallback
+        const fallbackContent = await breslovComplete.getAuthenticText(text.ref);
+        if (fallbackContent) {
+          onTextSelect(text.ref, text.title);
+          onClose();
+          console.log(`[BreslovCompleteLibrary] ✅ Fallback success: ${text.title}`);
+        }
       }
     } catch (error) {
       console.error(`[BreslovCompleteLibrary] Error selecting text ${text.title}:`, error);
     }
+  };
+
+  const handleButtonClick = (text: CompleteBreslovText) => {
+    console.log(`[BreslovCompleteLibrary] Button clicked: ${text.title}`);
+    handleTextClick(text);
+  };
+
+  const handleTouchStart = (text: CompleteBreslovText, event: React.TouchEvent) => {
+    console.log(`[BreslovCompleteLibrary] Touch started: ${text.title}`);
+    event.preventDefault();
+    event.stopPropagation();
+    handleTextClick(text);
   };
 
   const categories = breslovComplete.getCategories();
@@ -156,9 +182,16 @@ export const BreslovCompleteLibrary: React.FC<BreslovCompleteLibraryProps> = ({
               {filteredTexts.map((text, index) => (
                 <button
                   key={text.ref}
-                  onClick={() => handleTextClick(text)}
+                  onClick={() => handleButtonClick(text)}
+                  onTouchStart={(e) => handleTouchStart(text, e)}
                   className="w-full text-left p-3 rounded-lg bg-slate-700 hover:bg-slate-600 
-                           transition-colors group border border-slate-600 hover:border-amber-400"
+                           transition-colors group border border-slate-600 hover:border-amber-400
+                           touch-target mobile-touch-optimize"
+                  style={{ 
+                    minHeight: '60px',
+                    WebkitTapHighlightColor: 'rgba(251, 191, 36, 0.3)',
+                    cursor: 'pointer'
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">

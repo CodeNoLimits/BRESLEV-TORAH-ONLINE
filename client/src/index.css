@@ -178,3 +178,43 @@
     transform: translateY(0); 
   }
 }
+
+/* Mobile touch optimizations */
+.mobile-touch-optimize {
+  -webkit-tap-highlight-color: rgba(251, 191, 36, 0.4) !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  touch-action: manipulation !important;
+  cursor: pointer !important;
+  position: relative;
+  z-index: 1;
+}
+
+.mobile-touch-optimize:active {
+  background-color: rgba(251, 191, 36, 0.2) !important;
+  transform: scale(0.98);
+  transition: all 0.1s ease;
+}
+
+.touch-target {
+  min-height: 60px !important;
+  min-width: 60px !important;
+  padding: 16px !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Force mobile button responsiveness */
+@media (max-width: 768px) {
+  .mobile-touch-optimize {
+    font-size: 16px !important;
+    line-height: 1.4;
+  }
+  
+  button {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+}
