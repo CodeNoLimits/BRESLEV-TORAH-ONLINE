@@ -565,18 +565,70 @@ ${text}`
           <div className="border-t border-slate-700 pt-4">
             <div className="flex gap-2 mb-4">
               <button
-                onClick={() => handleSendMessage(currentInput, 'chat')}
+                onClick={() => {
+                  const selectedText = getCurrentSelection();
+                  const content = selectedText || currentInput.trim();
+                  
+                  if (!content) {
+                    console.warn('[AppSimple] No text for guidance - need selection or input');
+                    return;
+                  }
+                  
+                  console.log(`[AppSimple] Guidance request - ${selectedText ? 'selection' : 'input'} (${content.length} chars)`);
+                  
+                  // Use intelligent segmentation for long texts
+                  if (content.length > 8000) {
+                    const segmentResult = TextSegmenter.segmentText(content, 'Demande de guidance');
+                    const optimizedContent = TextSegmenter.formatForAI(segmentResult, 'Guidance spirituelle');
+                    console.log(`[AppSimple] Guidance - using segmented text (${optimizedContent.length} chars from ${content.length} original)`);
+                    handleAIRequest(`GUIDANCE SPIRITUELLE:\n\n${optimizedContent}\n\nComment puis-je appliquer ces enseignements dans ma vie quotidienne?`, 'counsel');
+                  } else {
+                    handleAIRequest(`GUIDANCE SPIRITUELLE:\n\n${content}\n\nComment puis-je appliquer ces enseignements dans ma vie quotidienne?`, 'counsel');
+                  }
+                  
+                  if (selectedText) {
+                    clearSelection();
+                  } else {
+                    setCurrentInput('');
+                  }
+                }}
                 className="px-4 py-2 bg-sky-600 hover:bg-sky-500 rounded transition-colors"
-                disabled={isAILoading || !currentInput.trim()}
+                disabled={isAILoading}
               >
-                Guidance
+                Guidance ✨
               </button>
               <button
-                onClick={() => handleSendMessage(currentInput, 'analysis')}
+                onClick={() => {
+                  const selectedText = getCurrentSelection();
+                  const content = selectedText || currentInput.trim();
+                  
+                  if (!content) {
+                    console.warn('[AppSimple] No text for analysis - need selection or input');
+                    return;
+                  }
+                  
+                  console.log(`[AppSimple] Analysis request - ${selectedText ? 'selection' : 'input'} (${content.length} chars)`);
+                  
+                  // Use intelligent segmentation for long texts
+                  if (content.length > 8000) {
+                    const segmentResult = TextSegmenter.segmentText(content, 'Extrait à analyser');
+                    const optimizedContent = TextSegmenter.formatForAI(segmentResult, 'Analyse spirituelle');
+                    console.log(`[AppSimple] Analysis - using segmented text (${optimizedContent.length} chars from ${content.length} original)`);
+                    handleAIRequest(`ANALYSE SPIRITUELLE APPROFONDIE:\n\n${optimizedContent}`, 'analyze');
+                  } else {
+                    handleAIRequest(`ANALYSE SPIRITUELLE APPROFONDIE:\n\n${content}`, 'analyze');
+                  }
+                  
+                  if (selectedText) {
+                    clearSelection();
+                  } else {
+                    setCurrentInput('');
+                  }
+                }}
                 className="px-4 py-2 bg-amber-600 hover:bg-amber-500 rounded transition-colors"
-                disabled={isAILoading || !currentInput.trim()}
+                disabled={isAILoading}
               >
-                Analyser
+                Analyser 🔍
               </button>
             </div>
             

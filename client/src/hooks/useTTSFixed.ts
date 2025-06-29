@@ -157,17 +157,27 @@ export const useTTSFixed = ({ language, enabled }: TTSOptions) => {
     await speak(message);
   }, [enabled, isSupported, language, speak]);
 
-  const stop = useCallback(() => {
+  const stopTTS = useCallback(() => {
+    // Stop Google Cloud TTS audio
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      setCurrentAudio(null);
+    }
+    
+    // Stop Web Speech API
     if (isSupported) {
       window.speechSynthesis.cancel();
-      setIsSpeaking(false);
     }
-  }, [isSupported]);
+    
+    setIsSpeaking(false);
+    console.log('[TTS-Fixed] All audio stopped');
+  }, [currentAudio, isSupported]);
 
   return {
     speak,
     speakGreeting,
-    stop,
+    stopTTS,
     isSupported,
     isSpeaking
   };
