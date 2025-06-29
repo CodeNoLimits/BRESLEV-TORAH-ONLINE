@@ -1,0 +1,65 @@
+import { useState } from 'react';
+import { SefariaText, Language } from '../types';
+
+interface TextViewerProps {
+  selectedText: SefariaText | null;
+  onClose: () => void;
+  language: Language;
+}
+
+export const TextViewer = ({ selectedText, onClose, language }: TextViewerProps) => {
+  const [displayLanguage, setDisplayLanguage] = useState<'en' | 'he'>('en');
+
+  if (!selectedText) return null;
+
+  const getDisplayText = () => {
+    if (displayLanguage === 'he') {
+      return selectedText.he.join('\n') || 'טקסט לא זמין';
+    }
+    return selectedText.text.join('\n') || 'Texte non disponible';
+  };
+
+  const languageLabels = {
+    en: 'Français',
+    he: 'עברית'
+  };
+
+  return (
+    <div className="bg-slate-850 border-b border-slate-700 p-6 animate-fade-in">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-crimson font-semibold text-amber-400">
+          {selectedText.title}
+        </h3>
+        <div className="flex items-center space-x-2">
+          <button
+            className="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition-colors"
+            onClick={() => setDisplayLanguage(displayLanguage === 'en' ? 'he' : 'en')}
+          >
+            {languageLabels[displayLanguage]}
+          </button>
+          <button
+            className="text-slate-400 hover:text-red-400 transition-colors"
+            onClick={onClose}
+          >
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div className="bg-slate-800 rounded-lg p-4 max-h-60 overflow-y-auto">
+        <div 
+          className={`leading-relaxed text-slate-300 ${
+            displayLanguage === 'he' ? 'text-right font-crimson' : 'font-crimson'
+          }`}
+          dir={displayLanguage === 'he' ? 'rtl' : 'ltr'}
+        >
+          {getDisplayText().split('\n').map((paragraph, idx) => (
+            <p key={idx} className="mb-4 last:mb-0">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
