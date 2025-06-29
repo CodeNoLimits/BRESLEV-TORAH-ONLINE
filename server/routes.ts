@@ -4,15 +4,16 @@ import { storage } from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Universal Sefaria proxy to eliminate ALL CORS issues
-  app.use('/sefaria-api/*', async (req, res) => {
+  app.get('/sefaria-api/*', async (req, res) => {
     try {
       const path = req.path.replace('/sefaria-api', '');
-      const sefariaUrl = `https://www.sefaria.org/api${path}`;
+      const queryString = req.url.includes('?') ? req.url.split('?')[1] : '';
+      const sefariaUrl = `https://www.sefaria.org/api${path}${queryString ? '?' + queryString : ''}`;
       
       console.log(`[SefariaProxy] Proxying request to: ${sefariaUrl}`);
       
       const response = await fetch(sefariaUrl, {
-        method: req.method,
+        method: 'GET',
         headers: {
           'Accept': 'application/json',
           'User-Agent': 'LeCompagnonDuCoeur/1.0'

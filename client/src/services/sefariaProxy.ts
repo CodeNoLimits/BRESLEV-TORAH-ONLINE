@@ -44,7 +44,7 @@ const getFullBreslovLibrary = (fullIndex: any[]): SefariaIndexNode[] => {
 export const getBreslovIndex = async (): Promise<SefariaIndexNode[]> => {
   console.log(`[SefariaProxy] Fetching complete Sefaria index via proxy`);
   
-  const response = await fetch(`${BASE_URL}/index`);
+  const response = await fetch(`${BASE_URL}/v2/index`);
   if (!response.ok) {
     throw new Error('Index error');
   }
@@ -59,7 +59,7 @@ export const getBreslovIndex = async (): Promise<SefariaIndexNode[]> => {
 export const getTextContent = async (ref: string): Promise<SefariaText> => {
   console.log(`[SefariaProxy] Fetching text via proxy: ${ref}`);
   
-  const response = await fetch(`${BASE_URL}/texts/${encodeURIComponent(ref)}`);
+  const response = await fetch(`${BASE_URL}/v3/texts/${encodeURIComponent(ref)}?context=0&commentary=0&pad=0&wrapLinks=false`);
   if (!response.ok) {
     throw new Error('Sefaria proxy error');
   }
@@ -73,12 +73,12 @@ export const getTextContent = async (ref: string): Promise<SefariaText> => {
   if (data.versions && Array.isArray(data.versions)) {
     const hebrewVersion = data.versions.find((v: any) => v.language === 'he');
     if (hebrewVersion && hebrewVersion.text) {
-      hebrewText = Array.isArray(hebrewVersion.text) ? [hebrewVersion.text] : [hebrewVersion.text];
+      hebrewText = Array.isArray(hebrewVersion.text) ? hebrewVersion.text : [hebrewVersion.text];
     }
     
     const englishVersion = data.versions.find((v: any) => v.language === 'en');
     if (englishVersion && englishVersion.text) {
-      englishText = Array.isArray(englishVersion.text) ? [englishVersion.text] : [englishVersion.text];
+      englishText = Array.isArray(englishVersion.text) ? englishVersion.text : [englishVersion.text];
     }
   }
   
