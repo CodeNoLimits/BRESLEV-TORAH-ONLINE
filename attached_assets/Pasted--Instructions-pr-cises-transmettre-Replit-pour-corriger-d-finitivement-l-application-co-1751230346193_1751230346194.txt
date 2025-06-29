@@ -1,0 +1,157 @@
+## Instructions précises à transmettre à Replit pour **corriger définitivement** l’application
+
+*(copiez-collez tel quel dans la conversation avec votre agent Replit / “AI-builder”)*
+
+---
+
+### 1 · Problème racine à régler
+
+> > **Le front-end n’a pas le droit d’interroger directement [https://www.sefaria.org](https://www.sefaria.org) — les appels sont bloqués par CORS.**
+> > Solution : **tout appel Sefaria doit passer par un proxy Node.js coté serveur Replit.**
+
+---
+
+### 2 · Architecture cible (résumé)
+
+```
+root
+├── server/          ←  Express proxy + API internes
+│   └── index.js
+├── client/          ←  React + Vite
+│   └── src/services/sefaria.ts
+└── replit.nix / .replit
+```
+
+---
+
+### 3 · Tâches backend (dossier `server/`)
+
+1. **Ajouter Express** (ou Fastify) :
+
+   ```bash
+   npm i express node-fetch@3 cors
+   ```
+2. **Créer `server/index.js`** :
+
+   * Démarrer Express sur `process.env.PORT || 3001`.
+   * Activer `cors()` globalement.
+   * **Route proxy** :
+
+     ```js
+     app.get('/api/sefaria/texts/:ref', async (req,res)=>{
+       const ref = req.params.ref;
+       const url =
+        `https://www.sefaria.org/api/v3/texts/${ref}?context=0&commentary=0&pad=0&wrapLinks=false`;
+       const r = await fetch(url);
+       if(!r.ok) return res.status(r.status).json({error:'Sefaria error'});
+       const data = await r.json();
+       res.json(data);
+     });
+     ```
+   * **Route index Breslev** (pour construire la bibliothèque) :
+
+     ```js
+     app.get('/api/sefaria/breslov-index', async (_,res)=>{
+       const r = await fetch('https://www.sefaria.org/api/category/Breslov');
+       const data = await r.json();              // renvoie tous les livres catégorisés Breslov
+       res.json(data);
+     });
+     ```
+3. **Exporter l’app** : `module.exports = app;` et démarrer si fichier lancé direct.
+
+---
+
+### 4 · Configuration Replit d’exécution
+
+* Dans **.replit** :
+
+  ```
+  run = "npm run dev"
+  ```
+* Dans **package.json** :
+
+  ```json
+  "scripts": {
+    "dev": "concurrently \"nodemon server/index.js\" \"vite --host 0.0.0.0 --port 5173\""
+  }
+  ```
+
+  *(installez `concurrently` et `nodemon` → `npm i -D concurrently nodemon`)*
+
+---
+
+### 5 · Tâches front-end (dossier `client/src/services/sefaria.ts`)
+
+1. **Supprimer tout fetch direct vers sefaria.org**.
+2. **Nouvelle fonction** `getTextContent(ref)` :
+
+   ```ts
+   export const getTextContent = async (ref:string)=>{
+     const r = await fetch(`/api/sefaria/texts/${encodeURIComponent(ref)}`);
+     if(!r.ok) throw new Error('Sefaria proxy error');
+     return r.json();          // contient .he et .text (EN)
+   };
+   ```
+3. **Nouvelle fonction** `getBreslovIndex()` :
+
+   ```ts
+   export const getBreslovIndex = async ()=>{
+     const r = await fetch('/api/sefaria/breslov-index');
+     if(!r.ok) throw new Error('Index error');
+     return r.json(); // tableau d’ouvrages
+   };
+   ```
+4. **Normalisation des références** :
+
+   * Chaque entrée retournée par `breslov-index` possède `firstSection` ou `contents`.
+   * Construisez la référence cliquable la plus simple :
+
+     * *Likutei Moharan*  →  `Likutei_Moharan.1`
+     * *Sichot HaRan*     →  `Sichot_HaRan.1`
+     * *Sippurey Maasiot* →  `Sippurey_Maasiot.1`
+   * Stockez-les dans la bibliothèque.
+
+---
+
+### 6 · Vérifications (à exiger avant validation)
+
+| Test                                                        | Résultat attendu                                  |
+| ----------------------------------------------------------- | ------------------------------------------------- |
+| `curl https://<repl>.repl.co/api/sefaria/texts/Genesis.1.1` | JSON avec `he` et `text`                          |
+| `curl https://<repl>.repl.co/api/sefaria/breslov-index`     | Tableau ≥ 9 livres                                |
+| Clic sur “Likutei Moharan” dans le sidebar                  | Affiche leçon 1 en hébreu / anglais, pas d’erreur |
+| Réseau (F12) → requête vers `/api/sefaria/texts/...`        | 200 OK, **pas** d’appel direct vers sefaria.org   |
+
+---
+
+### 7 · Sécurité & clés
+
+* Stocker `GEMINI_API_KEY` dans l’onglet **Secrets** Replit, pas en clair.
+* Le back n’a **pas** besoin de clé pour Sefaria ; laisser l’appel libre.
+
+---
+
+### 8 · Performance
+
+* Mettre en cache (`Redis` ou simple objet en mémoire) la réponse de `breslov-index` et les textes déjà récupérés pour 24 h.
+* Option : pagination ou bouton “Charger suite” pour Likutei Moharan lourd.
+
+---
+
+### 9 · Livrables/Checklist finale
+
+1. Proxy Node opérationnel, testé avec `curl`.
+2. Sidebar remplit dynamiquement les 9+ livres.
+3. Clic = texte intégral (he/en) rendu.
+4. Aucun avertissement CORS dans la console.
+5. Synthèse vocale toujours fonctionnelle.
+
+---
+
+### 10 · Message à remettre texto à l’agent Replit
+
+> **“Merci de mettre en place immédiatement le proxy serveur Express décrit ci-dessus (`/api/sefaria/*`), de remplacer tous les fetch directs vers sefaria.org par des appels relatifs, et de reconstruire la bibliothèque via /api/sefaria/breslov-index. Vérifiez avec cURL que les routes renvoient bien le JSON avant de relancer le front. Aucun aperçu, je veux le texte intégral au clic. Puis confirmez-moi la checklist des 5 tests passés.”**
+
+---
+
+Suivez ces 10 points **à la lettre** : Replit disposera enfin d’un accès complet aux textes Breslev et l’application fonctionnera sans blocage CORS.

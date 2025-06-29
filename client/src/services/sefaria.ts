@@ -1,12 +1,8 @@
 import { SefariaIndexNode, SefariaText, SefariaCategory } from '../types';
-
-const SEFARIA_API_BASE = '/sefaria';
+import { getCachedBreslovIndex, getTextContent } from './sefariaProxy';
 
 class SefariaService {
-  private indexCache: Map<string, any> = new Map();
   private textCache: Map<string, SefariaText> = new Map();
-  private breslovLibrary: Map<string, any> = new Map();
-  private allBreslovRefs: string[] = [];
 
   async getIndex(): Promise<SefariaIndexNode[]> {
     const cacheKey = 'breslov_official_catalog_v3';
