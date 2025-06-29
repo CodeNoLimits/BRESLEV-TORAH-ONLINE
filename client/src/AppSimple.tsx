@@ -33,7 +33,7 @@ function AppSimple() {
   const [currentInput, setCurrentInput] = useState('');
 
   // Premium TTS with masculine voice
-  const { speak, speakGreeting, stop: stopTTS, isSpeaking } = useTTSFixed({ language, enabled: ttsEnabled });
+  const { speak, speakGreeting, stopTTS, isSpeaking } = useTTSFixed({ language, enabled: ttsEnabled });
 
   // Initialize crawler cache on app start
   useEffect(() => {

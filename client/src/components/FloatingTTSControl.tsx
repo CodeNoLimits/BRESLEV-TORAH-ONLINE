@@ -28,9 +28,9 @@ export const FloatingTTSControl = ({ isSpeaking, onStop }: FloatingTTSControlPro
         
         {/* Audio wave animation */}
         <div className="flex items-center gap-1">
-          <div className="w-1 h-3 bg-white rounded animate-pulse"></div>
-          <div className="w-1 h-4 bg-white rounded animate-pulse" style={{ animationDelay: '0.1s' }}></div>
-          <div className="w-1 h-2 bg-white rounded animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+          <div className="w-1 bg-white rounded animate-pulse-wave"></div>
+          <div className="w-1 bg-white rounded animate-pulse-wave" style={{ animationDelay: '0.2s' }}></div>
+          <div className="w-1 bg-white rounded animate-pulse-wave" style={{ animationDelay: '0.4s' }}></div>
         </div>
       </button>
     </div>
