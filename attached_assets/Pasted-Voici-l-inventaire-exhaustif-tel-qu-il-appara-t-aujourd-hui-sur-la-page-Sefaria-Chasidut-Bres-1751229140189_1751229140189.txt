@@ -1,0 +1,28 @@
+Voici **l’inventaire exhaustif — tel qu’il apparaît aujourd’hui sur la page Sefaria *Chasidut › Breslov***.
+Pour chaque titre, je t’indique le lien direct Sefaria à copier / coller dans Replit (ou toute autre app) pour le fetching.
+
+| # | Œuvre (translittération usuelle)                            | Lien Sefaria                                                                            |
+| - | ----------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 1 | **Chayei Moharan** (La Vie de Rabbénou)                     | [https://www.sefaria.org/Chayei\_Moharan](https://www.sefaria.org/Chayei_Moharan)       |
+| 2 | **Likkutei Etzot** (Recueil de conseils)                    | [https://www.sefaria.org/Likkutei\_Etzot](https://www.sefaria.org/Likkutei_Etzot)       |
+| 3 | **Likutei Halakhot** (Halakhot commentées par Rabbi Nathan) | [https://www.sefaria.org/Likutei\_Halakhot](https://www.sefaria.org/Likutei_Halakhot)   |
+| 4 | **Likutei Moharan** (Enseignements principaux I & II)       | [https://www.sefaria.org/Likutei\_Moharan](https://www.sefaria.org/Likutei_Moharan)     |
+| 5 | **Likutei Tefilot** (Prières de Rabbi Nathan)               | [https://www.sefaria.org/Likutei\_Tefilot](https://www.sefaria.org/Likutei_Tefilot)     |
+| 6 | **Sefer HaMiddot** (Alphabeta / Livre des attributs)        | [https://www.sefaria.org/Sefer\_HaMiddot](https://www.sefaria.org/Sefer_HaMiddot)       |
+| 7 | **Shivchei HaRan** (Louanges de Rabbénou)                   | [https://www.sefaria.org/Shivchei\_HaRan](https://www.sefaria.org/Shivchei_HaRan)       |
+| 8 | **Sichot HaRan** (Entretiens de Rabbénou)                   | [https://www.sefaria.org/Sichot\_HaRan](https://www.sefaria.org/Sichot_HaRan)           |
+| 9 | **Sippurei Maasiyot** (Contes merveilleux)                  | [https://www.sefaria.org/Sippurei\_Maasiyot](https://www.sefaria.org/Sippurei_Maasiyot) |
+
+### Notes importantes pour ton fetcher Replit
+
+1. **Catalogue complet** : la catégorie *Breslov* de Sefaria ne contient actuellement « que » ces neuf œuvres‐racines ; chacune peut se décliner en dizaines de chapitres ou volumes (p. ex. *Likutei Halakhot* ➜ 8 vol.).
+2. **Endpoint conseillé** : utilise l’API v3 « Texts » :
+   `https://www.sefaria.org/api/v3/texts/<ref>?commentary=0&context=0`
+   – par ex. `.../texts/Likutei_Moharan.1` pour la première leçon.
+3. **Parcours récursif** : pour ne rien oublier, appelle `/api/v3/category/Breslov?recursive=1` puis **descends** dans chaque `contents` / `nodes` jusqu’aux refs terminales, avant de frapper `texts/…`.
+4. **Respect des limites** : l’API tolère ± 180 req/min ; pense à un throttling (200 ms) ou à mettre un simple cache (sessionStorage / IndexedDB).
+5. **Langues** : la réponse JSON renvoie `he` (hébreu brut) + éventuellement `en` ; si tu veux aussi le français, il faudra passer par les « Versions » quand une trad existe.
+6. **CORS** : Sefaria autorise `GET` public ; avec `fetch` côté front, ajoute :`mode:"cors"`, et en dev sur Replit assure‐toi de servir sur HTTPS.
+
+Avec cette table et ces points techniques, Replit disposera de **toutes** les références Breslev et saura les télécharger sans trou.
+Bonne intégration !

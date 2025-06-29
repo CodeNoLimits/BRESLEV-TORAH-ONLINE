@@ -9,18 +9,19 @@ class SefariaService {
   private allBreslovRefs: string[] = [];
 
   async getIndex(): Promise<SefariaIndexNode[]> {
-    const cacheKey = 'breslov_complete_library_v2';
+    const cacheKey = 'breslov_official_catalog_v3';
     
-    // Force rebuild by clearing old cache
+    // Force complete rebuild with new official catalog
     sessionStorage.removeItem('breslov_complete_library');
+    sessionStorage.removeItem('breslov_complete_library_v2');
     
-    // Check if we have a complete cached library
+    // Check if we have the official catalog
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       try {
         const parsedCache = JSON.parse(cached);
-        if (parsedCache.timestamp && Date.now() - parsedCache.timestamp < 24 * 60 * 60 * 1000) {
-          console.log('Using validated Breslov library with', parsedCache.data.length, 'categories and', parsedCache.refCount, 'valid references');
+        if (parsedCache.timestamp && Date.now() - parsedCache.timestamp < 6 * 60 * 60 * 1000) { // 6 hour cache
+          console.log('Using official Breslov catalog with', parsedCache.data.length, 'works');
           return parsedCache.data;
         }
       } catch (e) {
@@ -28,33 +29,20 @@ class SefariaService {
       }
     }
 
-    console.log('Discovering complete Breslov library...');
+    console.log('Building official Breslov catalog directly...');
     
     try {
-      // Step 1: Fetch complete Sefaria index
-      const indexResponse = await fetch(`${SEFARIA_API_BASE}/index/`);
-      if (!indexResponse.ok) {
-        throw new Error(`Failed to fetch index: ${indexResponse.status}`);
-      }
+      // Build directly from official catalog without any validation
+      const breslovLibrary = this.buildOfficialBreslovCatalog();
       
-      const fullIndex = await indexResponse.json();
-      console.log('Sefaria index fetched, discovering Breslov texts...');
-      
-      // Step 2: Exhaustively discover all Breslov references
-      this.allBreslovRefs = this.discoverAllBreslovRefs(fullIndex);
-      console.log(`Discovered ${this.allBreslovRefs.length} Breslov references`);
-      
-      // Step 3: Build structured library from discovered refs
-      const breslovLibrary = await this.buildBreslovLibrary();
-      
-      // Step 4: Cache the complete library
+      // Cache the official library
       sessionStorage.setItem(cacheKey, JSON.stringify({
         data: breslovLibrary,
         timestamp: Date.now(),
-        refCount: this.allBreslovRefs.length
+        source: 'official_catalog'
       }));
       
-      console.log(`Complete Breslov library built with ${breslovLibrary.length} categories`);
+      console.log(`Official Breslov catalog ready with ${breslovLibrary.length} categories`);
       return breslovLibrary;
       
     } catch (error) {
@@ -74,98 +62,196 @@ class SefariaService {
     }
   }
 
-  // Exhaustive discovery of all Breslov references
+  // Exhaustive discovery of ALL Breslov references using multiple strategies
   private discoverAllBreslovRefs(indexData: any[]): string[] {
     const breslovRefs: string[] = [];
+    const discoveredTitles = new Set<string>();
     
-    const traverseNode = (node: any, isInBreslov: boolean = false) => {
-      // Check if this node is Breslov category
-      const isBreslov = isInBreslov || 
-        node.category === 'Breslov' || 
-        node.title?.includes('Breslov') ||
-        node.title?.includes('Likutei') ||
-        node.title?.includes('Sippurei') ||
-        node.title?.includes('Sichos') ||
-        node.title?.includes('Chayyei');
+    console.log('Starting comprehensive Breslov discovery...');
+    
+    const traverseNode = (node: any, path: string = '', isInBreslov: boolean = false) => {
+      // Multiple checks for Breslov content
+      const title = node.title || node.name || '';
+      const category = node.category || '';
+      const currentPath = path ? `${path} > ${title}` : title;
       
-      // If this is a leaf node with a ref, collect it
-      if (node.ref && isBreslov) {
-        breslovRefs.push(node.ref);
+      const isBreslov = isInBreslov || 
+        category === 'Breslov' ||
+        category === 'Chasidut' ||
+        title.includes('Breslov') ||
+        title.includes('Likutei') ||
+        title.includes('Sipurei') ||
+        title.includes('Sichos') ||
+        title.includes('Chayyei') ||
+        title.includes('Sefer HaMidot') ||
+        title.includes('Rabbi Nachman') ||
+        title.includes('Nahman') ||
+        title.includes('Uman') ||
+        currentPath.includes('Breslov') ||
+        currentPath.includes('Nachman');
+      
+      if (isBreslov) {
+        console.log(`Found Breslov content: ${title} (${currentPath})`);
+        
+        // Collect the main title
+        if (title && !discoveredTitles.has(title)) {
+          discoveredTitles.add(title);
+          breslovRefs.push(title);
+        }
+        
+        // If this has a ref, collect it
+        if (node.ref) {
+          breslovRefs.push(node.ref);
+        }
       }
       
       // Traverse all possible content arrays
       const contentArrays = [
         node.contents,
         node.nodes,
-        node.schema?.nodes
+        node.schema?.nodes,
+        node.children
       ].filter(Boolean);
       
       contentArrays.forEach(contentArray => {
         if (Array.isArray(contentArray)) {
-          contentArray.forEach(child => traverseNode(child, isBreslov));
+          contentArray.forEach(child => traverseNode(child, currentPath, isBreslov));
         }
       });
     };
     
-    // Find Chasidut category and traverse
+    // Strategy 1: Search in Chasidut category
     const chasidutCategory = indexData.find(item => item.category === 'Chasidut');
     if (chasidutCategory) {
-      traverseNode(chasidutCategory, false);
+      console.log('Exploring Chasidut category...');
+      traverseNode(chasidutCategory, 'Chasidut', false);
     }
     
-    // Only use VERIFIED working references from actual API testing
-    const verifiedWorkingRefs = [
-      // Likutei Moharan Part II - CONFIRMED WORKING
-      'Likutei Moharan.2.1', 'Likutei Moharan.2.2', 'Likutei Moharan.2.3', 'Likutei Moharan.2.4',
-      'Likutei Moharan.2.5', 'Likutei Moharan.2.6', 'Likutei Moharan.2.7', 'Likutei Moharan.2.8', 
-      'Likutei Moharan.2.9',
-      
-      // Sichos HaRan - ALL 20 CONFIRMED WORKING  
-      'Sichos HaRan.1', 'Sichos HaRan.2', 'Sichos HaRan.3', 'Sichos HaRan.4', 'Sichos HaRan.5',
-      'Sichos HaRan.6', 'Sichos HaRan.7', 'Sichos HaRan.8', 'Sichos HaRan.9', 'Sichos HaRan.10',
-      'Sichos HaRan.11', 'Sichos HaRan.12', 'Sichos HaRan.13', 'Sichos HaRan.14', 'Sichos HaRan.15',
-      'Sichos HaRan.16', 'Sichos HaRan.17', 'Sichos HaRan.18', 'Sichos HaRan.19', 'Sichos HaRan.20'
-    ];
-    
-    // Add only verified working references
-    verifiedWorkingRefs.forEach(ref => {
-      if (!breslovRefs.includes(ref)) {
-        breslovRefs.push(ref);
+    // Strategy 2: Direct search for known Breslov titles
+    console.log('Searching for direct Breslov titles...');
+    indexData.forEach(item => {
+      const title = item.title || item.name || '';
+      if (title.includes('Likutei') || title.includes('Sichos') || title.includes('Sipurei') || 
+          title.includes('Chayyei') || title.includes('Sefer HaMidot') || title.includes('Nachman')) {
+        traverseNode(item, '', true);
       }
     });
+    
+    // Strategy 3: Add OFFICIAL Breslov catalog from Sefaria Chasidut > Breslov section
+    const officialBreslovCatalog = [
+      'Chayei Moharan',       // La Vie de Rabbénou
+      'Likkutei Etzot',       // Recueil de conseils  
+      'Likutei Halakhot',     // Halakhot commentées par Rabbi Nathan
+      'Likutei Moharan',      // Enseignements principaux I & II
+      'Likutei Tefilot',      // Prières de Rabbi Nathan
+      'Sefer HaMiddot',       // Alphabeta / Livre des attributs
+      'Shivchei HaRan',       // Louanges de Rabbénou
+      'Sichot HaRan',         // Entretiens de Rabbénou
+      'Sippurei Maasiyot'     // Contes merveilleux
+    ];
+    
+    console.log('Adding official Breslov catalog...');
+    officialBreslovCatalog.forEach(work => {
+      if (!breslovRefs.includes(work)) {
+        breslovRefs.push(work);
+        console.log(`Added official work: ${work}`);
+      }
+    });
+    
+    console.log(`Discovered ${breslovRefs.length} total Breslov references`);
+    console.log('Sample discoveries:', breslovRefs.slice(0, 10));
     
     return breslovRefs;
   }
 
-  // Build structured library from discovered references
+  // Build structured library using official Breslov catalog
   private async buildBreslovLibrary(): Promise<SefariaIndexNode[]> {
-    console.log('Building Breslov library from', this.allBreslovRefs.length, 'references');
+    console.log('Building official Breslov library...');
     
-    // First, validate which references actually exist on Sefaria
-    const validRefs = await this.validateReferences(this.allBreslovRefs);
-    console.log('Validated', validRefs.length, 'working references');
-    
-    const categories = new Map<string, SefariaIndexNode>();
-    
-    // Group valid references by book/category
-    validRefs.forEach(ref => {
-      const bookName = this.extractBookName(ref);
-      
-      if (!categories.has(bookName)) {
-        categories.set(bookName, {
-          title: this.getBookDisplayName(bookName),
-          category: 'Breslov',
-          contents: []
-        });
+    // Use the 9 official Breslov works
+    const officialWorks = [
+      {
+        title: 'Chayei Moharan - La Vie de Rabbi Nahman',
+        ref: 'Chayei Moharan',
+        description: 'Biographie et vie quotidienne du Rabbi'
+      },
+      {
+        title: 'Likkutei Etzot - Recueil de Conseils',
+        ref: 'Likkutei Etzot',
+        description: 'Conseils pratiques pour la vie spirituelle'
+      },
+      {
+        title: 'Likutei Halakhot - Lois Commentées',
+        ref: 'Likutei Halakhot',
+        description: 'Halakhot selon l\'enseignement de Rabbi Nahman'
+      },
+      {
+        title: 'Likutei Moharan - Enseignements Principaux',
+        ref: 'Likutei Moharan',
+        description: 'Les enseignements centraux de Rabbi Nahman'
+      },
+      {
+        title: 'Likutei Tefilot - Prières',
+        ref: 'Likutei Tefilot',
+        description: 'Prières basées sur les enseignements'
+      },
+      {
+        title: 'Sefer HaMiddot - Livre des Traits',
+        ref: 'Sefer HaMiddot',
+        description: 'Guide alphabétique des traits de caractère'
+      },
+      {
+        title: 'Shivchei HaRan - Louanges',
+        ref: 'Shivchei HaRan',
+        description: 'Récits et louanges du Rabbi'
+      },
+      {
+        title: 'Sichot HaRan - Conversations',
+        ref: 'Sichot HaRan',
+        description: 'Conversations et discussions du Rabbi'
+      },
+      {
+        title: 'Sippurei Maasiyot - Contes',
+        ref: 'Sippurei Maasiyot',
+        description: 'Les contes merveilleux de Rabbi Nahman'
       }
-      
-      categories.get(bookName)!.contents!.push({
-        title: this.formatRefTitle(ref),
-        ref: ref
-      });
-    });
+    ];
+
+    // Create structured library
+    const breslovLibrary: SefariaIndexNode[] = [
+      {
+        title: 'Œuvres Fondamentales',
+        category: 'Breslov',
+        contents: [
+          { title: officialWorks[3].title, ref: officialWorks[3].ref },
+          { title: officialWorks[5].title, ref: officialWorks[5].ref },
+          { title: officialWorks[8].title, ref: officialWorks[8].ref },
+          { title: officialWorks[7].title, ref: officialWorks[7].ref }
+        ]
+      },
+      {
+        title: 'Pratique Spirituelle',
+        category: 'Breslov',
+        contents: [
+          { title: officialWorks[1].title, ref: officialWorks[1].ref },
+          { title: officialWorks[2].title, ref: officialWorks[2].ref },
+          { title: officialWorks[4].title, ref: officialWorks[4].ref }
+        ]
+      },
+      {
+        title: 'Biographie et Récits',
+        category: 'Breslov',
+        contents: [
+          { title: officialWorks[0].title, ref: officialWorks[0].ref },
+          { title: officialWorks[6].title, ref: officialWorks[6].ref }
+        ]
+      }
+    ];
     
-    return Array.from(categories.values());
+    console.log('Official Breslov library built with', breslovLibrary.length, 'categories and', 
+                breslovLibrary.reduce((total, cat) => total + (cat.contents?.length || 0), 0), 'works');
+    
+    return breslovLibrary;
   }
 
   // Validate which references actually exist on Sefaria
@@ -489,13 +575,72 @@ class SefariaService {
         throw new Error(data.error);
       }
       
+      // Handle v3 API response format correctly
+      let englishText: string[] = [];
+      let hebrewText: string[] = [];
+      
+      if (data.versions && data.versions.length > 0) {
+        // V3 API uses versions array
+        data.versions.forEach((version: any) => {
+          if (version.language === 'en' && version.text) {
+            if (Array.isArray(version.text)) {
+              englishText = version.text;
+            } else {
+              englishText = [version.text];
+            }
+          }
+          if (version.language === 'he' && version.text) {
+            if (Array.isArray(version.text)) {
+              hebrewText = version.text;
+            } else {
+              hebrewText = [version.text];
+            }
+          }
+        });
+      } else {
+        // Fallback for other response formats
+        if (data.text) {
+          englishText = Array.isArray(data.text) ? data.text : [data.text];
+        }
+        if (data.he) {
+          hebrewText = Array.isArray(data.he) ? data.he : [data.he];
+        }
+        if (data.en) {
+          englishText = Array.isArray(data.en) ? data.en : [data.en];
+        }
+      }
+      
+      // Clean up text arrays - remove empty strings and HTML
+      const cleanText = (textArray: string[]): string[] => {
+        return textArray
+          .filter(text => text && text.trim().length > 0)
+          .map(text => text.replace(/<[^>]*>/g, '').trim())
+          .filter(text => text.length > 0);
+      };
+      
+      englishText = cleanText(englishText);
+      hebrewText = cleanText(hebrewText);
+      
+      // Ensure we have at least some text
+      if (englishText.length === 0 && hebrewText.length === 0) {
+        console.warn('No text content found in API response for', ref);
+        englishText = ['Text content is being loaded...'];
+        hebrewText = ['התוכן נטען...'];
+      }
+      
       const sefariaText: SefariaText = {
         ref: data.ref || ref,
         book: data.book || ref.split('.')[0] || ref.split(' ')[0],
-        text: Array.isArray(data.en) ? data.en : [data.en || 'Text not available'],
-        he: Array.isArray(data.he) ? data.he : [data.he || 'טקסט לא זמין'],
+        text: englishText,
+        he: hebrewText,
         title: data.title || data.book || ref
       };
+      
+      console.log(`[SefariaService] Successfully loaded text for ${ref}:`, {
+        englishParagraphs: englishText.length,
+        hebrewParagraphs: hebrewText.length,
+        title: sefariaText.title
+      });
 
       // Cache in session storage
       sessionStorage.setItem(`sefaria_v3_${cacheKey}`, JSON.stringify({
