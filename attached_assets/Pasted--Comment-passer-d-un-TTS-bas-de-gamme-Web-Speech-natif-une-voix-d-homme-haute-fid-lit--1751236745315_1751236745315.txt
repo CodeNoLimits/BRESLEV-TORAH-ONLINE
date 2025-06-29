@@ -1,0 +1,141 @@
+### Comment passer d’un TTS « bas-de-gamme » (Web-Speech natif) à une voix d’homme **haute fidélité**
+
+> Ces directives sont destinées au développeur qui maintient la branche *Google Studio / Replit* de **Le Compagnon du Cœur**.
+> Objectif : remplacer – ou au moins supplanter – le `speechSynthesis` du navigateur par un service TTS premium, **voix masculine naturelle**, sans dégrader la simplicité d’installation.
+
+---
+
+## 1. Pourquoi le Web Speech API ne suffit pas
+
+| Limite                                        | Conséquence                                     |
+| --------------------------------------------- | ----------------------------------------------- |
+| Jeu de voix dépendant de l’OS / du navigateur | Expérience incohérente (Chrome ≠ Edge ≠ Safari) |
+| Pas de réglage fiable du timbre               | Impossible d’imposer « voix d’homme » partout   |
+| Qualité moyenne / saccades                    | Fatigue auditive après quelques minutes         |
+| Pas de SSML complet                           | Dur à marquer les pauses ou l’hébreu vocalisé   |
+
+Conclusion : **conserver Web-Speech comme *fallback***, mais proposer une voie « pro » activable dès que la clé API est présente.
+
+---
+
+## 2. Deux providers simples à brancher
+
+| Provider                        | Avantages                                                                               | Coût Free tier                           |
+| ------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------- |
+| **Google Cloud Text-to-Speech** | Même écosystème que Gemini ; +30 voix masculines (Wavenet / Studio) FR-FR, EN-US, HE-IL | 4 M de caractères / mois                 |
+| **Amazon Polly**                | Voix Matthew, Joey, Eitan ; *Neural* très naturelle                                     | 5 M de caractères / mois pendant 12 mois |
+
+Les deux renvoient un **flux PCM ou MP3** → on joue dans `<audio>`.
+
+---
+
+## 3. Architecture (aucun CORS, sécurité clé)
+
+```
+client (React)  --fetch-->  /api/tts/speak   --proxy-->  Provider TTS
+                                   ↑
+                        clé secrète (.env server)
+```
+
+### 3.1 route Express (server/routes.ts)
+
+```ts
+import textToSpeech from '@google-cloud/text-to-speech';
+const ttsClient = new textToSpeech.TextToSpeechClient({
+  keyFilename: process.env.GCP_TTS_CREDS_PATH   // ou GOOGLE_APPLICATION_CREDENTIALS
+});
+
+router.post('/api/tts/speak', async (req, res) => {
+  const { text, lang } = req.body as { text:string; lang:Language };
+
+  const voiceMap = { fr: {languageCode:'fr-FR', name:'fr-FR-Wavenet-D'},
+                     en: {languageCode:'en-US', name:'en-US-Studio-M'},
+                     he: {languageCode:'he-IL', name:'he-IL-Wavenet-B'} };
+
+  const [resp] = await ttsClient.synthesizeSpeech({
+    input: { text },
+    voice: { ...voiceMap[lang], ssmlGender:'MALE' },
+    audioConfig:{ audioEncoding:'MP3', speakingRate:0.95 }
+  });
+
+  res.setHeader('Content-Type', 'audio/mpeg');
+  res.send(Buffer.from(resp.audioContent as string,'base64'));
+});
+```
+
+*(Si vous préférez Amazon Polly : même pattern avec `aws-sdk/clients/polly`.)*
+
+### 3.2 hook client `useTTSCloud.ts`
+
+```ts
+export const useTTSCloud = (enabled:boolean, lang:Language) =>{
+  const speak = async (txt:string)=>{
+    if(!enabled) return;
+    const a = new Audio();
+    const blob = await fetch('/api/tts/speak',{
+       method:'POST',
+       headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({ text:txt, lang })
+    }).then(r=>r.blob());
+    a.src = URL.createObjectURL(blob);
+    a.play().catch(console.error);
+  };
+  return { speak };
+};
+```
+
+* **Fallback** : si la requête 503/401, appeler `speechSynthesis` local comme aujourd’hui.
+
+---
+
+## 4. Intégration dans `App.tsx`
+
+```ts
+const { speak } = useTTSCloud(ttsEnabled, language);   // remplace ancien hook
+...
+streamGemini(mode,payload, /* onComplete= */ speak);
+```
+
+✅ La réponse est parlée **dès la fin du streaming**, avec la même latence qu’un MP3 128 kbps (\~ 40 KB pour 10 s).
+
+---
+
+## 5. Sélection stricte « voix d’homme »
+
+* **Google** : choisir un nom se terminant par **-D / -B / Studio-M** (gender male).
+* **Polly** : `VoiceId:"Matthew"|"Joey"|"Ivy"` etc.
+* Conserver la **même vitesse et pitch** que Web-Speech pour l’homogénéité.
+
+---
+
+## 6. Paramètre de confort utilisateur
+
+* Checkbox « Voix premium » visible **uniquement** si la route `/api/tts/ping` renvoie 200.
+* Afficher le quota restant (Google = `X / 4 M chars` – utiliser `projects.locations.getVoiceSelectionParams`).
+
+---
+
+## 7. Plan de migration rapide (≤ 60 min)
+
+1. `npm i @google-cloud/text-to-speech` (ou `aws-sdk`) côté *server*.
+2. Ajouter clés **GEMINI\_API\_KEY** + **GOOGLE\_APPLICATION\_CREDENTIALS** dans *Secrets*.
+3. Copier la route `/api/tts/speak`.
+4. Remplacer `useTTS` par `useTTSCloud` dans `App.tsx`.
+5. `npm run dev` → tester :
+
+   * premier chargement : la voix d’homme doit dire *« Sélectionnez la partie du texte… »*.
+   * désactiver la clé → fallback navigateur.
+
+---
+
+### Est-ce techniquement la « meilleure » solution ?
+
+Oui :
+
+* ✔️ Qualité studio (WaveNet ou Polly Neural).
+* ✔️ Pas de CORS côté client.
+* ✔️ Clé gardée côté serveur.
+* ✔️ Extensible (ElevenLabs, Coqui) si besoin d’intonation avancée.
+* ✔️ Fallback gratuit déjà en place.
+
+> **Implémentez ces 7 étapes et le TTS ne sera plus jamais “cassé la tête”.**
