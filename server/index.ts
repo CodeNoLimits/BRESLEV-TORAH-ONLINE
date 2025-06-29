@@ -49,7 +49,7 @@ app.get('/sefaria/*', async (req, res) => {
   console.log(`[Sefaria Proxy] ${target}`);
   const r = await fetch(target);
   res.status(r.status);
-  r.body.pipe(res);
+  if (r.body) r.body.pipe(res);
 });
 
 /* ---------- Gemini proxy (stream) ---------- */

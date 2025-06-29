@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { SefariaIndexNode, Language } from '../types';
-import { sefariaService } from '../services/sefaria';
+import { getBreslovIndex } from '../services/sefariaSimple';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 interface SidebarProps {
