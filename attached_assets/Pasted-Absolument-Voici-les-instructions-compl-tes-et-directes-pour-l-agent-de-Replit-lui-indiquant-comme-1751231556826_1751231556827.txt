@@ -1,0 +1,175 @@
+Absolument. Voici les instructions complètes et directes pour l'agent de Replit, lui indiquant comment intégrer toutes les fonctionnalités de l'API Gemini que nous avons définies.
+
+Le langage est technique et les instructions sont structurées sous forme de tâches de développement pour une implémentation directe.
+
+-----
+
+### **Instructions d'Intégration Complète des Fonctionnalités Gemini**
+
+**À l'attention de l'agent de développement Replit :**
+
+La clé API Gemini est maintenant accessible via les secrets de l'environnement. La prochaine étape est de transformer l'application en un compagnon spirituel interactif. Pour ce faire, tu vas centraliser les appels à l'API Gemini via le proxy Node.js et implémenter les 5 modes d'analyse IA définis.
+
+#### **Étape 1 : Mettre à Jour le Proxy pour Gérer les Appels Gemini**
+
+Le proxy doit non seulement gérer les requêtes vers Sefaria, mais aussi servir de passerelle sécurisée pour l'API Gemini.
+
+1.  **Installer le SDK Google AI :** Dans le shell, exécute :
+
+    ```bash
+    npm install @google/generative-ai
+    ```
+
+2.  **Modifier le fichier `proxy.js` :** Ajoute une nouvelle route `/gemini-api/chat` pour gérer les interactions avec l'IA. Ce code doit être ajouté à ton fichier `proxy.js` existant.
+
+    ```javascript
+    // Dans proxy.js (ajouts en plus du code existant pour Sefaria)
+
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    app.use(express.json()); // Middleware pour parser le JSON des requêtes
+
+    // Initialisation du client Gemini avec la clé depuis les secrets
+    if (!process.env.GEMINI_API_KEY) {
+        throw new Error("La variable d'environnement GEMINI_API_KEY est manquante !");
+    }
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+
+    // Nouvelle route pour le chat Gemini
+    app.post('/gemini-api/chat', async (req, res) => {
+        try {
+            const { prompt } = req.body;
+            if (!prompt) {
+                return res.status(400).json({ error: 'Le prompt est manquant.' });
+            }
+
+            const chat = model.startChat();
+            const result = await chat.sendMessageStream(prompt);
+
+            // Configure la réponse pour le streaming
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+            res.setHeader('Transfer-Encoding', 'chunked');
+
+            for await (const chunk of result.stream) {
+                const chunkText = chunk.text();
+                res.write(chunkText); // Envoie chaque morceau au client dès qu'il arrive
+            }
+            res.end(); // Termine la réponse streamée
+
+        } catch (error) {
+            console.error('Erreur lors de l\'appel à l\'API Gemini:', error);
+            res.status(500).json({ error: 'Erreur interne du serveur lors de l\'interaction avec l\'IA.' });
+        }
+    });
+    ```
+
+#### **Étape 2 : Implémenter les 5 Modes d'Analyse dans le Client React**
+
+Dans le composant principal de ton application (`App.tsx` ou `App.jsx`), tu vas créer une fonction centrale qui génère le bon prompt en fonction du mode demandé par l'utilisateur.
+
+1.  **Créer une fonction de gestion des prompts :** Cette fonction construira le texte à envoyer à l'IA.
+
+    ```javascript
+    // Dans votre composant App principal
+    const getSystemPrompt = (mode, payload) => {
+        const INSTRUCTION_BASE = `Tu es "Le Compagnon du Cœur", une IA experte des enseignements de Breslev. Réponds exclusivement dans la langue de la question.`;
+
+        switch (mode) {
+            case 'study':
+                return `${INSTRUCTION_BASE}\n\n[INSTRUCTION]\nAnalyse en profondeur le texte suivant fourni par l'utilisateur : "${payload.text}"`;
+            case 'general':
+                return `${INSTRUCTION_BASE}\n\n[INSTRUCTION]\nRéponds à la question générale suivante de l'utilisateur : "${payload.text}"`;
+            case 'snippet':
+                return `${INSTRUCTION_BASE}\n\n[INSTRUCTION]\nAnalyse l'extrait de texte suivant collé par l'utilisateur, identifie la source si possible et suggère des approfondissements : "${payload.text}"`;
+            case 'advice':
+                return `${INSTRUCTION_BASE}\n\n[INSTRUCTION]\nL'utilisateur partage une situation personnelle : "${payload.text}". Trouve un conseil pertinent de Rabbi Nahman, explique sa pertinence et cite la source.`;
+            case 'summary':
+                return `${INSTRUCTION_BASE}\n\n[INSTRUCTION]\nRésume les points clés du texte suivant en une liste de 3 à 5 points clairs et concis : "${payload.text}"`;
+            default:
+                return payload.text;
+        }
+    };
+    ```
+
+2.  **Créer la fonction d'appel à l'IA (avec streaming) :** Cette fonction enverra le prompt au proxy et mettra à jour l'état de l'interface en temps réel.
+
+    ```javascript
+    // Dans votre composant App principal
+
+    const [currentAiResponse, setCurrentAiResponse] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    const streamAiResponse = async (mode, payload) => {
+        setIsLoading(true);
+        setCurrentAiResponse(''); // Réinitialise la réponse
+        // Ajoute le message de l'utilisateur à l'historique du chat...
+
+        const prompt = getSystemPrompt(mode, payload);
+
+        const response = await fetch('/gemini-api/chat', { // Appel au proxy
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prompt }),
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let fullResponse = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            fullResponse += chunk;
+            setCurrentAiResponse(fullResponse); // Mise à jour de l'UI en temps réel
+        }
+
+        setIsLoading(false);
+        // Ici, tu peux ajouter la réponse complète à l'historique du chat
+        // Et appeler la fonction TTS pour lire la réponse
+    };
+    ```
+
+#### **Étape 3 : Implémenter le TTS (Text-to-Speech) Bidirectionnel**
+
+1.  **Créer le Hook `useTTS.js` :** Ce hook encapsulera la logique de la synthèse vocale pour la sortie audio.
+
+    ```javascript
+    // Fichier : src/hooks/useTTS.js
+    import { useCallback, useEffect } from 'react';
+
+    export const useTTS = (isEnabled) => {
+        const speak = useCallback((text) => {
+            if (!isEnabled || !text) return;
+
+            window.speechSynthesis.cancel(); // Annule toute lecture précédente
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'fr-FR'; // ou dynamique selon la langue
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }, [isEnabled]);
+
+        return { speak };
+    };
+    ```
+
+2.  **Intégrer le Hook :** Dans ton composant `App`, utilise ce hook et appelle `speak(fullResponse)` à la fin de la fonction `streamAiResponse`.
+
+3.  **Intégrer la Reconnaissance Vocale (Entrée) :** Utilise la `Web Speech API` dans ton composant `ChatInput.tsx` pour permettre à l'utilisateur de dicter ses questions.
+
+#### **Checklist Finale de l'Intégration**
+
+1.  [ ] **Proxy Mis à Jour :** Le fichier `proxy.js` contient la nouvelle route `/gemini-api/chat` et initialise le client Gemini avec la clé des secrets.
+2.  [ ] **Logique de Prompt Centralisée :** La fonction `getSystemPrompt` est créée et gère les 5 modes.
+3.  [ ] **Streaming Fonctionnel :** La fonction `streamAiResponse` appelle le proxy, lit le flux de données et met à jour l'interface en temps réel.
+4.  [ ] **Déclencheurs d'Interface :**
+      * Cliquer sur un texte dans `LibrarySidebar` appelle `streamAiResponse('study', ...)`
+      * Soumettre le formulaire de `ChatInput` appelle `streamAiResponse('general', ...)`
+      * Les boutons des modules "Analyser un extrait" et "Trouver un conseil" appellent les modes `'snippet'` et `'advice'`.
+      * Le bouton "Points Clés" appelle le mode `'summary'`.
+5.  [ ] **TTS Intégré :** Le hook `useTTS` est fonctionnel et la lecture de la réponse se déclenche à la fin du streaming.
+
+Exécute ces instructions pour doter l'application de toute l'intelligence et l'interactivité requises.

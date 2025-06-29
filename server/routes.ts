@@ -1,8 +1,45 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize Gemini AI
+  if (!process.env.GEMINI_API_KEY) {
+    console.error('GEMINI_API_KEY environment variable is missing!');
+  }
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+  // Gemini API proxy for AI interactions
+  app.post('/gemini-api/chat', async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
+      }
+
+      console.log('[GeminiProxy] Processing AI request');
+      
+      const result = await model.generateContentStream(prompt);
+      
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Transfer-Encoding', 'chunked');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        res.write(chunkText);
+      }
+      res.end();
+      
+      console.log('[GeminiProxy] AI response completed');
+    } catch (error) {
+      console.error('[GeminiProxy] Error:', error);
+      res.status(500).json({ error: 'AI service error' });
+    }
+  });
+
   // Universal Sefaria proxy to eliminate ALL CORS issues
   app.get('/sefaria-api/*', async (req, res) => {
     try {

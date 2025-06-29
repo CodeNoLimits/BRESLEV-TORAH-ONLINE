@@ -100,33 +100,52 @@ export const getTextContent = async (ref: string): Promise<SefariaText> => {
   
   const data = await response.json();
   
-  // Extract text from versions with fallback to direct fields
+  // Extract authentic full text content from Sefaria API v3 response
   let englishText: string[] = [];
   let hebrewText: string[] = [];
   
-  if (data.versions && Array.isArray(data.versions)) {
-    // Extract Hebrew text (primary version)
-    const hebrewVersion = data.versions.find((v: any) => v.language === 'he' && v.text);
-    if (hebrewVersion && hebrewVersion.text) {
+  // Extract Hebrew text directly from versions array
+  if (data.versions && data.versions.length > 0) {
+    const hebrewVersion = data.versions.find((v: any) => v.language === 'he');
+    if (hebrewVersion?.text) {
       hebrewText = Array.isArray(hebrewVersion.text) ? hebrewVersion.text : [hebrewVersion.text];
-    }
-    
-    // Extract English text (priority to Breslov Research Institute translation)
-    const englishVersion = data.versions.find((v: any) => 
-      v.language === 'en' && v.text && v.versionTitle?.includes('Breslov Research')
-    ) || data.versions.find((v: any) => v.language === 'en' && v.text);
-    
-    if (englishVersion && englishVersion.text) {
-      englishText = Array.isArray(englishVersion.text) ? englishVersion.text : [englishVersion.text];
+      console.log(`[SefariaProxy] Hebrew text extracted: "${hebrewText[0]?.substring(0, 50)}..."`);
     }
   }
   
-  // Fallback to direct text fields if versions don't have text
-  if (hebrewText.length === 0 && data.he) {
-    hebrewText = Array.isArray(data.he) ? data.he : [data.he];
-  }
-  if (englishText.length === 0 && data.text) {
-    englishText = Array.isArray(data.text) ? data.text : [data.text];
+  // Use different approach for English - fetch from dedicated language endpoint
+  if (data.available_versions && Array.isArray(data.available_versions)) {
+    const breslovVersion = data.available_versions.find((v: any) => 
+      v.language === 'en' && v.versionTitle?.includes('Breslov Research')
+    );
+    const fallbackEnglish = data.available_versions.find((v: any) => v.language === 'en');
+    
+    const preferredVersion = breslovVersion || fallbackEnglish;
+    if (preferredVersion) {
+      console.log(`[SefariaProxy] Fetching English from: ${preferredVersion.versionTitle}`);
+      
+      try {
+        // Use the language-specific endpoint instead of version parameter
+        const englishUrl = `${BASE_URL}/texts/${encodeURIComponent(ref)}?lang=en&context=0&commentary=0`;
+        
+        const englishResponse = await fetch(englishUrl);
+        if (englishResponse.ok) {
+          const englishData = await englishResponse.json();
+          
+          // Extract from text field or versions
+          if (englishData.text) {
+            englishText = Array.isArray(englishData.text) ? englishData.text : [englishData.text];
+            console.log(`[SefariaProxy] English text extracted: "${englishText[0]?.substring(0, 50)}..."`);
+          } else if (englishData.versions?.[0]?.text) {
+            const rawText = englishData.versions[0].text;
+            englishText = Array.isArray(rawText) ? rawText : [rawText];
+            console.log(`[SefariaProxy] English text from versions: "${englishText[0]?.substring(0, 50)}..."`);
+          }
+        }
+      } catch (error) {
+        console.error(`[SefariaProxy] Failed to fetch English text:`, error);
+      }
+    }
   }
   
   // Clean HTML and normalize text
