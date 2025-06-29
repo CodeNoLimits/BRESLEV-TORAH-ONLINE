@@ -94,7 +94,36 @@ export const useTTSFixed = ({ language, enabled }: TTSOptions) => {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     if (isMobile && !isSupported && isCloudAvailable) {
       console.log(`[TTS-Fixed] Using Cloud TTS fallback for mobile`);
-      await speakWithCloudTTS(text);
+      try {
+        setIsSpeaking(true);
+        const response = await fetch('/api/tts/speak', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: text.replace(/<[^>]*>/g, '').trim(),
+            language: language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'fr-FR'
+          }),
+        });
+        
+        if (response.ok) {
+          const audioBlob = await response.blob();
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          setCurrentAudio(audio);
+          
+          audio.onended = () => {
+            setIsSpeaking(false);
+            setCurrentAudio(null);
+            URL.revokeObjectURL(audioUrl);
+          };
+          
+          await audio.play();
+          console.log(`[TTS-Fixed] Mobile Cloud TTS started`);
+        }
+      } catch (error) {
+        console.error(`[TTS-Fixed] Mobile TTS error:`, error);
+        setIsSpeaking(false);
+      }
       return;
     }
 
@@ -182,6 +211,54 @@ export const useTTSFixed = ({ language, enabled }: TTSOptions) => {
       setIsSpeaking(false);
     }
   }, [enabled, isSupported, language, loadVoices]);
+
+  // Cloud TTS fallback function
+  const speakWithCloudTTS = useCallback(async (text: string) => {
+    try {
+      setIsSpeaking(true);
+      console.log(`[TTS-Fixed] Using Cloud TTS for: "${text.substring(0, 50)}..."`);
+      
+      const response = await fetch('/api/tts/speak', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text.replace(/<[^>]*>/g, '').trim(),
+          language: language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'fr-FR'
+        }),
+      });
+
+      if (response.ok) {
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        
+        setCurrentAudio(audio);
+        
+        audio.onended = () => {
+          setIsSpeaking(false);
+          setCurrentAudio(null);
+          URL.revokeObjectURL(audioUrl);
+        };
+        
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          setCurrentAudio(null);
+          URL.revokeObjectURL(audioUrl);
+        };
+        
+        await audio.play();
+        console.log(`[TTS-Fixed] Cloud TTS playback started`);
+      } else {
+        throw new Error('Cloud TTS request failed');
+      }
+    } catch (error) {
+      console.error(`[TTS-Fixed] Cloud TTS error:`, error);
+      setIsSpeaking(false);
+      setCurrentAudio(null);
+    }
+  }, [language]);
 
   const speakGreeting = useCallback(async () => {
     if (!enabled || !isSupported) return;

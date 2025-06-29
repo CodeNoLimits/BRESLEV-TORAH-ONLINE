@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BookContents } from './BookContents';
+import { BRESLOV_REFERENCES_FIXED, getAvailableBreslovBooks, BreslovReference } from '../services/breslovReferencesFix';
 
 interface BreslovLibraryProps {
   isOpen: boolean;
@@ -9,8 +10,25 @@ interface BreslovLibraryProps {
 
 export const BreslovLibrary = ({ isOpen, onClose, onTextSelect }: BreslovLibraryProps) => {
   const [selectedBook, setSelectedBook] = useState<{title: string, key: string} | null>(null);
+  const [availableBooks, setAvailableBooks] = useState<BreslovReference[]>(BRESLOV_REFERENCES_FIXED);
+  const [loadingBooks, setLoadingBooks] = useState(false);
 
-  // Liste complète des 9 livres Breslov
+  // Vérifier les livres disponibles au chargement
+  useEffect(() => {
+    if (isOpen && !loadingBooks) {
+      setLoadingBooks(true);
+      getAvailableBreslovBooks().then(books => {
+        setAvailableBooks(books);
+        setLoadingBooks(false);
+        console.log(`[BreslovLibrary] Loaded ${books.length} verified books`);
+      }).catch(error => {
+        console.error('[BreslovLibrary] Error loading books:', error);
+        setLoadingBooks(false);
+      });
+    }
+  }, [isOpen, loadingBooks]);
+
+  // Utiliser les références corrigées
   const breslovBooks = [
     { 
       title: 'Likoutei Moharan', 
