@@ -9,6 +9,7 @@ import { sefariaClient, SefariaText } from './services/sefariaDirectClient';
 import { streamGemini } from './services/geminiSimple';
 import { breslovCrawler } from './services/breslovCrawler';
 import { getCurrentSelection, clearSelection } from './services/textSelection';
+import { breslovSearch } from './services/breslovSearch';
 import { Language, InteractionMode } from './types';
 
 interface Message {
@@ -83,6 +84,13 @@ function AppSimple() {
       
       breslovCrawler.saveCache();
       console.log('[AppSimple] Essential texts preloaded and cached');
+      
+      // Initialize search engine for intelligent queries
+      breslovSearch.initialize().then(() => {
+        console.log('[AppSimple] Breslov search engine initialized');
+      }).catch(error => {
+        console.warn('[AppSimple] Failed to initialize search engine:', error);
+      });
     };
     
     preloadEssentialTexts();
@@ -405,30 +413,29 @@ ${text}`
                 {/* English Text - Always show in right column as translation */}
                 <div>
                   <h3 className="text-sm font-medium text-slate-400 mb-2">Traduction (Anglais)</h3>
-                    <div 
-                      className="bg-slate-900 rounded p-4 max-h-64 overflow-y-auto cursor-text select-text"
-                      onMouseUp={() => {
-                        const selection = window.getSelection();
-                        const selectedContent = selection?.toString().trim() || '';
-                        if (selectedContent) {
-                          console.log('[AppSimple] English text selected:', selectedContent.substring(0, 100));
-                          setUserSelectedText(selectedContent);
-                        }
-                      }}
-                    >
-                      {selectedText.text.slice(0, 5).map((segment, idx) => (
-                        <p key={idx} className="mb-3 text-slate-200 font-crimson leading-relaxed">
-                          {segment}
-                        </p>
-                      ))}
-                      {selectedText.text.length > 5 && (
-                        <p className="text-slate-500 italic text-center">
-                          ... {selectedText.text.length - 5} segments supplémentaires
-                        </p>
-                      )}
-                    </div>
+                  <div 
+                    className="bg-slate-900 rounded p-4 max-h-64 overflow-y-auto cursor-text select-text"
+                    onMouseUp={() => {
+                      const selection = window.getSelection();
+                      const selectedContent = selection?.toString().trim() || '';
+                      if (selectedContent) {
+                        console.log('[AppSimple] English text selected:', selectedContent.substring(0, 100));
+                        setUserSelectedText(selectedContent);
+                      }
+                    }}
+                  >
+                    {(selectedText.text && selectedText.text.length > 0 ? selectedText.text : ['English text not available']).slice(0, 5).map((segment, idx) => (
+                      <p key={idx} className="mb-3 text-slate-200 font-crimson leading-relaxed">
+                        {segment}
+                      </p>
+                    ))}
+                    {selectedText.text && selectedText.text.length > 5 && (
+                      <p className="text-slate-500 italic text-center">
+                        ... {selectedText.text.length - 5} segments supplémentaires
+                      </p>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
               
               {/* Selection Indicator */}
