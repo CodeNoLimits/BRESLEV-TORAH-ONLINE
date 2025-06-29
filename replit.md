@@ -132,12 +132,12 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 
 ## Recent Changes
 
-- ✓ Implemented Sefaria API v3 with proper parameters (context=0, commentary=0, pad=0, wrapLinks=false)
-- ✓ Created exhaustive reference discovery system that crawls the complete Sefaria index
-- ✓ Built structured library with categories: Sefer HaMidot, Likutei Moharan, Sipurei Maasiyot, Sichos HaRan, Chayyei Moharan
-- ✓ Added rate-limited batch fetching (5 requests/second) with session storage caching
-- ✓ Universal proxy routes configured to bypass CORS restrictions
-- ✓ Database schema with tables for users, conversations, messages, and text selections
+- ✓ Implemented Express proxy server with dedicated Sefaria API routes (/api/sefaria/texts/* and /api/sefaria/breslov-index)
+- ✓ Replaced all direct API calls to sefaria.org with proxy routes to eliminate CORS issues
+- ✓ Built robust Breslov library with 9 authenticated books using validated Sefaria references
+- ✓ Configured text fetching to extract authentic Hebrew and English content from Sefaria versions
+- ✓ Verified proxy functionality with curl tests showing real Breslov text retrieval
+- ✓ Updated SefariaService to use proxy-based architecture with proper caching
 
 ## User Preferences
 

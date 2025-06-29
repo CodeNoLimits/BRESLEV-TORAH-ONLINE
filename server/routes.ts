@@ -4,12 +4,13 @@ import { storage } from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Sefaria Breslov-specific proxy routes
-  app.get('/api/sefaria/texts/:ref', async (req, res) => {
+  app.get('/api/sefaria/texts/:ref(*)', async (req, res) => {
     try {
       const ref = req.params.ref;
-      const url = `https://www.sefaria.org/api/v3/texts/${ref}?context=0&commentary=0&pad=0&wrapLinks=false`;
+      const encodedRef = encodeURIComponent(ref);
+      const url = `https://www.sefaria.org/api/v3/texts/${encodedRef}?context=0&commentary=0&pad=0&wrapLinks=false`;
       
-      console.log(`[Sefaria Proxy] Fetching text: ${url}`);
+      console.log(`[Sefaria Proxy] Fetching text: ${ref} -> ${url}`);
       
       const response = await fetch(url, {
         headers: {
@@ -19,7 +20,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       if (!response.ok) {
-        console.error(`[Sefaria Proxy] Error ${response.status}: ${response.statusText}`);
+        console.error(`[Sefaria Proxy] Error ${response.status}: ${response.statusText} for ${ref}`);
         return res.status(response.status).json({ error: 'Sefaria error' });
       }
       

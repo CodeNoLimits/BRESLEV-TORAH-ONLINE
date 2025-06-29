@@ -46,43 +46,12 @@ export const getBreslovIndex = async (): Promise<SefariaIndexNode[]> => {
   
   const data = await response.json();
   
-  // Transform raw Sefaria data to our format with normalized references
-  const breslovBooks: SefariaIndexNode[] = [];
-  
-  if (Array.isArray(data)) {
-    data.forEach((item: any) => {
-      // Create normalized reference for each book
-      let normalizedRef = '';
-      
-      if (item.title === 'Likutei Moharan') {
-        normalizedRef = 'Likutei_Moharan.1';
-      } else if (item.title === 'Sichot HaRan') {
-        normalizedRef = 'Sichot_HaRan.1';
-      } else if (item.title === 'Sippurei Maasiyot') {
-        normalizedRef = 'Sippurei_Maasiyot.1';
-      } else if (item.title === 'Sefer HaMiddot') {
-        normalizedRef = 'Sefer_HaMiddot.1';
-      } else if (item.title === 'Likutei Tefilot') {
-        normalizedRef = 'Likutei_Tefilot.1';
-      } else if (item.title === 'Chayei Moharan') {
-        normalizedRef = 'Chayei_Moharan.1';
-      } else if (item.title === 'Shivchei HaRan') {
-        normalizedRef = 'Shivchei_HaRan.1';
-      } else if (item.title === 'Likutei Halakhot') {
-        normalizedRef = 'Likutei_Halakhot.1';
-      } else if (item.title === 'Likkutei Etzot') {
-        normalizedRef = 'Likkutei_Etzot.1';
-      } else {
-        normalizedRef = `${item.title.replace(/\s/g, '_')}.1`;
-      }
-      
-      breslovBooks.push({
-        title: item.title,
-        ref: normalizedRef,
-        category: 'Breslov'
-      });
-    });
-  }
+  // The server already provides correctly formatted books
+  const breslovBooks: SefariaIndexNode[] = data.map((item: any) => ({
+    title: item.title,
+    ref: item.ref,
+    category: 'Breslov'
+  }));
   
   console.log(`[SefariaProxy] Breslov index processed: ${breslovBooks.length} books`);
   return breslovBooks;
