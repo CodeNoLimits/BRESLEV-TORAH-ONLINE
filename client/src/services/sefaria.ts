@@ -31,35 +31,46 @@ class SefariaService {
 
     console.log('Building official Breslov catalog directly...');
     
-    try {
-      // Build directly from official catalog without any validation
-      const breslovLibrary = this.buildOfficialBreslovCatalog();
-      
-      // Cache the official library
-      sessionStorage.setItem(cacheKey, JSON.stringify({
-        data: breslovLibrary,
-        timestamp: Date.now(),
-        source: 'official_catalog'
-      }));
-      
-      console.log(`Official Breslov catalog ready with ${breslovLibrary.length} categories`);
-      return breslovLibrary;
-      
-    } catch (error) {
-      console.error('Error building complete library:', error);
-      
-      // Emergency fallback - comprehensive predefined library
-      const fallbackLibrary = this.createComprehensiveBreslovLibrary();
-      console.log('Using fallback library with', fallbackLibrary.length, 'categories');
-      
-      sessionStorage.setItem(cacheKey, JSON.stringify({
-        data: fallbackLibrary,
-        timestamp: Date.now(),
-        fallback: true
-      }));
-      
-      return fallbackLibrary;
-    }
+    // Create the 9 official Breslov works structure
+    const officialBreslovCatalog: SefariaIndexNode[] = [
+      {
+        title: 'Œuvres Fondamentales',
+        category: 'Breslov',
+        contents: [
+          { title: 'Likutei Moharan - Enseignements Principaux', ref: 'Likutei Moharan' },
+          { title: 'Sefer HaMiddot - Livre des Traits', ref: 'Sefer HaMiddot' },
+          { title: 'Sippurei Maasiyot - Contes Merveilleux', ref: 'Sippurei Maasiyot' },
+          { title: 'Sichot HaRan - Conversations du Rabbi', ref: 'Sichot HaRan' }
+        ]
+      },
+      {
+        title: 'Pratique Spirituelle',
+        category: 'Breslov',
+        contents: [
+          { title: 'Likkutei Etzot - Recueil de Conseils', ref: 'Likkutei Etzot' },
+          { title: 'Likutei Halakhot - Lois Commentées', ref: 'Likutei Halakhot' },
+          { title: 'Likutei Tefilot - Prières', ref: 'Likutei Tefilot' }
+        ]
+      },
+      {
+        title: 'Biographie et Récits',
+        category: 'Breslov',
+        contents: [
+          { title: 'Chayei Moharan - La Vie de Rabbi Nahman', ref: 'Chayei Moharan' },
+          { title: 'Shivchei HaRan - Louanges du Rabbi', ref: 'Shivchei HaRan' }
+        ]
+      }
+    ];
+    
+    // Cache the official catalog
+    sessionStorage.setItem(cacheKey, JSON.stringify({
+      data: officialBreslovCatalog,
+      timestamp: Date.now(),
+      source: 'official_sefaria_catalog'
+    }));
+    
+    console.log(`Official Breslov catalog ready with ${officialBreslovCatalog.length} categories and 9 authentic works`);
+    return officialBreslovCatalog;
   }
 
   // Exhaustive discovery of ALL Breslov references using multiple strategies
@@ -164,8 +175,8 @@ class SefariaService {
     return breslovRefs;
   }
 
-  // Build structured library using official Breslov catalog
-  private async buildBreslovLibrary(): Promise<SefariaIndexNode[]> {
+  // Build official Breslov catalog directly without validation
+  private buildOfficialBreslovCatalog(): SefariaIndexNode[] {
     console.log('Building official Breslov library...');
     
     // Use the 9 official Breslov works
@@ -542,8 +553,22 @@ class SefariaService {
     }
 
     try {
+      // Special handling for main book references (use first chapter/section)
+      let actualRef = ref;
+      if (ref === 'Likutei Moharan') {
+        actualRef = 'Likutei Moharan.1.1';
+      } else if (ref === 'Sichot HaRan') {
+        actualRef = 'Sichot HaRan.1';
+      } else if (ref === 'Sippurei Maasiyot') {
+        actualRef = 'Sippurei Maasiyot, The Lost Princess';
+      } else if (ref === 'Chayei Moharan') {
+        actualRef = 'Chayei Moharan.1';
+      } else if (ref === 'Shivchei HaRan') {
+        actualRef = 'Shivchei HaRan.1';
+      }
+      
       // Use v3 API with proper parameters
-      const normalizedRef = ref.replace(/\s/g, '_');
+      const normalizedRef = actualRef.replace(/\s/g, '_');
       const encodedRef = encodeURIComponent(normalizedRef);
       
       const params = new URLSearchParams({
@@ -555,7 +580,7 @@ class SefariaService {
       
       const apiUrl = `${SEFARIA_API_BASE}/v3/texts/${encodedRef}?${params}`;
       
-      console.log(`[SefariaService] Fetching v3 text: ${apiUrl}`);
+      console.log(`[SefariaService] Fetching v3 text: ${apiUrl} (original ref: ${ref})`);
       
       const response = await fetch(apiUrl, {
         method: 'GET',
