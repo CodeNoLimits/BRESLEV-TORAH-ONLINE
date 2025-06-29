@@ -39,7 +39,7 @@ export const Header = ({
           </button>
           <div className="text-glow">
             <span className="text-lg font-crimson font-semibold text-sky-400">
-              נא נח נחמא נחמן מאומן
+              נ נח נחמ נחמן מאומן
             </span>
           </div>
         </div>
