@@ -2,6 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile-first responsive design for Le Compagnon du Cœur */
+@layer base {
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  body {
+    overflow-x: hidden;
+    touch-action: manipulation;
+  }
+  
+  /* Ensure proper mobile viewport */
+  .mobile-viewport {
+    min-height: 100vh;
+    min-height: 100dvh; /* Modern dynamic viewport height */
+  }
+  
+  /* Touch-friendly interactive elements */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Text rendering optimization */
+  .text-render-optimize {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
 /* Floating TTS Control Animations */
 @keyframes fade-in {
   from {
