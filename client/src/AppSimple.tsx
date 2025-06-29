@@ -1,11 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
 import { BreslovLibrary } from './components/BreslovLibrary';
+import { FloatingTTSControl } from './components/FloatingTTSControl';
 import { useTTSFixed } from './hooks/useTTSFixed';
 import { TextSegmenter } from './services/textSegmenter';
 import { sefariaClient, SefariaText } from './services/sefariaDirectClient';
 import { streamGemini } from './services/geminiSimple';
 import { breslovCrawler } from './services/breslovCrawler';
+import { getCurrentSelection, clearSelection } from './services/textSelection';
 import { Language, InteractionMode } from './types';
 
 interface Message {
@@ -605,6 +607,14 @@ ${text}`
         </div>
       </div>
 
+      {/* Floating TTS Control */}
+      <FloatingTTSControl 
+        isSpeaking={isSpeaking}
+        onStop={() => {
+          window.speechSynthesis.cancel();
+          stopTTS();
+        }}
+      />
 
     </div>
   );
