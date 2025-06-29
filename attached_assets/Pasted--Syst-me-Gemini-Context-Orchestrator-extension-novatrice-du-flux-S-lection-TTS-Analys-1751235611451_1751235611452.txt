@@ -1,0 +1,175 @@
+## Système « Gemini Context Orchestrator »
+
+*(extension novatrice du flux « Sélection → TTS → Analyse »)*
+
+---
+
+### 1. Objectif
+
+Créer une **boucle intelligente** — crawler → indexer → afficher → analyser → conseiller → apprendre — qui exploite Gemini **toujours avec le bon contexte textuel**, sans dilution, et qui tire parti de tout ce que nous avons déjà :
+
+* sélection manuelle ou automatique d’un passage,
+* prompts multi-modes,
+* TTS bidirectionnel,
+* bibliothèque Breslev exhaustive.
+
+---
+
+### 2. Vue d’ensemble de l’architecture
+
+```text
+┌────────────────────────────────────────────────────────────┐
+│  Front-end React                                          │
+│  ┌──────────────┐  sélection  ┌────────────┐   feedback   │
+│  │ TextViewer   │ ───────────▶│ ContextBar │──────────────┐│
+│  └──────────────┘             └────────────┘              ││
+│          │ copier/coller                │                  ││
+│          ▼                              ▼   prompts+stream ││
+│  ┌──────────────┐   demande    ┌───────────────────┐       ││
+│  │ InputZone    │─────────────▶│ Gemini ContextSvc │       ││
+│  └──────────────┘              └───────────────────┘       ││
+│          ▲                              │ stream chunks    ││
+│          └──────── TTS & UI update ◀────┘                  ││
+└────────────────────────────────────────────────────────────┘
+               ▲                                 │
+               │ REST / SSE (Server-Sent Events) │
+               ▼                                 ▼
+┌────────────────────────────────────────────────────────────┐
+│  Edge / Node Proxy (same Replit instance)                  │
+│  • Crawler + Index cache (Sefaria)                         │
+│  • SSE Gateway vers Gemini                                 │
+│  • Vector-store (Tinybird / SQLite)                        │
+└────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 3. Composants clés à ajouter
+
+| Nom                        | Type            | Rôle                                                                                                                                                                          |
+| -------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ContextBar**             | React           | Affiche le(s) passage(s) actuellement dans le contexte ; badges : *auto* (clic bibliothèque), *selection* (drag), *snippet* (collé). Permet de retirer/réordonner.            |
+| **Gemini ContextSvc**      | front (service) | 1. Agrège le contexte (texte+méta) 2. Construit le `systemPrompt` & `userPrompt` 3. Ouvre un stream SSE `/gemini-api/stream` 4. Diffuse les chunks vers UI & TTS.             |
+| **Crawler/Indexer**        | node (proxy)    | Chaque nuit : parcours récursif API v3 Sefaria, ne conserve **que** Breslev; stocke → JSON + embeddings (MiniLM) dans SQLite, expose `/library/tree` & `/library/text/{ref}`. |
+| **Vector Search Endpoint** | proxy           | `/search/similar?q=…` renvoie refs + score pour améliorer la réponse Gemini (mode *advice* : “trouve idée semblable”)                                                         |
+| **SSE Gateway**            | proxy           | Convertit le stream `@google/generative-ai` (`for await (chunk)`) en Server-Sent Events pour une consommation hyper simple côté React.                                        |
+
+---
+
+### 4. Flux détaillé
+
+1. **Chargement initial**
+
+   * Front appelle `/library/tree` → hydrate la sidebar (structure Breslev).
+   * Proxy sert un JSON cache d’une minute ⇒ instantané.
+
+2. **Choix d’un texte**
+
+   * Clic dans sidebar → `TextViewer` affiche intégralité.
+   * `Gemini ContextSvc` remplit automatiquement `ContextBar` avec ce passage (`mode: auto`).
+
+3. **Sélection manuelle**
+
+   * L’utilisateur surligne ➜ `TextViewer` déclenche `onSelect` ➜ ajoute badge `mode: selection`.
+
+4. **Interaction IA**
+
+   * Boutons **Analyse / Conseil / Points Clés** appellent `Gemini ContextSvc.send(mode, payload)`
+   * Service fabrique :
+
+   ```js
+   const systemPrompt = SYSTEM_BASE + CONTEXT_BAR_TEXTS.join('\n\n');
+   const userPrompt   = MODE_PROMPT_TEMPLATES[mode](payload);
+   ```
+
+   * Appelle `POST /gemini-api/stream` (SSE) avec `{systemPrompt, userPrompt}`.
+
+5. **Streaming & rendu**
+
+   * Le stream SSE émet `data: <chunk>` ; `Gemini ContextSvc` ajoute au chat en temps réel.
+   * TTS lit quand le message est complet (dépendance `speechSynthesis.onend`).
+
+6. **Vector-boost (optionnel)**
+
+   * Avant l’appel Gemini, si `mode===advice` et qu’il n’y a PAS de sélection :
+
+     * front envoie `q=payload` à `/search/similar`
+     * le proxy renvoie 5 passages similaires, concaténés dans le `systemPrompt` pour guider Gemini.
+
+---
+
+### 5. Prompt-engineering « context first »
+
+```text
+SYSTEM =
+[CORE IDENTITY] … (inchangé)
+[CONTEXT TEXTS]
+<<<CONTEXT>>>           ← passages concaténés
+--- fin du contexte ---
+[TASK MODE]
+<instruction dédiée>
+```
+
+* **Pas de contexte ?** On n’envoie que l’identité + instruction générique.
+* **Conservation du langage** : le `SYSTEM` est multisecteur, la **langue vient du userPrompt** -> Gemini répond naturellement dans la même langue.
+
+---
+
+### 6. API proxy : implémentation rapide
+
+```ts
+// routes/gemini.ts
+router.post('/stream', async (req,res)=>{
+  const { systemPrompt, userPrompt } = req.body;
+  const chat = model.startChat({ history: [], generationConfig });
+  const result = await chat.sendMessageStream({ role:'user', parts:[{text:userPrompt}] }, { systemInstruction:{ role:'system', parts:[{text:systemPrompt}] } });
+
+  res.setHeader('Content-Type','text/event-stream');
+  res.setHeader('Cache-Control','no-cache');
+  for await(const chunk of result.stream){
+     res.write(`data: ${chunk.text()}\n\n`);
+  }
+  res.end();
+});
+```
+
+---
+
+### 7. Gestion des erreurs & fallback
+
+* **Sefaria down** ⇒ proxy répond 503 + stub `"(Texte momentanément indisponible)"` ; front l’indique en toast.
+* **Gemini quota** ⇒ `Retry-After` dans SSE -> front bascule en mode « réponse différée », stocke la requête, propose de réessayer.
+* **Sélection vide** + `mode: snippet` ➜ toast “Sélectionnez d’abord un passage (ou collez du texte)”.
+
+---
+
+### 8. Sécurité & quotas
+
+* Clé Gemini = secret env, jamais côté client.
+* Proxy limite 100 req/min IP via `express-rate-limit`.
+* Index Sefaria mis en cache disque (`library.json`, 5 Mo).
+
+---
+
+### 9. Road-map incrémentale
+
+| Sprint | Livrable                                                    |
+| ------ | ----------------------------------------------------------- |
+| **S0** | Proxy SSE + recherche Sefaria v3 + Sidebar ✅ *(déjà fait)*  |
+| **S1** | ContextBar + Gestion sélection + TTS greeting               |
+| **S2** | Modes IA via `Gemini ContextSvc` (analyse, conseil, résumé) |
+| **S3** | Vector-search (MiniLM) + endpoint `/search/similar`         |
+| **S4** | Tests E2E (Cypress) + monitoring quotas                     |
+
+---
+
+### 10. Pourquoi c’est innovant ?
+
+* **Context injection granulaire** : seuls les passages affichés ou sélectionnés alimentent Gemini ⇒ réponses précises, coût token minime.
+* **SSE universel** : pas de lib tierce côté front, compatible Replit/Google Studio.
+* **Vector fallback** : même sans sélection, l’IA reçoit *des passages pertinents* → gain de pertinence.
+* **Expérience “voix-d’abord”** : TTS accueille, lit, et clôture le flux ; l’utilisateur interagit natural-language ou par clic.
+
+---
+
+> Implémentez **Sprint S1** en priorité : cinq fichiers modifiés suffisent pour que l’accueil TTS, la sélection et l’appel contextuel soient opérationnels.

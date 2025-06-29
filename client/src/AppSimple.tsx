@@ -260,7 +260,18 @@ ${text}`
                 {selectedText.he && selectedText.he.length > 0 && (
                   <div>
                     <h3 className="text-sm font-medium text-slate-400 mb-2">Texte original (Hébreu)</h3>
-                    <div className="bg-slate-900 rounded p-4 max-h-64 overflow-y-auto" dir="rtl">
+                    <div 
+                      className="bg-slate-900 rounded p-4 max-h-64 overflow-y-auto cursor-text select-text" 
+                      dir="rtl"
+                      onMouseUp={() => {
+                        const selection = window.getSelection();
+                        const selectedContent = selection?.toString().trim() || '';
+                        if (selectedContent) {
+                          console.log('[AppSimple] Hebrew text selected:', selectedContent.substring(0, 100));
+                          setUserSelectedText(selectedContent);
+                        }
+                      }}
+                    >
                       {selectedText.he.slice(0, 5).map((segment, idx) => (
                         <p key={idx} className="mb-3 text-slate-200 font-crimson text-lg leading-relaxed">
                           {segment}
@@ -279,7 +290,17 @@ ${text}`
                 {selectedText.text && selectedText.text.length > 0 && (
                   <div>
                     <h3 className="text-sm font-medium text-slate-400 mb-2">Traduction (Anglais)</h3>
-                    <div className="bg-slate-900 rounded p-4 max-h-64 overflow-y-auto">
+                    <div 
+                      className="bg-slate-900 rounded p-4 max-h-64 overflow-y-auto cursor-text select-text"
+                      onMouseUp={() => {
+                        const selection = window.getSelection();
+                        const selectedContent = selection?.toString().trim() || '';
+                        if (selectedContent) {
+                          console.log('[AppSimple] English text selected:', selectedContent.substring(0, 100));
+                          setUserSelectedText(selectedContent);
+                        }
+                      }}
+                    >
                       {selectedText.text.slice(0, 5).map((segment, idx) => (
                         <p key={idx} className="mb-3 text-slate-200 font-crimson leading-relaxed">
                           {segment}
@@ -295,17 +316,41 @@ ${text}`
                 )}
               </div>
               
+              {/* Selection Indicator */}
+              {userSelectedText && (
+                <div className="mb-4 p-3 bg-amber-900/30 border border-amber-600/50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-amber-400 text-sm font-medium">Texte sélectionné:</span>
+                      <p className="text-slate-300 text-sm mt-1 truncate max-w-lg">
+                        {userSelectedText.substring(0, 100)}...
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setUserSelectedText('')}
+                      className="text-slate-400 hover:text-red-400 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2 mt-4">
                 <button
                   onClick={() => {
-                    const completeContent = selectedText.text.join('\n\n');
-                    console.log(`[AppSimple] Manual analysis - sending ${completeContent.length} characters`);
-                    handleAIRequest(`ANALYSE SPIRITUELLE COMPLÈTE DE ${selectedText.title}:\n\n${completeContent}`, 'study');
+                    const content = userSelectedText || selectedText.text.join('\n\n');
+                    const prefix = userSelectedText ? 'ANALYSE DU TEXTE SÉLECTIONNÉ' : `ANALYSE SPIRITUELLE COMPLÈTE DE ${selectedText.title}`;
+                    console.log(`[AppSimple] Analysis - using ${userSelectedText ? 'selected' : 'full'} text (${content.length} chars)`);
+                    handleAIRequest(`${prefix}:\n\n${content}`, 'study');
+                    if (userSelectedText) setUserSelectedText('');
                   }}
                   className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-black rounded font-medium transition-colors"
                   disabled={isAILoading}
                 >
-                  Analyser ce texte
+                  {userSelectedText ? 'Analyser la sélection' : 'Analyser ce texte'}
                 </button>
                 <button
                   onClick={() => {
