@@ -38,7 +38,9 @@ export const ChatArea = ({
       {messages.length === 0 && (
         <div className="flex items-start space-x-3 animate-fade-in">
           <div className="w-8 h-8 bg-gradient-to-br from-sky-400 to-sky-600 rounded-full flex items-center justify-center flex-shrink-0">
-            <i className="fas fa-heart text-white text-sm"></i>
+            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"></path>
+            </svg>
           </div>
           <div className="chat-bubble bg-slate-800 rounded-lg p-4 shadow-lg">
             <p className="text-slate-200">
@@ -60,7 +62,9 @@ export const ChatArea = ({
         >
           {message.sender === 'ai' && (
             <div className="w-8 h-8 bg-gradient-to-br from-sky-400 to-sky-600 rounded-full flex items-center justify-center flex-shrink-0">
-              <i className="fas fa-heart text-white text-sm"></i>
+              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"></path>
+              </svg>
             </div>
           )}
           
@@ -83,13 +87,19 @@ export const ChatArea = ({
                   className="text-xs text-sky-400 hover:text-sky-300 transition-colors"
                   onClick={() => onSummarize(message.id)}
                 >
-                  <i className="fas fa-list mr-1"></i>Points clés
+                  <svg className="w-3 h-3 mr-1 inline" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 8a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 12a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 16a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"></path>
+                  </svg>
+                  Points clés
                 </button>
                 <button
                   className="text-xs text-slate-400 hover:text-slate-300 transition-colors"
                   onClick={() => onSpeak(message.text)}
                 >
-                  <i className="fas fa-volume-up mr-1"></i>Écouter
+                  <svg className="w-3 h-3 mr-1 inline" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM15.657 6.343a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-1.929 5.657 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-1.343-4.243 1 1 0 010-1.414z" clipRule="evenodd"></path>
+                  </svg>
+                  Écouter
                 </button>
               </div>
             )}
@@ -97,7 +107,9 @@ export const ChatArea = ({
           
           {message.sender === 'user' && (
             <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center flex-shrink-0">
-              <i className="fas fa-user text-slate-400 text-sm"></i>
+              <svg className="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path>
+              </svg>
             </div>
           )}
         </div>
@@ -127,7 +139,9 @@ export const ChatArea = ({
       {isStreaming && !streamingText && (
         <div className="flex items-start space-x-3">
           <div className="w-8 h-8 bg-gradient-to-br from-sky-400 to-sky-600 rounded-full flex items-center justify-center flex-shrink-0">
-            <i className="fas fa-heart text-white text-sm"></i>
+            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"></path>
+            </svg>
           </div>
           <div className="chat-bubble bg-slate-800 rounded-lg p-4 shadow-lg">
             <div className="flex space-x-1">
