@@ -90,7 +90,9 @@ export const Sidebar = ({ isOpen, onClose, onTextSelect, language }: SidebarProp
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center">
-                <i className="fas fa-heart text-white text-lg"></i>
+                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"></path>
+                </svg>
               </div>
               <div>
                 <h1 className="text-xl font-crimson font-semibold text-amber-400">
@@ -103,7 +105,9 @@ export const Sidebar = ({ isOpen, onClose, onTextSelect, language }: SidebarProp
               className="md:hidden text-slate-400 hover:text-white"
               onClick={onClose}
             >
-              <i className="fas fa-times"></i>
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
+              </svg>
             </button>
           </div>
           
@@ -116,21 +120,27 @@ export const Sidebar = ({ isOpen, onClose, onTextSelect, language }: SidebarProp
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <i className="fas fa-search absolute right-3 top-3 text-slate-400 text-sm"></i>
+            <svg className="w-4 h-4 absolute right-3 top-3 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd"></path>
+            </svg>
           </div>
         </div>
         
         {/* Library Navigation */}
         <div className="flex-1 overflow-y-auto sidebar-scroll p-4">
           <h2 className="text-lg font-semibold text-sky-400 mb-4 flex items-center">
-            <i className="fas fa-book-open mr-2"></i>
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
+            </svg>
             Bibliothèque Breslev
           </h2>
           
           {loading && (
             <div className="flex items-center justify-center py-8">
               <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center animate-pulse">
-                <i className="fas fa-heart text-white"></i>
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"></path>
+                </svg>
               </div>
             </div>
           )}
