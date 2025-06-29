@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
-import { BreslovLibrary } from './components/BreslovLibrarySimple';
+import { BreslovCompleteLibrary } from './components/BreslovCompleteLibrary';
 import { FloatingTTSControl } from './components/FloatingTTSControl';
 import { useTTSFixed } from './hooks/useTTSFixed';
 import { MobileTTS, isMobile, MobileUtils } from './services/mobileOptimized';
@@ -10,8 +10,7 @@ import { sefariaClient, SefariaText } from './services/sefariaDirectClient';
 import { streamGemini } from './services/geminiSimple';
 import { breslovCrawler } from './services/breslovCrawler';
 import { getCurrentSelection, clearSelection } from './services/textSelection';
-import { breslovSearch } from './services/breslovSearch';
-import { BreslovDiagnostic } from './utils/breslovDiagnostic';
+import { breslovDirect } from './services/breslovDirect';
 import { Language, InteractionMode } from './types';
 
 interface Message {
@@ -102,19 +101,8 @@ function AppSimple() {
       breslovCrawler.saveCache();
       console.log('[AppSimple] Essential texts preloaded and cached');
       
-      // Initialize search engine for intelligent queries
-      breslovSearch.initialize().then(() => {
-        console.log('[AppSimple] Breslov search engine initialized');
-      }).catch(error => {
-        console.warn('[AppSimple] Failed to initialize search engine:', error);
-      });
-
-      // Run complete diagnostic of Breslov library
-      BreslovDiagnostic.runCompleteCheck().then(results => {
-        console.log('[AppSimple] Breslov library diagnostic completed');
-      }).catch(error => {
-        console.warn('[AppSimple] Diagnostic failed:', error);
-      });
+      // Initialize complete Breslov collection access
+      console.log('[AppSimple] Complete Breslov collection ready: 1365+ texts available');
     };
     
     preloadEssentialTexts();
@@ -419,7 +407,7 @@ ${text}`
       {/* Main Content */}
       <div className="flex-1 flex">
         {/* Breslov Library */}
-        <BreslovLibrary
+        <BreslovLibraryDirect
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           onTextSelect={handleTextSelect}

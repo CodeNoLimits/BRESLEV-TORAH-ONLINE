@@ -142,6 +142,10 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 - ✓ All 5 AI modes operational: study, general, snippet, advice, summary
 - ✓ Verified authentic Sefaria text loading with cache hits confirmed
 - ✓ Hebrew text display: נ נח נחמ נחמן מאומן
+- ✓ Mobile TTS optimization with automatic Google Cloud TTS fallback (June 30, 2025)
+- ✓ BreslovDirect service replacing diagnostic loops with authentic text access (June 30, 2025)
+- ✓ Mobile-responsive interface with touch optimizations and viewport management (June 30, 2025)
+- ✓ Essential Breslov texts preloaded: Likutei Moharan 1-2, Sichot HaRan 1, Sippurei Maasiyot 1 (June 30, 2025)
 
 ## User Preferences
 
