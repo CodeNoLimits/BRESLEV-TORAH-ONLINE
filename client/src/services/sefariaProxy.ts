@@ -91,61 +91,53 @@ export const getBreslovIndex = async (): Promise<SefariaIndexNode[]> => {
 };
 
 export const getTextContent = async (ref: string): Promise<SefariaText> => {
-  console.log(`[SefariaProxy] Fetching authentic text: ${ref}`);
+  console.log(`[SefariaProxy] Fetching COMPLETE authentic text: ${ref}`);
   
-  // First fetch Hebrew text
-  const hebrewResponse = await fetch(`${BASE_URL}/v3/texts/${encodeURIComponent(ref)}?context=0&commentary=0&pad=0&wrapLinks=false`);
-  if (!hebrewResponse.ok) {
-    throw new Error('Sefaria proxy error');
-  }
-  const hebrewData = await hebrewResponse.json();
-  
-  // Extract Hebrew text
-  let hebrewText: string[] = [];
-  if (hebrewData.versions && hebrewData.versions.length > 0) {
-    const hebrewVersion = hebrewData.versions.find((v: any) => v.language === 'he');
-    if (hebrewVersion?.text) {
-      hebrewText = Array.isArray(hebrewVersion.text) ? hebrewVersion.text : [hebrewVersion.text];
-    }
-  }
-  
-  // Then fetch English text using the dedicated endpoint
+  // Fetch English text with Breslov Research Institute translation
   const englishResponse = await fetch(`${BASE_URL}/texts/${encodeURIComponent(ref)}?lang=en&context=0&commentary=0`);
-  let englishText: string[] = [];
-  
-  if (englishResponse.ok) {
-    const englishData = await englishResponse.json();
-    
-    // Extract English text from direct field
-    if (englishData.text) {
-      englishText = Array.isArray(englishData.text) ? englishData.text : [englishData.text];
-      console.log(`[SefariaProxy] Authentic English text: "${englishText[0]?.substring(0, 100)}..."`);
-    }
-    
-    // Also extract Hebrew if we didn't get it before
-    if (hebrewText.length === 0 && englishData.he) {
-      hebrewText = Array.isArray(englishData.he) ? englishData.he : [englishData.he];
-    }
-    
-    console.log(`[SefariaProxy] Authentic Hebrew text: "${hebrewText[0]?.substring(0, 100)}..."`);
+  if (!englishResponse.ok) {
+    throw new Error(`Failed to fetch English text for ${ref}`);
   }
   
-  // Clean text but preserve authentic content
+  const englishData = await englishResponse.json();
+  
+  // MANDATORY: English text must exist
+  if (!englishData.text) {
+    throw new Error(`No English text available for ${ref}`);
+  }
+  
+  const englishText = Array.isArray(englishData.text) ? englishData.text : [englishData.text];
+  console.log(`[SefariaProxy] AUTHENTIC English text (${englishText.length} segments): "${englishText[0]?.substring(0, 100)}..."`);
+  
+  // MANDATORY: Hebrew text must exist
+  if (!englishData.he) {
+    throw new Error(`No Hebrew text available for ${ref}`);
+  }
+  
+  const hebrewText = Array.isArray(englishData.he) ? englishData.he : [englishData.he];
+  console.log(`[SefariaProxy] AUTHENTIC Hebrew text (${hebrewText.length} segments): "${hebrewText[0]?.substring(0, 100)}..."`);
+  
+  // Clean HTML but preserve ALL authentic content
   const cleanText = (textArray: string[]): string[] => {
     return textArray
-      .map(text => text ? text.replace(/<[^>]*>/g, '').trim() : '')
+      .map(text => text.replace(/<[^>]*>/g, '').trim())
       .filter(text => text.length > 0);
   };
   
   const result = {
-    ref: hebrewData.ref || ref,
-    book: hebrewData.book || ref.split('.')[0],
+    ref: englishData.ref,
+    book: englishData.book,
     text: cleanText(englishText),
     he: cleanText(hebrewText),
-    title: hebrewData.title || ref
+    title: englishData.title
   };
   
-  console.log(`[SefariaProxy] Final result - EN: ${result.text.length} segments, HE: ${result.he.length} segments`);
+  // VERIFY we have complete authentic content
+  if (result.text.length === 0 || result.he.length === 0) {
+    throw new Error(`Incomplete text data for ${ref} - refusing to show partial content`);
+  }
+  
+  console.log(`[SefariaProxy] COMPLETE authentic text verified - EN: ${result.text.length} segments, HE: ${result.he.length} segments`);
   return result;
 };
 

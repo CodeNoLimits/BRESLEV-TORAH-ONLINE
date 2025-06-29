@@ -14,22 +14,23 @@ class SefariaService {
     
     // Check cache first
     if (this.textCache.has(cacheKey)) {
-      console.log(`[SefariaService] Using cached text for ${ref}`);
+      console.log(`[SefariaService] Using cached authentic text for ${ref}`);
       return this.textCache.get(cacheKey)!;
     }
 
-    try {
-      console.log(`[SefariaService] Fetching text via proxy for ${ref}`);
-      const text = await getTextContent(ref);
-      
-      // Cache the result
-      this.textCache.set(cacheKey, text);
-      
-      return text;
-    } catch (error) {
-      console.error(`[SefariaService] Error fetching text "${ref}":`, error);
-      throw new Error(`Unable to load text: ${ref}. Please check your connection.`);
+    console.log(`[SefariaService] Fetching COMPLETE authentic text via proxy for ${ref}`);
+    const text = await getTextContent(ref);
+    
+    // Verify we received complete authentic content
+    if (!text.text || text.text.length === 0 || !text.he || text.he.length === 0) {
+      throw new Error(`CRITICAL: Incomplete authentic text received for ${ref}. Refusing to display partial content.`);
     }
+    
+    // Cache only complete authentic content
+    this.textCache.set(cacheKey, text);
+    console.log(`[SefariaService] Cached COMPLETE authentic text for ${ref}: EN(${text.text.length}) HE(${text.he.length})`);
+    
+    return text;
   }
 
   getTextInLanguage(sefariaText: SefariaText, language: 'en' | 'he'): string {

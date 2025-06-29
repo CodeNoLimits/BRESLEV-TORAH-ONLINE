@@ -14,9 +14,15 @@ export const TextViewer = ({ selectedText, onClose, language }: TextViewerProps)
 
   const getDisplayText = () => {
     if (displayLanguage === 'he') {
-      return selectedText.he.join('\n') || 'טקסט לא זמין';
+      if (selectedText.he.length === 0) {
+        throw new Error('Hebrew text is required but not available');
+      }
+      return selectedText.he.join('\n');
     }
-    return selectedText.text.join('\n') || 'Texte non disponible';
+    if (selectedText.text.length === 0) {
+      throw new Error('English text is required but not available');
+    }
+    return selectedText.text.join('\n');
   };
 
   const languageLabels = {
