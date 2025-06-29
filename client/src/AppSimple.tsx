@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
-import { Sidebar } from './components/Sidebar';
+import { BreslovLibrary } from './components/BreslovLibrary';
 import { useTTS } from './hooks/useTTS';
 import { sefariaClient, SefariaText } from './services/sefariaDirectClient';
 import { streamGemini } from './services/geminiSimple';
@@ -228,12 +228,11 @@ ${text}`
 
       {/* Main Content */}
       <div className="flex-1 flex">
-        {/* Sidebar */}
-        <Sidebar
+        {/* Breslov Library */}
+        <BreslovLibrary
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           onTextSelect={handleTextSelect}
-          language={language}
         />
 
         {/* Chat Area */}
