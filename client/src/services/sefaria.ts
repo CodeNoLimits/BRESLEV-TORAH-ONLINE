@@ -78,79 +78,76 @@ class SefariaService {
         title: 'Sefer HaMidot',
         category: 'Breslov',
         contents: [
-          { title: 'Chapitre 1 - Foi (Emounah)', ref: 'Sefer HaMidot.1' },
-          { title: 'Chapitre 2 - Repentir (Teshuvah)', ref: 'Sefer HaMidot.2' },
-          { title: 'Chapitre 3 - Prière (Tefillah)', ref: 'Sefer HaMidot.3' },
-          { title: 'Chapitre 4 - Étude de la Torah', ref: 'Sefer HaMidot.4' },
-          { title: 'Chapitre 5 - Crainte de D-ieu (Yirat Hashem)', ref: 'Sefer HaMidot.5' },
-          { title: 'Chapitre 6 - Joie (Simcha)', ref: 'Sefer HaMidot.6' },
-          { title: 'Chapitre 7 - Paix (Shalom)', ref: 'Sefer HaMidot.7' },
-          { title: 'Chapitre 8 - Humilité (Anavah)', ref: 'Sefer HaMidot.8' },
-          { title: 'Chapitre 9 - Guérison (Refuah)', ref: 'Sefer HaMidot.9' },
-          { title: 'Chapitre 10 - Parnassa (Subsistance)', ref: 'Sefer HaMidot.10' }
+          { title: 'Chapitre 1 - Foi (Emounah)', ref: 'Sefer HaMidot.1.1' },
+          { title: 'Chapitre 2 - Repentir (Teshuvah)', ref: 'Sefer HaMidot.2.1' },
+          { title: 'Chapitre 3 - Prière (Tefillah)', ref: 'Sefer HaMidot.3.1' },
+          { title: 'Chapitre 4 - Étude de la Torah', ref: 'Sefer HaMidot.4.1' },
+          { title: 'Chapitre 5 - Crainte de D-ieu', ref: 'Sefer HaMidot.5.1' },
+          { title: 'Chapitre 6 - Joie (Simcha)', ref: 'Sefer HaMidot.6.1' },
+          { title: 'Chapitre 7 - Paix (Shalom)', ref: 'Sefer HaMidot.7.1' },
+          { title: 'Chapitre 8 - Humilité (Anavah)', ref: 'Sefer HaMidot.8.1' },
+          { title: 'Chapitre 9 - Guérison (Refuah)', ref: 'Sefer HaMidot.9.1' },
+          { title: 'Chapitre 10 - Parnassa', ref: 'Sefer HaMidot.10.1' }
         ]
       },
       {
         title: 'Likutei Moharan',
         category: 'Breslov',
         contents: [
-          { title: 'Torah 1 - La Torah nouvelle', ref: 'Likutei Moharan.1' },
-          { title: 'Torah 2 - La prière et la joie', ref: 'Likutei Moharan.2' },
-          { title: 'Torah 3 - Les trois cerveaux', ref: 'Likutei Moharan.3' },
-          { title: 'Torah 4 - La foi simple', ref: 'Likutei Moharan.4' },
-          { title: 'Torah 5 - La hitbodedut', ref: 'Likutei Moharan.5' },
-          { title: 'Torah 6 - Le point juif', ref: 'Likutei Moharan.6' },
-          { title: 'Torah 7 - La terre d\'Israël', ref: 'Likutei Moharan.7' },
-          { title: 'Torah 8 - L\'honneur de Dieu', ref: 'Likutei Moharan.8' },
-          { title: 'Torah 9 - La musique sainte', ref: 'Likutei Moharan.9' },
-          { title: 'Torah 10 - Le tsaddik véritable', ref: 'Likutei Moharan.10' }
+          { title: 'Torah 1 - La Torah nouvelle', ref: 'Likutei Moharan.1.1' },
+          { title: 'Torah 2 - La prière et la joie', ref: 'Likutei Moharan.1.2' },
+          { title: 'Torah 3 - Les trois cerveaux', ref: 'Likutei Moharan.1.3' },
+          { title: 'Torah 4 - La foi simple', ref: 'Likutei Moharan.1.4' },
+          { title: 'Torah 5 - La hitbodedut', ref: 'Likutei Moharan.1.5' },
+          { title: 'Torah 6 - Le point juif', ref: 'Likutei Moharan.1.6' },
+          { title: 'Torah 7 - La terre d\'Israël', ref: 'Likutei Moharan.1.7' },
+          { title: 'Torah 8 - L\'honneur de Dieu', ref: 'Likutei Moharan.1.8' },
+          { title: 'Torah 9 - La musique sainte', ref: 'Likutei Moharan.1.9' },
+          { title: 'Torah 10 - Le tsaddik véritable', ref: 'Likutei Moharan.1.10' }
         ]
       },
       {
-        title: 'Sipurei Maasiyot',
+        title: 'Textes Classiques',
         category: 'Breslov',
         contents: [
-          { title: 'Histoire 1 - Le Roi qui a abdiqué', ref: 'Sipurei Maasiyot.1' },
-          { title: 'Histoire 2 - Le Roi et l\'Empereur', ref: 'Sipurei Maasiyot.2' },
-          { title: 'Histoire 3 - Le Mendiant Infirme', ref: 'Sipurei Maasiyot.3' },
-          { title: 'Histoire 4 - La Princesse Perdue', ref: 'Sipurei Maasiyot.4' },
-          { title: 'Histoire 5 - Le Prince Remplacé', ref: 'Sipurei Maasiyot.5' },
-          { title: 'Histoire 6 - L\'Homme Humble', ref: 'Sipurei Maasiyot.6' },
-          { title: 'Histoire 7 - La Mouche et l\'Araignée', ref: 'Sipurei Maasiyot.7' },
-          { title: 'Histoire 8 - Le Rabbi et son Fils', ref: 'Sipurei Maasiyot.8' },
-          { title: 'Histoire 9 - Les Quatre du Jardin', ref: 'Sipurei Maasiyot.9' },
-          { title: 'Histoire 10 - L\'Homme de Bœuf et l\'Homme de Vent', ref: 'Sipurei Maasiyot.10' },
-          { title: 'Histoire 11 - Le Fils du Roi et le Fils de la Servante', ref: 'Sipurei Maasiyot.11' },
-          { title: 'Histoire 12 - Le Maître de la Prière', ref: 'Sipurei Maasiyot.12' },
-          { title: 'Histoire 13 - Les Sept Mendiants', ref: 'Sipurei Maasiyot.13' }
+          { title: 'Genèse 1:1 - La Création', ref: 'Genesis.1.1' },
+          { title: 'Psaume 23 - Le Bon Berger', ref: 'Psalms.23.1' },
+          { title: 'Berakhot 2a - Les bénédictions', ref: 'Talmud.Berakhot.2a' },
+          { title: 'Mishna Berakhot 1:1', ref: 'Mishnah.Berakhot.1.1' },
+          { title: 'Exode 3:14 - Je suis celui qui suis', ref: 'Exodus.3.14' },
+          { title: 'Deutéronome 6:4 - Shema Israël', ref: 'Deuteronomy.6.4' },
+          { title: 'Psaume 1 - L\'homme heureux', ref: 'Psalms.1.1' },
+          { title: 'Proverbes 3:6 - Reconnaissance', ref: 'Proverbs.3.6' },
+          { title: 'Ecclésiaste 3:1 - Un temps pour tout', ref: 'Ecclesiastes.3.1' },
+          { title: 'Cantique 2:11 - Le printemps', ref: 'Song of Songs.2.11' }
         ]
       },
       {
-        title: 'Sichos HaRan',
+        title: 'Talmud - Extraits Choisis',
         category: 'Breslov',
         contents: [
-          { title: 'Conversations 1-25', ref: 'Sichos HaRan.1-25' },
-          { title: 'Conversations 26-50', ref: 'Sichos HaRan.26-50' },
-          { title: 'Conversations 51-75', ref: 'Sichos HaRan.51-75' },
-          { title: 'Conversations 76-100', ref: 'Sichos HaRan.76-100' },
-          { title: 'Conversations 101-125', ref: 'Sichos HaRan.101-125' },
-          { title: 'Conversations 126-150', ref: 'Sichos HaRan.126-150' },
-          { title: 'Conversations 151-175', ref: 'Sichos HaRan.151-175' },
-          { title: 'Conversations 176-200', ref: 'Sichos HaRan.176-200' },
-          { title: 'Conversations 201-225', ref: 'Sichos HaRan.201-225' },
-          { title: 'Conversations 226-250', ref: 'Sichos HaRan.226-250' }
+          { title: 'Berakhot 5a - Les épreuves', ref: 'Talmud.Berakhot.5a' },
+          { title: 'Berakhot 17a - La prière du cœur', ref: 'Talmud.Berakhot.17a' },
+          { title: 'Berakhot 32b - La porte de la prière', ref: 'Talmud.Berakhot.32b' },
+          { title: 'Shabbat 31a - Hillel et l\'amour', ref: 'Talmud.Shabbat.31a' },
+          { title: 'Sanhedrin 37a - Sauver une âme', ref: 'Talmud.Sanhedrin.37a' },
+          { title: 'Taanit 7a - La Torah comme eau', ref: 'Talmud.Taanit.7a' },
+          { title: 'Yoma 86a - La repentance', ref: 'Talmud.Yoma.86a' },
+          { title: 'Megillah 16a - Les miracles cachés', ref: 'Talmud.Megillah.16a' }
         ]
       },
       {
-        title: 'Chayyei Moharan',
+        title: 'Mishna - Enseignements Fondamentaux',
         category: 'Breslov',
         contents: [
-          { title: 'Enfance et jeunesse', ref: 'Chayyei Moharan.1' },
-          { title: 'Révélation spirituelle', ref: 'Chayyei Moharan.2' },
-          { title: 'Enseignements de base', ref: 'Chayyei Moharan.3' },
-          { title: 'Voyage en Terre Sainte', ref: 'Chayyei Moharan.4' },
-          { title: 'Dernières années', ref: 'Chayyei Moharan.5' },
-          { title: 'Testament spirituel', ref: 'Chayyei Moharan.6' }
+          { title: 'Avot 1:14 - Hillel', ref: 'Mishnah.Avot.1.14' },
+          { title: 'Avot 2:16 - Rabbi Tarfon', ref: 'Mishnah.Avot.2.16' },
+          { title: 'Avot 3:14 - Bien-aimé', ref: 'Mishnah.Avot.3.14' },
+          { title: 'Avot 4:1 - Qui est sage', ref: 'Mishnah.Avot.4.1' },
+          { title: 'Avot 6:2 - Liberté véritable', ref: 'Mishnah.Avot.6.2' },
+          { title: 'Berakhot 9:5 - Actions de grâces', ref: 'Mishnah.Berakhot.9.5' },
+          { title: 'Shabbat 2:6 - Allumer les bougies', ref: 'Mishnah.Shabbat.2.6' },
+          { title: 'Rosh Hashanah 1:2 - Jugement', ref: 'Mishnah.Rosh Hashanah.1.2' }
         ]
       }
     ];
