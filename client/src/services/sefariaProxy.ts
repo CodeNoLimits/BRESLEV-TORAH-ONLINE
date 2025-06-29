@@ -91,79 +91,78 @@ export const getBreslovIndex = async (): Promise<SefariaIndexNode[]> => {
 };
 
 export const getTextContent = async (ref: string): Promise<SefariaText> => {
-  console.log(`[SefariaProxy] Fetching COMPLETE book: ${ref}`);
+  console.log(`[SefariaProxy] Using new complete text extraction system for: ${ref}`);
   
-  // For book-level references, fetch the complete book structure
-  const bookResponse = await fetch(`${BASE_URL}/texts/${encodeURIComponent(ref)}?lang=en&context=0&commentary=0&alts=1`);
-  if (!bookResponse.ok) {
-    throw new Error(`Failed to fetch complete book for ${ref}`);
+  // Check if this is a Breslov book - use the new complete text extractor
+  const breslovBooks = ['Likutei Moharan', 'Sichot HaRan', 'Sippurei Maasiyot', 'Chayei Moharan', 'Shivchei HaRan'];
+  const bookTitle = breslovBooks.find(book => ref.includes(book));
+  
+  if (bookTitle) {
+    try {
+      // Extract section number if present
+      const sectionMatch = ref.match(/(\d+)$/);
+      const section = sectionMatch ? sectionMatch[1] : null;
+      
+      const endpoint = section 
+        ? `/api/complete-text/${encodeURIComponent(bookTitle)}/${section}`
+        : `/api/complete-text/${encodeURIComponent(bookTitle)}`;
+      
+      console.log(`[SefariaProxy] Fetching complete Breslov text from: ${endpoint}`);
+      
+      const response = await fetch(endpoint);
+      if (response.ok) {
+        const completeText = await response.json();
+        console.log(`[SefariaProxy] COMPLETE Breslov text retrieved - EN: ${completeText.text.length} segments, HE: ${completeText.he.length} segments`);
+        return completeText;
+      }
+    } catch (error) {
+      console.log(`[SefariaProxy] Complete text extractor failed, falling back to standard proxy`);
+    }
   }
   
-  const bookData = await bookResponse.json();
+  // Fallback to standard Sefaria proxy
+  console.log(`[SefariaProxy] Using standard proxy for: ${ref}`);
   
-  // Extract all text content from the complete book
-  let englishText: string[] = [];
-  let hebrewText: string[] = [];
+  const response = await fetch(`${BASE_URL}/texts/${encodeURIComponent(ref)}?lang=en&context=0&commentary=0&alts=1`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch text for ${ref}`);
+  }
   
-  // Function to flatten nested text arrays
-  const flattenText = (textData: any): string[] => {
+  const data = await response.json();
+  
+  // Extract text content
+  const extractText = (textData: any): string[] => {
     if (!textData) return [];
-    if (typeof textData === 'string') return [textData];
+    if (typeof textData === 'string') return [textData.trim()].filter(t => t);
     if (Array.isArray(textData)) {
-      return textData.flat(Infinity).filter(t => typeof t === 'string' && t.trim().length > 0);
+      return textData.flat(Infinity).filter(t => typeof t === 'string' && t.trim());
     }
     return [];
   };
   
-  // Extract English text (complete book)
-  if (bookData.text) {
-    englishText = flattenText(bookData.text);
-    console.log(`[SefariaProxy] COMPLETE English book extracted: ${englishText.length} total segments`);
-  }
+  const englishText = extractText(data.text);
+  const hebrewText = extractText(data.he);
   
-  // Extract Hebrew text (complete book)
-  if (bookData.he) {
-    hebrewText = flattenText(bookData.he);
-    console.log(`[SefariaProxy] COMPLETE Hebrew book extracted: ${hebrewText.length} total segments`);
-  }
-  
-  // If we don't have complete content, try alternative endpoints
-  if (englishText.length === 0 || hebrewText.length === 0) {
-    console.log(`[SefariaProxy] Incomplete book data, fetching alternative structure for ${ref}`);
-    
-    // Try fetching book index to get all sections
-    const indexResponse = await fetch(`${BASE_URL}/index/${encodeURIComponent(ref)}`);
-    if (indexResponse.ok) {
-      const indexData = await indexResponse.json();
-      console.log(`[SefariaProxy] Book structure available, contains ${indexData.schema?.nodes?.length || 0} sections`);
-      
-      // For now, provide clear feedback about book structure
-      englishText = [`Complete book "${ref}" contains multiple sections. Please navigate through the book structure to access specific teachings.`];
-      hebrewText = [`ספר שלם "${ref}" מכיל מספר פרקים. אנא נווט דרך מבנה הספר כדי לגשת להוראות ספציפיות.`];
-    }
-  }
-  
-  // Clean HTML but preserve ALL authentic content
-  const cleanText = (textArray: string[]): string[] => {
-    return textArray
+  // Clean HTML tags
+  const cleanText = (texts: string[]): string[] => {
+    return texts
       .map(text => text.replace(/<[^>]*>/g, '').trim())
       .filter(text => text.length > 0);
   };
   
   const result = {
-    ref: bookData.ref || ref,
-    book: bookData.book || ref,
+    ref: data.ref || ref,
+    book: data.book || ref.split(' ')[0],
     text: cleanText(englishText),
     he: cleanText(hebrewText),
-    title: bookData.title || ref
+    title: data.title || ref
   };
   
-  // VERIFY we have some content
-  if (result.text.length === 0 || result.he.length === 0) {
-    throw new Error(`No complete book data available for ${ref} - this may require section-by-section navigation`);
+  if (result.text.length === 0) {
+    throw new Error(`No text content available for ${ref}`);
   }
   
-  console.log(`[SefariaProxy] COMPLETE book content verified - EN: ${result.text.length} segments, HE: ${result.he.length} segments`);
+  console.log(`[SefariaProxy] Standard text retrieved - EN: ${result.text.length} segments, HE: ${result.he.length} segments`);
   return result;
 };
 

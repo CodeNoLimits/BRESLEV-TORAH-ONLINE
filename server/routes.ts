@@ -2,6 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { extractCompleteBook } = require('./fullTextExtractor');
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Gemini AI
@@ -78,9 +81,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Sefaria Breslov-specific proxy routes
+  // NEW: Complete text extraction endpoint
+  app.get('/api/complete-text/:bookTitle/:section?', async (req, res) => {
+    try {
+      const { bookTitle, section } = req.params;
+      console.log(`[CompleteText] Extracting full content: ${bookTitle}${section ? ` section ${section}` : ''}`);
+      
+      const completeText = await extractCompleteBook(bookTitle, section ? parseInt(section) : null);
+      
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET');
+      res.header('Access-Control-Allow-Headers', 'Content-Type');
+      
+      res.json(completeText);
+      
+    } catch (error) {
+      console.error(`[CompleteText] Error:`, error);
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   app.get('/api/sefaria/texts/:ref(*)', async (req, res) => {
     try {
       const ref = req.params.ref;
+      
+      // Check if this is a Breslov book request - use complete text extractor
+      const breslovBooks = ['Likutei Moharan', 'Sichot HaRan', 'Sippurei Maasiyot', 'Chayei Moharan', 'Shivchei HaRan'];
+      const bookTitle = breslovBooks.find(book => ref.includes(book));
+      
+      if (bookTitle) {
+        console.log(`[Sefaria Proxy] Breslov book detected: ${ref}, using complete text extractor`);
+        
+        // Extract section number if present
+        const sectionMatch = ref.match(/(\d+)$/);
+        const section = sectionMatch ? parseInt(sectionMatch[1]) : null;
+        
+        try {
+          const completeText = await extractCompleteBook(bookTitle, section);
+          res.header('Access-Control-Allow-Origin', '*');
+          res.header('Access-Control-Allow-Methods', 'GET');
+          res.header('Access-Control-Allow-Headers', 'Content-Type');
+          return res.json(completeText);
+        } catch (extractError) {
+          console.log(`[Sefaria Proxy] Complete extractor failed, falling back to regular proxy`);
+        }
+      }
+      
+      // Fallback to regular Sefaria proxy
       const encodedRef = encodeURIComponent(ref);
       const url = `https://www.sefaria.org/api/v3/texts/${encodedRef}?context=0&commentary=0&pad=0&wrapLinks=false`;
       
