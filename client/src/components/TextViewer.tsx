@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SefariaText, Language } from '../types';
 
 interface TextViewerProps {
@@ -8,26 +8,49 @@ interface TextViewerProps {
 }
 
 export const TextViewer = ({ selectedText, onClose, language }: TextViewerProps) => {
-  const [displayLanguage, setDisplayLanguage] = useState<'en' | 'he'>('en');
+  const [displayLanguage, setDisplayLanguage] = useState<'en' | 'he' | 'fr'>('en');
+
+  // Automatically set display language based on user's interface language
+  useEffect(() => {
+    if (language === 'fr') {
+      setDisplayLanguage('fr');
+    } else if (language === 'he') {
+      setDisplayLanguage('he');
+    } else {
+      setDisplayLanguage('en');
+    }
+  }, [language]);
 
   if (!selectedText) return null;
 
   const getDisplayText = () => {
     if (displayLanguage === 'he') {
       if (selectedText.he.length === 0) {
-        throw new Error('Hebrew text is required but not available');
+        return "Texte hébreu non disponible pour cette section";
       }
-      return selectedText.he.join('\n');
+      return selectedText.he.join('\n\n');
     }
+    
+    if (displayLanguage === 'fr') {
+      // For French, show the English text with a note that it will be translated by AI
+      if (selectedText.text.length === 0) {
+        return "Texte non disponible pour cette section";
+      }
+      const englishText = selectedText.text.join('\n\n');
+      return `[TEXTE ORIGINAL EN ANGLAIS - L'IA traduira automatiquement lors de l'analyse]\n\n${englishText}`;
+    }
+    
+    // English
     if (selectedText.text.length === 0) {
-      throw new Error('English text is required but not available');
+      return "Text not available for this section";
     }
-    return selectedText.text.join('\n');
+    return selectedText.text.join('\n\n');
   };
 
   const languageLabels = {
-    en: 'Français',
-    he: 'עברית'
+    en: 'English',
+    he: 'עברית',
+    fr: 'Français'
   };
 
   return (

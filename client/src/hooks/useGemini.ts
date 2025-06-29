@@ -19,20 +19,20 @@ export const useGemini = ({ language, onResponse, onError }: UseGeminiOptions) =
     
     switch (mode) {
       case 'study':
-        return `${contextPart}TEXTE COMPLET: "${content}"\n---\n[INSTRUCTION]\nAnalyse en profondeur ce texte selon les enseignements de Rabbi Nahman de Breslev.`;
+        return `${contextPart}TEXTE COMPLET À ÉTUDIER: "${content}"\n---\n[INSTRUCTION STRICTE]\n1. TRADUIRE d'abord ce texte en français complet si nécessaire\n2. ANALYSER uniquement ce texte selon Rabbi Nahman de Breslev\n3. IGNORER tout autre sujet non lié à ce texte précis\n4. Format: **Traduction française:** [texte traduit] **Analyse spirituelle:** [analyse du texte]`;
       
       case 'analyze':
-        return `${contextPart}EXTRAIT DE L'UTILISATEUR: "${content}"\n---\n[INSTRUCTION]\nConcentre-toi uniquement sur l'extrait et analyse-le en détail.`;
+        return `${contextPart}EXTRAIT SPÉCIFIQUE: "${content}"\n---\n[INSTRUCTION STRICTE]\n1. TRADUIRE en français si nécessaire\n2. ANALYSER uniquement cet extrait\n3. RESTER concentré sur ce passage uniquement`;
       
       case 'counsel':
-        return `${contextPart}SITUATION DE L'UTILISATEUR: "${content}"\n---\n[INSTRUCTION]\nTrouve un conseil pertinent tiré des enseignements de Rabbi Nahman pour cette situation.`;
+        return `${contextPart}SITUATION PERSONNELLE: "${content}"\n---\n[INSTRUCTION STRICTE]\nTrouver un conseil spirituel précis de Rabbi Nahman pour cette situation exacte. Répondre en français.`;
       
       case 'summarize':
-        return `${contextPart}TEXTE À RÉSUMER: "${content}"\n---\n[INSTRUCTION]\nRésume le texte suivant en 3-5 points clés maximum.`;
+        return `${contextPart}TEXTE À RÉSUMER: "${content}"\n---\n[INSTRUCTION STRICTE]\nRésumer en 3-5 points clés en français maximum. Traduire d'abord si nécessaire.`;
       
       case 'explore':
       default:
-        return content;
+        return `QUESTION SPIRITUELLE: "${content}"\n---\n[INSTRUCTION STRICTE]\nRépondre uniquement avec les enseignements de Rabbi Nahman de Breslev. Réponse en français.`;
     }
   }, []);
 

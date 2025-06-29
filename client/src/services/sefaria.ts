@@ -33,9 +33,27 @@ class SefariaService {
     return text;
   }
 
-  getTextInLanguage(sefariaText: SefariaText, language: 'en' | 'he'): string {
+  getTextInLanguage(sefariaText: SefariaText, language: 'en' | 'he' | 'fr'): string {
+    if (language === 'fr') {
+      // Pour le français, utiliser l'anglais comme base et indiquer qu'une traduction est nécessaire
+      const textArray = sefariaText.text;
+      return textArray.join('\n\n');
+    }
+    
     const textArray = language === 'he' ? sefariaText.he : sefariaText.text;
     return textArray.join('\n\n');
+  }
+
+  async getTranslatedText(sefariaText: SefariaText, targetLanguage: 'fr'): Promise<string> {
+    // Pour le français, nous utilisons l'IA pour traduire le texte anglais
+    const englishText = this.getTextInLanguage(sefariaText, 'en');
+    
+    if (targetLanguage === 'fr') {
+      // Retourner le texte avec une note de traduction pour l'IA
+      return `[TEXTE À TRADUIRE EN FRANÇAIS]\n${englishText}\n[FIN DU TEXTE]`;
+    }
+    
+    return englishText;
   }
 
   async fetchBreslovLibrary(): Promise<void> {
