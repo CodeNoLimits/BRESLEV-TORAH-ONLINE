@@ -111,10 +111,11 @@ export const TextViewer = ({ selectedText, onClose, language, onTextSelection }:
 
       <div className={`bg-slate-800 rounded-lg p-4 overflow-y-auto ${showFullText ? 'max-h-screen' : 'max-h-96'}`}>
         <div 
-          className={`leading-relaxed text-slate-300 ${
+          className={`leading-relaxed text-slate-300 cursor-text select-text ${
             displayLanguage === 'he' ? 'text-right font-crimson text-lg' : 'font-crimson'
           }`}
           dir={displayLanguage === 'he' ? 'rtl' : 'ltr'}
+          onMouseUp={handleMouseUp}
         >
           {displayLanguage === 'he' ? (
             selectedText.he.slice(0, showFullText ? selectedText.he.length : 3).map((segment, idx) => (

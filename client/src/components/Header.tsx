@@ -8,6 +8,7 @@ interface HeaderProps {
   onToggleSidebar: () => void;
   isSpeaking: boolean;
   onStartVoiceInput: () => void;
+  onSpeakGreeting?: () => void;
 }
 
 export const Header = ({
@@ -17,7 +18,8 @@ export const Header = ({
   onTTSToggle,
   onToggleSidebar,
   isSpeaking,
-  onStartVoiceInput
+  onStartVoiceInput,
+  onSpeakGreeting
 }: HeaderProps) => {
   const languageLabels = {
     fr: 'FR',

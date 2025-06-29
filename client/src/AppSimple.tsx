@@ -23,13 +23,14 @@ function AppSimple() {
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedText, setSelectedText] = useState<SefariaText | null>(null);
+  const [userSelectedText, setUserSelectedText] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [streamingText, setStreamingText] = useState('');
   const [isAILoading, setIsAILoading] = useState(false);
   const [currentInput, setCurrentInput] = useState('');
 
   // TTS
-  const { speak, stop: stopTTS, isSpeaking } = useTTS({ language, enabled: ttsEnabled });
+  const { speak, speakGreeting, stop: stopTTS, isSpeaking } = useTTS({ language, enabled: ttsEnabled });
 
   // Initialize crawler cache on app start
   useEffect(() => {
@@ -224,6 +225,7 @@ ${text}`
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         isSpeaking={isSpeaking}
         onStartVoiceInput={() => {}}
+        onSpeakGreeting={speakGreeting}
       />
 
       {/* Main Content */}
