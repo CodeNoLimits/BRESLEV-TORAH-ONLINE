@@ -1,6 +1,6 @@
 import { SefariaIndexNode, SefariaText, SefariaCategory } from '../types';
 
-const SEFARIA_API_BASE = '/api/sefaria';
+const SEFARIA_API_BASE = '/sefaria';
 
 class SefariaService {
   private indexCache: Map<string, any> = new Map();
@@ -23,8 +23,30 @@ class SefariaService {
     }
 
     try {
-      // Create comprehensive Breslov library with known texts from Sefaria
-      const breslovTexts = this.createComprehensiveBreslovLibrary();
+      console.log('Loading Breslov library...');
+      
+      // Try to fetch real Sefaria index first
+      let breslovTexts: SefariaIndexNode[] = [];
+      
+      try {
+        const response = await fetch(`${SEFARIA_API_BASE}/index/`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Sefaria index loaded successfully');
+          breslovTexts = this.extractBreslovCategory(data);
+        } else {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      } catch (apiError) {
+        console.log('API unavailable, using comprehensive library');
+        breslovTexts = this.createComprehensiveBreslovLibrary();
+      }
+      
+      // If we got empty results, use comprehensive library
+      if (!breslovTexts || breslovTexts.length === 0) {
+        console.log('Empty results, using comprehensive library');
+        breslovTexts = this.createComprehensiveBreslovLibrary();
+      }
       
       // Cache in session storage
       sessionStorage.setItem(cacheKey, JSON.stringify({
@@ -32,10 +54,19 @@ class SefariaService {
         timestamp: Date.now()
       }));
       
+      console.log(`Loaded ${breslovTexts.length} categories`);
       return breslovTexts;
     } catch (error) {
-      console.error('Error creating Breslov library:', error);
-      throw new Error('Impossible de charger la bibliothèque. Vérifiez votre connexion internet.');
+      console.error('Error loading Breslov library:', error);
+      // Fallback to comprehensive library
+      const breslovTexts = this.createComprehensiveBreslovLibrary();
+      
+      sessionStorage.setItem(cacheKey, JSON.stringify({
+        data: breslovTexts,
+        timestamp: Date.now()
+      }));
+      
+      return breslovTexts;
     }
   }
 
@@ -213,7 +244,7 @@ class SefariaService {
       const encodedRef = encodeURIComponent(ref);
       const apiUrl = `${SEFARIA_API_BASE}/texts/${encodedRef}`;
       
-      console.log(`Fetching text from Sefaria: ${apiUrl}`);
+      console.log(`[SefariaService] Fetching text: ${apiUrl}`);
       
       const response = await fetch(apiUrl);
       
