@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+
+// Generate unique IDs
+const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
@@ -78,7 +80,7 @@ function App() {
   const handleSendAIMessage = useCallback(async (message: string, mode: AIMode, context?: string) => {
     // Add user message
     const userMessage: Message = {
-      id: uuidv4(),
+      id: generateId(),
       text: message,
       sender: 'user',
       timestamp: new Date()
@@ -94,7 +96,7 @@ function App() {
       
       // Add AI response
       const aiMessage: Message = {
-        id: uuidv4(),
+        id: generateId(),
         text: response,
         sender: 'ai',
         timestamp: new Date()
@@ -108,7 +110,7 @@ function App() {
       
     } catch (error) {
       const errorMessage: Message = {
-        id: uuidv4(),
+        id: generateId(),
         text: 'Une erreur est survenue lors de la communication avec l\'IA. Veuillez réessayer.',
         sender: 'ai',
         timestamp: new Date(),

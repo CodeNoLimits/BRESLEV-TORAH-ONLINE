@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 
-// Use the provided API key
-const API_KEY = 'AIzaSyAlIBrQ16b_xVo-gY5JyBTCEEnfyUdjT7I';
+// Use environment variable for API key
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 class GeminiService {
   private ai: GoogleGenAI;
