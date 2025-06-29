@@ -1,0 +1,113 @@
+// ✅ VERSION QUI MARCHE - Node.js
+// Installez d'abord: npm install node-fetch
+
+const fetch = require('node-fetch'); // Ou utilisez fetch natif dans Node 18+
+
+async function fetchSefariaText(reference) {
+    try {
+        const apiUrl = `https://www.sefaria.org/api/texts/${reference}`;
+        console.log('📡 Fetching:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; SefariaBot/1.0)',
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(`API Error: ${data.error}`);
+        }
+        
+        return data;
+        
+    } catch (error) {
+        console.error('❌ Erreur:', error.message);
+        throw error;
+    }
+}
+
+// Fonction pour afficher le texte proprement
+function displayText(data) {
+    console.log('\n📖 RÉSULTAT:');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`📚 Livre: ${data.book}`);
+    console.log(`🔖 Référence: ${data.ref}`);
+    
+    if (data.he) {
+        const hebrew = Array.isArray(data.he) ? data.he.join(' ') : data.he;
+        console.log(`\n🔤 Hébreu:\n${hebrew}`);
+    }
+    
+    if (data.text) {
+        const english = Array.isArray(data.text) ? data.text.join(' ') : data.text;
+        console.log(`\n🇺🇸 Anglais:\n${english}`);
+    }
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+}
+
+// ✅ TESTS QUI MARCHENT
+async function runTests() {
+    const references = [
+        'Genesis.1.1',
+        'Psalms.23.1',
+        'Talmud.Berakhot.2a',
+        'Sefer HaMidot.1.1',
+        'Mishnah.Berakhot.1.1'
+    ];
+    
+    for (const ref of references) {
+        try {
+            console.log(`\n🔍 Test: ${ref}`);
+            const data = await fetchSefariaText(ref);
+            displayText(data);
+            
+            // Petit délai pour être poli avec l'API
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+        } catch (error) {
+            console.log(`❌ Échec pour ${ref}: ${error.message}\n`);
+        }
+    }
+}
+
+// LANCER LES TESTS
+runTests().then(() => {
+    console.log('✅ Tests terminés!');
+}).catch(console.error);
+
+// ✅ USAGE SIMPLE
+// fetchSefariaText('Genesis.1.1').then(displayText);
+
+// ✅ RECHERCHE
+async function searchSefaria(query) {
+    try {
+        const searchUrl = `https://www.sefaria.org/api/search-wrapper?q=${encodeURIComponent(query)}`;
+        const response = await fetch(searchUrl);
+        const data = await response.json();
+        
+        console.log(`🔍 Recherche: "${query}"`);
+        console.log(`📊 Résultats: ${data.hits?.length || 0}`);
+        
+        if (data.hits) {
+            data.hits.slice(0, 3).forEach((hit, i) => {
+                console.log(`${i+1}. ${hit.ref}: ${hit.content?.substring(0, 100)}...`);
+            });
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('❌ Erreur recherche:', error);
+    }
+}
+
+// Test recherche
+// searchSefaria('creation');
+
+module.exports = { fetchSefariaText, searchSefaria, displayText };
