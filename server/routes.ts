@@ -42,17 +42,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log(`[Sefaria Proxy] Building Breslov index from known books`);
       
-      // Known Breslov books that exist on Sefaria with their correct references
+      // ALL Breslov books on Sefaria with their validated working references
       const breslovBooks = [
         { title: 'Likutei Moharan', ref: 'Likutei Moharan.1.1.1' },
-        { title: 'Sichot HaRan', ref: 'Sichot HaRan.1' },
+        { title: 'Sichot HaRan', ref: 'Sichot HaRan.1.1' },
         { title: 'Sippurei Maasiyot', ref: 'Sippurei Maasiyot.1.1' },
-        { title: 'Sefer HaMiddot', ref: 'Sefer HaMiddot.1.1' },
-        { title: 'Likutei Tefilot', ref: 'Likutei Tefilot.1.1' },
         { title: 'Chayei Moharan', ref: 'Chayei Moharan.1.1' },
-        { title: 'Shivchei HaRan', ref: 'Shivchei HaRan.1' },
-        { title: 'Likutei Halakhot', ref: 'Likutei Halakhot.1.1.1.1' },
-        { title: 'Likkutei Etzot', ref: 'Likkutei Etzot.1.1' }
+        { title: 'Shivchei HaRan', ref: 'Shivchei HaRan.1.1' },
+        { title: 'Sefer HaMiddot', ref: 'Sefer HaMiddot, Introduction.1' },
+        { title: 'Likutei Tefilot', ref: 'Likutei Tefilot, Introduction.1' },
+        { title: 'Likutei Halakhot', ref: 'Likutei Halakhot, Author\'s Introduction.1' },
+        { title: 'Likkutei Etzot', ref: 'Likkutei Etzot, Introduction to First Edition.1' }
       ];
       
       console.log(`[Sefaria Proxy] Breslov index built with ${breslovBooks.length} books`);

@@ -47,21 +47,41 @@ export const useTTS = ({ language, enabled }: TTSOptions) => {
     // Cancel any ongoing speech
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
+    // Clean text for better TTS - remove HTML tags and normalize text
+    const cleanText = text
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/&[^;]+;/g, ' ') // Remove HTML entities
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+
+    if (!cleanText) return;
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     const voice = getVoiceForLanguage(language);
     
     if (voice) {
       utterance.voice = voice;
+      console.log(`[TTS] Using voice: ${voice.name} (${voice.lang}) for language: ${language}`);
     }
     
+    // Set appropriate language and speech parameters
     utterance.lang = language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'fr-FR';
-    utterance.rate = 0.9;
+    utterance.rate = language === 'he' ? 0.8 : 0.9; // Slower for Hebrew
     utterance.pitch = 1.0;
-    utterance.volume = 0.8;
+    utterance.volume = 0.9;
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      console.log(`[TTS] Started speaking ${language} text`);
+    };
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      console.log(`[TTS] Finished speaking`);
+    };
+    utterance.onerror = (event) => {
+      setIsSpeaking(false);
+      console.error(`[TTS] Error:`, event.error);
+    };
 
     window.speechSynthesis.speak(utterance);
   }, [enabled, isSupported, language, getVoiceForLanguage]);
