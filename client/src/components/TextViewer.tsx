@@ -62,7 +62,15 @@ export const TextViewer = ({ selectedText, onClose, language }: TextViewerProps)
         <div className="flex items-center space-x-2">
           <button
             className="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-sm transition-colors"
-            onClick={() => setDisplayLanguage(displayLanguage === 'en' ? 'he' : 'en')}
+            onClick={() => {
+              if (displayLanguage === 'fr') {
+                setDisplayLanguage('he');
+              } else if (displayLanguage === 'he') {
+                setDisplayLanguage('en');
+              } else {
+                setDisplayLanguage('fr');
+              }
+            }}
           >
             {languageLabels[displayLanguage]}
           </button>

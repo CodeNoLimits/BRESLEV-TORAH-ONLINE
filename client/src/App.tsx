@@ -77,8 +77,8 @@ function App() {
         setSelectedBook(null);
         console.log(`[App] Loaded specific text: ${ref}`);
         
-        // Auto-trigger deep study analysis
-        const textContent = sefariaService.getTextInLanguage(text, 'en');
+        // Auto-trigger deep study analysis with proper language handling
+        const textContent = sefariaService.getTextInLanguage(text, language === 'he' ? 'he' : 'en');
         await handleSendAIMessage(textContent, 'study', `Texte sélectionné: ${title}`);
       }
       

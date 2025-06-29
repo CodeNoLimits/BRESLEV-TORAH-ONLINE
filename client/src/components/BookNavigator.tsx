@@ -32,19 +32,21 @@ export const BookNavigator = ({ bookTitle, onSectionSelect, onClose, language }:
           const bookSections: BookSection[] = [];
           
           if (indexData.schema?.nodes) {
-            // Complex book structure
+            // Complex book structure - extract all available sections
             indexData.schema.nodes.forEach((node: any, index: number) => {
-              if (node.nodeType === 'JaggedArrayNode') {
+              if (node.nodeType === 'JaggedArrayNode' || node.nodeType === 'ArrayMapNode') {
+                const sectionNum = index + 1;
                 bookSections.push({
-                  ref: `${bookTitle} ${index + 1}`,
-                  title: node.title || `Section ${index + 1}`,
-                  number: (index + 1).toString()
+                  ref: `${bookTitle} ${sectionNum}`,
+                  title: node.title || `Section ${sectionNum}`,
+                  number: sectionNum.toString()
                 });
               }
             });
-          } else {
-            // Simple book - create sections based on common structure
-            for (let i = 1; i <= 10; i++) {
+          } else if (indexData.lengths && Array.isArray(indexData.lengths)) {
+            // Use actual lengths to determine available sections
+            const totalSections = indexData.lengths[0] || 10;
+            for (let i = 1; i <= totalSections; i++) {
               bookSections.push({
                 ref: `${bookTitle} ${i}`,
                 title: `Torah ${i}`,
