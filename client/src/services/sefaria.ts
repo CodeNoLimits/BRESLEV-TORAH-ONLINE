@@ -1,6 +1,6 @@
 import { SefariaIndexNode, SefariaText, SefariaCategory } from '../types';
 
-const SEFARIA_API_BASE = 'https://www.sefaria.org/api';
+const SEFARIA_API_BASE = '/api/sefaria';
 
 class SefariaService {
   private indexCache: Map<string, any> = new Map();

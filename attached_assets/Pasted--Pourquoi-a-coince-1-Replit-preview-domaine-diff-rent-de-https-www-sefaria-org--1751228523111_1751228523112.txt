@@ -1,0 +1,49 @@
+### Pourquoi ça coince ?
+
+1. **Replit (preview) = domaine différent** de `https://www.sefaria.org`  → le navigateur bloque la requête (CORS).
+2. Sefaria **n’ajoute pas** `Access-Control-Allow-Origin: *` sur **toutes** ses routes JSON.
+3. Replit **n’autorise pas** de requêtes sortantes mixtes HTTP/HTTPS depuis l’iframe preview.
+
+### Solution « drastique » mais simple : **proxy interne**
+
+Fais rouler un petit serveur Node/Express **dans le même Replit**, qui relaie toutes les requêtes Sefaria.
+Comme le front et le proxy partagent le même domaine Replit, **plus de CORS**, plus de blocage.
+
+---
+
+## Étapes à demander (ou à faire toi-même) immédiatement  ⬇️
+
+| Étape | Fichier                                                                                  | Extrait (pseudo-code, pas à copier tel quel)                                                                                                                                                                                                                                                                                                                                                       | Pourquoi                                               |                                                                    |                                                                                  |
+| ----- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| 1     | **`proxy.js`**                                                                           | \`\`\`js const express=require('express'); const fetch=require('node-fetch'); const app=express(); app.get('/sefaria/*', async (req,res)=>{  const url='[https://www.sefaria.org/api/'+req.params\[0](https://www.sefaria.org/api/'+req.params[0)];  const r=await fetch(url);  const data=await r.text();  res.header('Access-Control-Allow-Origin','*');  res.type(r.headers.get('content-type') |                                                        | 'application/json');  res.send(data); }); app.listen(3000); \`\`\` | Proxy GET brut : tout ce qui arrive sous `/sefaria/...` est retransmis tel quel. |
+| 2     | **`package.json`**                                                                       | `json "scripts": { "dev": "concurrently \"vite\" \"node proxy.js\"" } ` + dépendances `express`, `node-fetch`, `concurrently`                                                                                                                                                                                                                                                                      | Démarre Vite **et** le proxy en un seul `npm run dev`. |                                                                    |                                                                                  |
+| 3     | **`sefariaService.ts`**                                                                  | ``ts const BASE = '/sefaria';  // plus https://...  fetch(`${BASE}/index/`) ``                                                                                                                                                                                                                                                                                                                     | Le front frappe le proxy → même origine.               |                                                                    |                                                                                  |
+| 4     | Déclarer **variables d’environnement** : rien à changer (Sefaria n’a pas besoin de clé). | -                                                                                                                                                                                                                                                                                                                                                                                                  |                                                        |                                                                    |                                                                                  |
+| 5     | **Tester**                                                                               | `npm run dev` → preview → la bibliothèque doit se remplir.                                                                                                                                                                                                                                                                                                                                         |                                                        |                                                                    |                                                                                  |
+
+---
+
+### Points supplémentaires à dire à Gemini (copie/colle) 📋
+
+> **Instructions strictes pour la nouvelle version :**
+>
+> 1. **Ajouter un proxy Node/Express** dans `proxy.js` (exemple ci-dessous) pour relayer *toutes* les routes `/sefaria/*` vers `https://www.sefaria.org/api/*`, en renvoyant les en-têtes CORS permissifs.
+> 2. **Modifier `package.json`** : script `"dev"` lance **concurrently** Vite *et* le proxy.
+> 3. **Changer `services/sefariaService.ts`** : remplacer `SEFARIA_API_BASE_URL` par `''` et préfixer toutes les requêtes avec `/sefaria`.
+> 4. Conserver l’architecture React/TypeScript/Streaming Gemini + les **5 modes IA** déjà décrits.
+> 5. **Palette CSS** & layout restent basés sur TikounaOlam : fond `#0f172a`, texte `slate-200`, accents `sky-500` & `amber-500`, coins `rounded-2xl`, ombres douces.
+> 6. Recompiler et tester la bibliothèque : elle doit lister **100 %** des titres Breslev (vérifier qu’un clic sur *Likoutey Moharan* → sous-niveaux apparaissent, etc.).
+> 7. Si une requête échoue, logguer `console.error('[Proxy error]', url, err)` pour debug rapide.
+
+*(Ajoute ce bloc d’instructions avant tout code que tu lui envoies.)*
+
+---
+
+### Pourquoi cette méthode est la plus sûre ?
+
+* **Zéro dépendance** à des services externes de contournement (AllOrigins, CORS-Anywhere finissent bloqués).
+* **Déployable partout** : Replit, Vercel, Render, même un VPS nu.
+* **Scalable** : si plus tard tu veux mise en cache Redis, tu l’ajoutes dans le proxy.
+* **Sécurisé** : tu choisis exactement quelles routes tu ouvres.
+
+Lance ça maintenant ; dès que la bibliothèque se charge sans erreur réseau, tu sais que CORS est réglé et tu peux repartir.
