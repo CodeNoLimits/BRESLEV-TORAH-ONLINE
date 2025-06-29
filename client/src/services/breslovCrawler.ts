@@ -174,7 +174,16 @@ export class BreslovCrawler {
    */
   async getTextByRef(ref: string): Promise<any> {
     const formattedRef = ref.replace(/ /g, '_');
-    return await this.fetchTextSection(formattedRef);
+    console.log(`[BreslovCrawler] Getting text by ref: ${formattedRef}`);
+    const result = await this.fetchTextSection(formattedRef);
+    
+    if (result && result.versions && result.versions.length > 0) {
+      const textLength = Array.isArray(result.versions[0].text) ? result.versions[0].text.length : 1;
+      const heLength = Array.isArray(result.versions[0].he) ? result.versions[0].he.length : 1;
+      console.log(`[BreslovCrawler] Retrieved complete text: ${textLength} English segments, ${heLength} Hebrew segments`);
+    }
+    
+    return result;
   }
 
   /**
