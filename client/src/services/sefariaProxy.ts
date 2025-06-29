@@ -30,21 +30,43 @@ const extractAllTextRefs = (nodes: any[]): SefariaIndexNode[] => {
  */
 const getFullBreslovLibrary = (fullIndex: any[]): SefariaIndexNode[] => {
     try {
+        console.log('[SefariaProxy] Searching for Breslov in index structure');
+        
+        // Search for Chasidut category
         const chasidutCategory = fullIndex.find(cat => cat.category === "Chasidut");
-        const breslovCategory = chasidutCategory.contents.find((subCat: any) => subCat.category === "Breslov");
-
-        return extractAllTextRefs(breslovCategory.contents);
+        if (!chasidutCategory) {
+            console.log('[SefariaProxy] Chasidut category not found');
+            return [];
+        }
+        
+        console.log('[SefariaProxy] Found Chasidut category');
+        
+        // Search for Breslov subcategory
+        const breslovCategory = chasidutCategory.contents?.find((subCat: any) => subCat.category === "Breslov");
+        if (!breslovCategory) {
+            console.log('[SefariaProxy] Breslov category not found in Chasidut');
+            console.log('[SefariaProxy] Available categories:', chasidutCategory.contents?.map((c: any) => c.category));
+            return [];
+        }
+        
+        console.log('[SefariaProxy] Found Breslov category');
+        
+        // Extract all text references
+        const breslovBooks = extractAllTextRefs(breslovCategory.contents || []);
+        console.log(`[SefariaProxy] Extracted ${breslovBooks.length} Breslov books`);
+        
+        return breslovBooks;
 
     } catch (error) {
-        console.error("Impossible de trouver ou de parcourir la catégorie Breslev.", error);
-        return []; // Retourne une liste vide en cas d'erreur
+        console.error("[SefariaProxy] Error parsing Breslov library:", error);
+        return [];
     }
 };
 
 export const getBreslovIndex = async (): Promise<SefariaIndexNode[]> => {
   console.log(`[SefariaProxy] Fetching complete Sefaria index via proxy`);
   
-  const response = await fetch(`${BASE_URL}/v2/index`);
+  const response = await fetch(`${BASE_URL}/index`);
   if (!response.ok) {
     throw new Error('Index error');
   }
