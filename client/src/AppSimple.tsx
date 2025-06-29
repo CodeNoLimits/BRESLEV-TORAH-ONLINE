@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { useTTS } from './hooks/useTTS';
 import { sefariaClient, SefariaText } from './services/sefariaDirectClient';
 import { streamGemini } from './services/geminiSimple';
+import { breslovCrawler } from './services/breslovCrawler';
 import { Language, InteractionMode } from './types';
 
 interface Message {
@@ -29,6 +30,35 @@ function AppSimple() {
 
   // TTS
   const { speak, stop: stopTTS, isSpeaking } = useTTS({ language, enabled: ttsEnabled });
+
+  // Initialize crawler cache on app start
+  useEffect(() => {
+    console.log('[AppSimple] Initializing Breslov crawler cache');
+    breslovCrawler.loadCache();
+    
+    // Pre-warm essential texts in background
+    const preloadEssentialTexts = async () => {
+      const essentialRefs = [
+        'Likutei_Moharan.1',
+        'Likutei_Moharan.2', 
+        'Sichot_HaRan.1',
+        'Sippurei_Maasiyot.1'
+      ];
+      
+      for (const ref of essentialRefs) {
+        try {
+          await breslovCrawler.getTextByRef(ref);
+        } catch (error) {
+          console.warn(`[AppSimple] Preload failed for ${ref}:`, error);
+        }
+      }
+      
+      breslovCrawler.saveCache();
+      console.log('[AppSimple] Essential texts preloaded and cached');
+    };
+    
+    preloadEssentialTexts();
+  }, []);
 
   // Build AI prompt based on mode
   const buildPrompt = useCallback((mode: string, text: string) => {
@@ -114,22 +144,61 @@ ${text}`
     }
   }, [buildPrompt, ttsEnabled, speak]);
 
-  // Handle text selection from Sidebar
+  // Handle text selection from Sidebar with complete content crawler
   const handleTextSelect = useCallback(async (ref: string, title: string) => {
     try {
-      console.log(`[AppSimple] Loading text: ${title} (${ref})`);
-      const text = await sefariaClient.fetchSection(ref);
-      setSelectedText(text);
-      setSidebarOpen(false);
+      console.log(`[AppSimple] Loading complete text: ${title} (${ref})`);
+      
+      // Use crawler to get complete authentic content
+      const completeText = await breslovCrawler.getTextByRef(ref);
+      
+      if (completeText && completeText.versions && completeText.versions.length > 0) {
+        const version = completeText.versions[0];
+        const sefariaText: SefariaText = {
+          ref: ref,
+          title: title,
+          text: Array.isArray(version.text) ? version.text : [version.text || ""],
+          he: Array.isArray(version.he) ? version.he : [version.he || ""]
+        };
+        
+        console.log(`[AppSimple] Complete text loaded: ${sefariaText.text.length} segments (English), ${sefariaText.he.length} segments (Hebrew)`);
+        setSelectedText(sefariaText);
+        setSidebarOpen(false);
 
-      // Auto-trigger study analysis
-      if (text.text && text.text.length > 0) {
-        const textContent = text.text.join('\n\n');
-        await handleAIRequest(`${title}\n\n${textContent}`, 'study');
+        // Auto-trigger study analysis with COMPLETE text content
+        if (sefariaText.text && sefariaText.text.length > 0) {
+          const completeTextContent = sefariaText.text.join('\n\n');
+          console.log(`[AppSimple] Sending complete text to AI (${completeTextContent.length} characters)`);
+          await handleAIRequest(`TEXTE COMPLET DE ${title}:\n\n${completeTextContent}`, 'study');
+        }
+      } else {
+        // Fallback to direct client
+        console.log(`[AppSimple] Fallback to direct client for: ${ref}`);
+        const text = await sefariaClient.fetchSection(ref);
+        setSelectedText(text);
+        setSidebarOpen(false);
+
+        if (text.text && text.text.length > 0) {
+          const textContent = text.text.join('\n\n');
+          await handleAIRequest(`${title}\n\n${textContent}`, 'study');
+        }
       }
     } catch (error) {
-      console.error('[AppSimple] Text loading error:', error);
-      await handleAIRequest('Erreur lors du chargement du texte sélectionné.', 'general');
+      console.error('[AppSimple] Complete text loading error:', error);
+      // Final fallback
+      try {
+        const text = await sefariaClient.fetchSection(ref);
+        setSelectedText(text);
+        setSidebarOpen(false);
+        
+        if (text.text && text.text.length > 0) {
+          const textContent = text.text.join('\n\n');
+          await handleAIRequest(`${title}\n\n${textContent}`, 'study');
+        }
+      } catch (fallbackError) {
+        console.error('[AppSimple] All loading methods failed:', fallbackError);
+        await handleAIRequest('Erreur lors du chargement du texte sélectionné.', 'general');
+      }
     }
   }, [handleAIRequest]);
 
@@ -227,18 +296,37 @@ ${text}`
               
               <div className="flex gap-2 mt-4">
                 <button
-                  onClick={() => handleAIRequest(`${selectedText.title}\n\n${selectedText.text.join('\n\n')}`, 'study')}
+                  onClick={() => {
+                    const completeContent = selectedText.text.join('\n\n');
+                    console.log(`[AppSimple] Manual analysis - sending ${completeContent.length} characters`);
+                    handleAIRequest(`ANALYSE SPIRITUELLE COMPLÈTE DE ${selectedText.title}:\n\n${completeContent}`, 'study');
+                  }}
                   className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-black rounded font-medium transition-colors"
                   disabled={isAILoading}
                 >
                   Analyser ce texte
                 </button>
                 <button
-                  onClick={() => handleAIRequest(selectedText.text.join('\n\n'), 'summary')}
+                  onClick={() => {
+                    const completeContent = selectedText.text.join('\n\n');
+                    console.log(`[AppSimple] Summary request - sending ${completeContent.length} characters`);
+                    handleAIRequest(`POINTS CLÉS DU TEXTE COMPLET ${selectedText.title}:\n\n${completeContent}`, 'summary');
+                  }}
                   className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded transition-colors"
                   disabled={isAILoading}
                 >
                   Points clés
+                </button>
+                <button
+                  onClick={() => {
+                    const completeContent = selectedText.text.join('\n\n');
+                    console.log(`[AppSimple] Counsel request - sending ${completeContent.length} characters`);
+                    handleAIRequest(`GUIDANCE SPIRITUELLE BASÉE SUR ${selectedText.title}:\n\n${completeContent}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
+                  }}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded transition-colors"
+                  disabled={isAILoading}
+                >
+                  Guidance personnelle
                 </button>
               </div>
             </div>
