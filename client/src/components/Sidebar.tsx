@@ -71,19 +71,19 @@ export const Sidebar = ({ isOpen, onClose, onTextSelect, language }: SidebarProp
 
   return (
     <>
-      {/* Mobile Overlay */}
+      {/* Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
           onClick={onClose}
         />
       )}
       
       {/* Sidebar */}
       <div className={`
-        fixed md:relative top-0 left-0 h-full w-80 bg-slate-900 border-r border-slate-700 
+        fixed top-0 left-0 h-full w-80 bg-slate-900 border-r border-slate-700 
         flex flex-col z-50 transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         {/* Sidebar Header */}
         <div className="p-6 border-b border-slate-700">
@@ -102,7 +102,7 @@ export const Sidebar = ({ isOpen, onClose, onTextSelect, language }: SidebarProp
               </div>
             </div>
             <button 
-              className="md:hidden text-slate-400 hover:text-white"
+              className="text-slate-400 hover:text-white"
               onClick={onClose}
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">

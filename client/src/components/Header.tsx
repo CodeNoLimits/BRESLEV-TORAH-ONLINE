@@ -30,7 +30,7 @@ export const Header = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <button 
-            className="md:hidden text-slate-400 hover:text-white transition-colors"
+            className="text-slate-400 hover:text-white transition-colors"
             onClick={onToggleSidebar}
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
