@@ -10,6 +10,7 @@ import { streamGemini } from './services/geminiSimple';
 import { breslovCrawler } from './services/breslovCrawler';
 import { getCurrentSelection, clearSelection } from './services/textSelection';
 import { breslovSearch } from './services/breslovSearch';
+import { BreslovDiagnostic } from './utils/breslovDiagnostic';
 import { Language, InteractionMode } from './types';
 
 interface Message {
@@ -90,6 +91,13 @@ function AppSimple() {
         console.log('[AppSimple] Breslov search engine initialized');
       }).catch(error => {
         console.warn('[AppSimple] Failed to initialize search engine:', error);
+      });
+
+      // Run complete diagnostic of Breslov library
+      BreslovDiagnostic.runCompleteCheck().then(results => {
+        console.log('[AppSimple] Breslov library diagnostic completed');
+      }).catch(error => {
+        console.warn('[AppSimple] Diagnostic failed:', error);
       });
     };
     
@@ -290,11 +298,25 @@ ${text}`
       
       if (completeText && completeText.versions && completeText.versions.length > 0) {
         const version = completeText.versions[0];
+        // Smart language detection and organization
+        const rawText = Array.isArray(version.text) ? version.text : [version.text || ""];
+        const hebrew: string[] = [];
+        const english: string[] = [];
+        
+        rawText.forEach((segment: string) => {
+          const hebrewRegex = /[\u0590-\u05FF]/;
+          if (hebrewRegex.test(segment)) {
+            hebrew.push(segment);
+          } else {
+            english.push(segment);
+          }
+        });
+        
         const sefariaText: SefariaText = {
           ref: ref,
           title: title,
-          text: Array.isArray(version.text) ? version.text : [version.text || ""],
-          he: Array.isArray(version.he) ? version.he : [version.he || ""]
+          text: english,  // English text in correct field
+          he: hebrew      // Hebrew text in correct field
         };
         
         console.log(`[AppSimple] Complete text loaded: ${sefariaText.text.length} segments (English), ${sefariaText.he.length} segments (Hebrew)`);
