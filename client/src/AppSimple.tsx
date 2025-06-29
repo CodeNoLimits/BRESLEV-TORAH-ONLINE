@@ -152,13 +152,47 @@ ${text}`
     return prompts[mode as keyof typeof prompts] || prompts.general;
   }, []);
 
-  // Enhanced AI handler with authentic Sefaria integration
+  // Intelligent search across loaded texts
+  const searchLoadedTexts = useCallback(async (query: string) => {
+    const queryLower = query.toLowerCase();
+    const queryWords = queryLower.split(/\s+/).filter(word => word.length > 2);
+    const results: Array<{book: string, content: string, score: number}> = [];
+    
+    const cache = breslovCrawler.getCache();
+    for (const [ref, data] of Object.entries(cache)) {
+      if (data?.text && Array.isArray(data.text)) {
+        data.text.forEach((segment: string, index: number) => {
+          const segmentLower = segment.toLowerCase();
+          let score = 0;
+          
+          queryWords.forEach(word => {
+            const matches = (segmentLower.match(new RegExp(word, 'g')) || []).length;
+            score += matches;
+          });
+          
+          if (segmentLower.includes(queryLower)) score += 10;
+          
+          if (score > 0) {
+            results.push({
+              book: ref.replace(/_/g, ' '),
+              content: segment.substring(0, 300) + (segment.length > 300 ? '...' : ''),
+              score
+            });
+          }
+        });
+      }
+    }
+    
+    return results.sort((a, b) => b.score - a.score).slice(0, 3);
+  }, []);
+
+  // Enhanced AI handler with intelligent search integration
   const handleAIRequest = useCallback(async (text: string, mode: string = 'general') => {
     setIsAILoading(true);
     setStreamingText('');
 
     try {
-      // Check if user is asking for specific Sefaria content
+      // First check for specific Sefaria requests
       const sefariaRequest = detectSefariaRequest(text);
       let enhancedText = text;
       
@@ -169,10 +203,24 @@ ${text}`
           if (sefariaContent && sefariaContent.versions && sefariaContent.versions[0]) {
             const textContent = sefariaContent.versions[0].text.join('\n\n');
             enhancedText = `CONTENU AUTHENTIQUE SEFARIA - ${sefariaRequest.ref}:\n\n${textContent}\n\nQUESTION UTILISATEUR: ${text}`;
-            mode = 'study'; // Force study mode for authentic content
+            mode = 'study';
           }
         } catch (error) {
           console.error('[AppSimple] Error fetching Sefaria content:', error);
+        }
+      } else if (mode === 'general') {
+        // For general questions, search across all loaded texts
+        const searchResults = await searchLoadedTexts(text);
+        if (searchResults.length > 0) {
+          console.log(`[AppSimple] Found ${searchResults.length} relevant texts for question`);
+          let contextualText = `QUESTION: ${text}\n\nCONTEXTE - Textes pertinents de Rabbi Nahman:\n\n`;
+          
+          searchResults.forEach((result, index) => {
+            contextualText += `${index + 1}. ${result.book}:\n"${result.content}"\n\n`;
+          });
+          
+          contextualText += `Réponds à la question en te basant sur ces textes authentiques de Rabbi Nahman de Breslov.`;
+          enhancedText = contextualText;
         }
       }
 

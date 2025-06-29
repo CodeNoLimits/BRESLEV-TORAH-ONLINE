@@ -36,6 +36,8 @@ export class BreslovSearchEngine {
         if (text && text.text && text.text.length > 0) {
           this.searchableTexts.set(ref, text);
           console.log(`[BreslovSearch] Loaded ${ref}: ${text.text.length} segments`);
+        } else {
+          console.warn(`[BreslovSearch] No content found for ${ref}`);
         }
       } catch (error) {
         console.warn(`[BreslovSearch] Failed to load ${ref}:`, error);
