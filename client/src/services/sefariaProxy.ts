@@ -1,10 +1,65 @@
 import { SefariaIndexNode, SefariaText } from '../types';
 
-// New proxy-based Sefaria service following exact instructions
-export const getTextContent = async (ref: string): Promise<SefariaText> => {
-  console.log(`[SefariaProxy] Fetching text: ${ref}`);
+// Base URL for proxy - NO direct calls to sefaria.org
+const BASE_URL = '/sefaria-api';
+
+/**
+ * Isole la catégorie Breslev et extrait toutes ses références de texte.
+ * @param {Array} fullIndex - La réponse JSON complète de l'endpoint /api/index.
+ * @returns {Array} Une liste d'objets { title, ref } pour toute la bibliothèque Breslev.
+ */
+function getFullBreslovLibrary(fullIndex: any[]): SefariaIndexNode[] {
+    try {
+        const chasidutCategory = fullIndex.find(cat => cat.category === "Chasidut");
+        const breslovCategory = chasidutCategory.contents.find((subCat: any) => subCat.category === "Breslov");
+
+        // Fonction interne pour le parcours récursif
+        function extractAllTextRefs(nodes: any[]): SefariaIndexNode[] {
+            let allRefs: SefariaIndexNode[] = [];
+            if (!nodes || !Array.isArray(nodes)) return allRefs;
+
+            for (const node of nodes) {
+                if (node.ref) {
+                    allRefs.push({ 
+                        title: node.title, 
+                        ref: node.ref,
+                        category: 'Breslov'
+                    });
+                }
+                if (node.contents) {
+                    allRefs = allRefs.concat(extractAllTextRefs(node.contents));
+                }
+            }
+            return allRefs;
+        }
+
+        return extractAllTextRefs(breslovCategory.contents);
+
+    } catch (error) {
+        console.error("Impossible de trouver ou de parcourir la catégorie Breslev.", error);
+        return []; // Retourne une liste vide en cas d'erreur
+    }
+}
+
+export const getBreslovIndex = async (): Promise<SefariaIndexNode[]> => {
+  console.log(`[SefariaProxy] Fetching complete Sefaria index via proxy`);
   
-  const response = await fetch(`/api/sefaria/texts/${encodeURIComponent(ref)}`);
+  const response = await fetch(`${BASE_URL}/index`);
+  if (!response.ok) {
+    throw new Error('Index error');
+  }
+  
+  const fullIndex = await response.json();
+  const breslovBooks = getFullBreslovLibrary(fullIndex);
+  
+  console.log(`[SefariaProxy] Breslov library extracted: ${breslovBooks.length} books`);
+  return breslovBooks;
+};
+
+export const getTextContent = async (ref: string): Promise<SefariaText> => {
+  console.log(`[SefariaProxy] Fetching text via proxy: ${ref}`);
+  
+  const response = await fetch(`${BASE_URL}/texts/${encodeURIComponent(ref)}`);
   if (!response.ok) {
     throw new Error('Sefaria proxy error');
   }
@@ -27,34 +82,20 @@ export const getTextContent = async (ref: string): Promise<SefariaText> => {
     }
   }
   
+  // Clean HTML and normalize text
+  const cleanText = (textArray: string[]): string[] => {
+    return textArray
+      .map(text => text ? text.replace(/<[^>]*>/g, '').trim() : '')
+      .filter(text => text.length > 0);
+  };
+  
   return {
     ref: data.ref || ref,
     book: data.book || ref.split('.')[0],
-    text: englishText,
-    he: hebrewText,
+    text: cleanText(englishText),
+    he: cleanText(hebrewText),
     title: data.title || ref
   };
-};
-
-export const getBreslovIndex = async (): Promise<SefariaIndexNode[]> => {
-  console.log(`[SefariaProxy] Fetching Breslov index`);
-  
-  const response = await fetch('/api/sefaria/breslov-index');
-  if (!response.ok) {
-    throw new Error('Index error');
-  }
-  
-  const data = await response.json();
-  
-  // The server already provides correctly formatted books
-  const breslovBooks: SefariaIndexNode[] = data.map((item: any) => ({
-    title: item.title,
-    ref: item.ref,
-    category: 'Breslov'
-  }));
-  
-  console.log(`[SefariaProxy] Breslov index processed: ${breslovBooks.length} books`);
-  return breslovBooks;
 };
 
 // Cache management

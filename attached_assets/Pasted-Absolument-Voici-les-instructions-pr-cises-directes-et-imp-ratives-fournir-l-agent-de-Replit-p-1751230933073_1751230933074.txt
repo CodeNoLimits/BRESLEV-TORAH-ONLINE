@@ -1,0 +1,143 @@
+Absolument. Voici les instructions précises, directes et impératives à fournir à l'agent de Replit pour une correction définitive. Le ton est volontairement directif pour ne laisser aucune place à l'interprétation.
+
+-----
+
+### **Instructions Finales et Impératives pour la Réparation de l'Application "Le Compagnon du Cœur"**
+
+**À l'attention de l'agent de développement Replit :**
+
+Les tentatives précédentes ont échoué. Le diagnostic est final : le problème est une combinaison d'un blocage **CORS** et d'une **logique de récupération de données défaillante**.
+
+Exécute les étapes suivantes **exactement** comme décrit, sans déviation.
+
+#### **Étape 1 : Mettre en Place un Proxy Serveur (Correction du CORS)**
+
+1.  **Arrêter les Appels Directs :** Supprime toute tentative de `fetch` direct du code client (React) vers `https://www.sefaria.org`. C'est la cause racine du blocage.
+
+2.  **Installer les Dépendances Serveur :** Ouvre le Shell de Replit et exécute la commande suivante :
+
+    ```bash
+    npm install express http-proxy-middleware cors
+    ```
+
+3.  **Créer le Serveur Proxy :** Crée un nouveau fichier à la racine du projet nommé `proxy.js` et insère-y le code suivant, **sans modification** :
+
+    ```javascript
+    // Fichier : proxy.js
+    const express = require('express');
+    const { createProxyMiddleware } = require('http-proxy-middleware');
+    const cors = require('cors');
+
+    const app = express();
+    const PORT = 3001; // Port pour le proxy
+
+    // Autorise les requêtes depuis ton front-end Replit
+    app.use(cors());
+
+    // Le proxy qui relaie les appels vers Sefaria
+    app.use('/sefaria-api', createProxyMiddleware({
+        target: 'https://www.sefaria.org', // La véritable API Sefaria
+        changeOrigin: true,
+        pathRewrite: {
+            '^/sefaria-api': '/api', // Réécrit l'URL pour correspondre à la structure de Sefaria
+        },
+        onError: (err, req, res) => {
+            console.error('Erreur du proxy:', err);
+            res.status(500).send('Erreur du serveur proxy.');
+        }
+    }));
+
+    app.listen(PORT, () => {
+        console.log(`[Proxy] Serveur mandataire démarré et écoutant sur le port ${PORT}`);
+    });
+    ```
+
+#### **Étape 2 : Intégrer le Proxy à l'Application**
+
+1.  **Modifier le Démarrage :** Installe `concurrently` pour lancer le serveur et le client en même temps.
+
+    ```bash
+    npm install concurrently
+    ```
+
+    Puis, modifie la section `"scripts"` de ton fichier `package.json` comme suit :
+
+    ```json
+    "scripts": {
+      "dev": "concurrently \"npm run start-react\" \"node proxy.js\"",
+      "start-react": "vite"
+    },
+    ```
+
+    *(Adapte `start-react` si ta commande de lancement client est différente)*
+
+2.  **Modifier le Service Client :** Dans ton fichier `sefariaService.ts` (ou équivalent), modifie tous les appels `fetch` pour qu'ils ciblent le proxy.
+
+      * **Ligne à supprimer/modifier :** `const BASE_URL = 'https://www.sefaria.org/api';`
+      * **Nouvelle ligne :** `const BASE_URL = '/sefaria-api';`
+
+    Un appel `fetch` ressemblera maintenant à ceci : `fetch('/sefaria-api/index')`.
+
+#### **Étape 3 : Récupérer l'Intégralité de la Bibliothèque Breslev**
+
+1.  **Utiliser l'Endpoint Principal :** Le seul endpoint que tu dois appeler pour obtenir la structure est `/sefaria-api/index`.
+
+2.  **Implémenter l'Algorithme de Parcours Exhaustif :** Remplace toute logique de récupération existante par la fonction récursive suivante. Elle garantit que chaque sous-catégorie et chaque texte final de la section Breslev sont trouvés.
+
+    ```javascript
+    /**
+     * Isole la catégorie Breslev et extrait toutes ses références de texte.
+     * @param {Array} fullIndex - La réponse JSON complète de l'endpoint /api/index.
+     * @returns {Array} Une liste d'objets { title, ref } pour toute la bibliothèque Breslev.
+     */
+    function getFullBreslovLibrary(fullIndex) {
+        try {
+            const chasidutCategory = fullIndex.find(cat => cat.category === "Chasidut");
+            const breslovCategory = chasidutCategory.contents.find(subCat => subCat.category === "Breslov");
+
+            // Fonction interne pour le parcours récursif
+            function extractAllTextRefs(nodes) {
+                let allRefs = [];
+                if (!nodes || !Array.isArray(nodes)) return allRefs;
+
+                for (const node of nodes) {
+                    if (node.ref) {
+                        allRefs.push({ title: node.title, ref: node.ref });
+                    }
+                    if (node.contents) {
+                        allRefs = allRefs.concat(extractAllTextRefs(node.contents));
+                    }
+                }
+                return allRefs;
+            }
+
+            return extractAllTextRefs(breslovCategory.contents);
+
+        } catch (error) {
+            console.error("Impossible de trouver ou de parcourir la catégorie Breslev.", error);
+            return []; // Retourne une liste vide en cas d'erreur
+        }
+    }
+    ```
+
+#### **Étape 4 : Sécuriser la Clé API Gemini**
+
+1.  **Stocker la Clé :** Va dans l'onglet "Secrets" (icône de cadenas) de Replit. Crée un nouveau secret :
+
+      * **Nom (key) :** `GEMINI_API_KEY`
+      * **Valeur (value) :** `AIzaSyAlIBrQ16b_xVo-gY5JyBTCEEnfyUdjT7I`
+
+2.  **Accéder à la Clé (Serveur Uniquement) :** La clé Gemini doit être utilisée par l'IA. Si les appels à Gemini se font côté serveur (par exemple, via le proxy si tu décides de centraliser les appels), accède à la clé avec `process.env.GEMINI_API_KEY`. **Ne jamais l'utiliser dans le code client React.**
+
+-----
+
+### **Checklist de Validation Finale**
+
+Après avoir appliqué ces corrections, vérifie les points suivants :
+
+1.  [ ] **Le proxy démarre-t-il sans erreur ?** La console doit afficher `[Proxy] Serveur mandataire démarré...`.
+2.  [ ] **L'appel réseau fonctionne-t-il ?** Dans les outils de développement du navigateur (onglet "Réseau"), l'appel à `/sefaria-api/index` doit avoir le statut **200 OK**. Aucune erreur CORS ne doit apparaître.
+3.  [ ] **La bibliothèque est-elle complète ?** La barre latérale doit s'afficher avec la liste de tous les livres Breslev (Likutei Moharan, Sichot HaRan, etc.).
+4.  [ ] **Le clic sur un texte fonctionne-t-il ?** Sélectionner un enseignement doit déclencher un nouvel appel via le proxy et afficher le contenu du texte.
+
+Exécute ces instructions à la lettre. Le résultat attendu est une application **100% fonctionnelle**.
