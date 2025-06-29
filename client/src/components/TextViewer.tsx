@@ -32,12 +32,11 @@ export const TextViewer = ({ selectedText, onClose, language }: TextViewerProps)
     }
     
     if (displayLanguage === 'fr') {
-      // For French, show the English text with a note that it will be translated by AI
+      // For French mode, show a simplified note - the AI will handle translation
       if (selectedText.text.length === 0) {
         return "Texte non disponible pour cette section";
       }
-      const englishText = selectedText.text.join('\n\n');
-      return `[TEXTE ORIGINAL EN ANGLAIS - L'IA traduira automatiquement lors de l'analyse]\n\n${englishText}`;
+      return `📖 ${selectedText.text.length} segments de texte chargés\n\n✨ L'IA traduira automatiquement ce texte en français lors de l'analyse spirituelle.\n\nCliquez sur "Analyser ce texte" pour obtenir la traduction complète et l'analyse selon les enseignements de Rabbi Nahman.`;
     }
     
     // English

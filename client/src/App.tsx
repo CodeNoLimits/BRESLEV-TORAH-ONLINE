@@ -77,9 +77,17 @@ function App() {
         setSelectedBook(null);
         console.log(`[App] Loaded specific text: ${ref}`);
         
-        // Auto-trigger deep study analysis with proper language handling
-        const textContent = sefariaService.getTextInLanguage(text, language === 'he' ? 'he' : 'en');
-        await handleSendAIMessage(textContent, 'study', `Texte sélectionné: ${title}`);
+        // Auto-trigger deep study analysis with French translation
+        const textContent = sefariaService.getTextInLanguage(text, 'en');
+        const frenchPrompt = `TEXTE ANGLAIS À TRADUIRE ET ANALYSER: "${textContent}"
+
+INSTRUCTIONS STRICTES:
+1. Commencer par "**Traduction française complète:**" puis traduire tout le texte en français
+2. Ensuite "**Analyse spirituelle selon Rabbi Nahman:**" et analyser uniquement ce texte
+3. Rester concentré sur ce passage spécifique
+4. Donner des conseils pratiques basés sur cet enseignement précis`;
+        
+        await handleSendAIMessage(frenchPrompt, 'study', `Texte sélectionné: ${title}`);
       }
       
     } catch (error) {
@@ -129,9 +137,12 @@ function App() {
       };
       setMessages(prev => [...prev, aiMessage]);
       
-      // Auto-speak if TTS enabled
+      // Auto-speak if TTS enabled with debug logs
       if (ttsEnabled && response) {
+        console.log(`[App] TTS enabled, attempting to speak response of length: ${response.length}`);
         speak(response);
+      } else {
+        console.log(`[App] TTS not triggered - enabled: ${ttsEnabled}, response: ${!!response}`);
       }
       
     } catch (error) {
