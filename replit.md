@@ -134,13 +134,12 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 
 - ✓ Universal Sefaria proxy fully operational in Express server - eliminates ALL CORS issues
 - ✓ Complete Breslov library loaded: all 9 authentic books with verified working references
-- ✓ MANDATORY complete text extraction system implemented with fullTextExtractor.js
-- ✓ Dedicated API endpoints for book sections and complete text retrieval
-- ✓ BookNavigator now properly loads all available sections for each book
-- ✓ Gemini AI integration with strict spiritual focus and automatic French translation
-- ✓ TTS system with comprehensive debug logging for troubleshooting
-- ✓ Authentic text verification - application only displays complete Sefaria content
-- ✓ API routing fixed - book sections and text endpoints work correctly
+- ✓ Simplified application architecture with streamlined services and endpoints
+- ✓ Functional sidebar menu with clickable book selection interface
+- ✓ Gemini AI streaming integration with French responses
+- ✓ Working proxy routes for both /sefaria/* and /gemini/chat endpoints
+- ✓ AppSimple.tsx created with clean chat interface and TTS integration
+- ✓ All services tested and verified working with authentic Sefaria data
 - ✓ Hebrew text updated in header: נ נח נחמ נחמן מאומן
 
 ## User Preferences

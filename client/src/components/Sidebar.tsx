@@ -162,9 +162,39 @@ export const Sidebar = ({ isOpen, onClose, onTextSelect, language }: SidebarProp
           )}
           
           {!loading && !error && (
-            <Accordion type="multiple" className="space-y-2">
-              {filteredTexts.map(category => renderTextNode(category))}
-            </Accordion>
+            <div className="space-y-2">
+              {filteredTexts.map((book, idx) => (
+                <div key={idx} className="bg-slate-800 rounded-lg border border-slate-700 hover:border-sky-500 transition-colors">
+                  <button
+                    className="w-full text-left p-4 text-slate-200 hover:text-sky-400 font-medium transition-colors"
+                    onClick={() => {
+                      console.log('[Sidebar] Book selected:', book.title, book.ref);
+                      if (book.ref) {
+                        onTextSelect(book.ref, book.title);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-crimson">{book.title}</span>
+                      <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
+                      </svg>
+                    </div>
+                    {book.ref && (
+                      <div className="text-xs text-slate-500 mt-1">
+                        Référence: {book.ref}
+                      </div>
+                    )}
+                  </button>
+                </div>
+              ))}
+              
+              {filteredTexts.length === 0 && (
+                <div className="text-center py-8 text-slate-400">
+                  Aucun livre trouvé. Vérifiez votre recherche.
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
