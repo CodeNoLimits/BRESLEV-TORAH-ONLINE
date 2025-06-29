@@ -114,8 +114,22 @@ export const useTTS = ({ language, enabled }: TTSOptions) => {
     }
   }, [isSupported]);
 
+  const speakGreeting = useCallback(() => {
+    if (!enabled || !isSupported) return;
+    
+    const greetingMessages = {
+      fr: "Sélectionnez la partie du texte que vous voulez que je lise, puis activez le bouton TTS.",
+      en: "Select the part of the text you want me to read, then switch on the TTS button.",
+      he: "בחרו את הקטע שתרצו שאקרא, ואחר-כך הפעילו את כפתור ה-TTS."
+    };
+    
+    const message = greetingMessages[language] || greetingMessages.fr;
+    speak(message);
+  }, [enabled, isSupported, language, speak]);
+
   return {
     speak,
+    speakGreeting,
     stop,
     isSupported,
     isSpeaking,

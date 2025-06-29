@@ -1,0 +1,141 @@
+### Plan de mise à jour ― « Sélection + TTS d’accueil »
+
+*(aucune dépendance nouvelle ; vous ne touchez qu’aux composants React côté client)*
+
+| Étape | Fichier                     | Ajout / modification                                                                                                                                  | Rôle                                                 |
+| ----- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 1     | `hooks/useTTS.ts`           | `speakGreeting(lang)`                                                                                                                                 | prononce la phrase d’accueil dans la langue courante |
+| 2     | `components/TextViewer.tsx` | gestion du **sur-vol + sélection** : met en state la plage sélectionnée (`selectedText`)                                                              |                                                      |
+| 3     | `components/Header.tsx`     | au **mount** : appelle `speakGreeting(language)` quand TTS activé                                                                                     |                                                      |
+| 4     | `components/ChatInput.tsx`  | détecte `selectedText !== ''` et envoie ce texte au **mode snippet** quand on clique sur « Analyser » ou **mode advice** quand on clique « Guidance » |                                                      |
+| 5     | `ChatView.tsx`              | si aucun `selectedText`, bascule automatiquement sur le **texte entier** (comportement actuel)                                                        |                                                      |
+| 6     | `App.tsx`                   | passe `selectedText`, `clearSelection()` & `language` en props aux deux modules de saisie                                                             |                                                      |
+
+---
+
+## 1. Hook TTS : ajout d’une fonction d’accueil
+
+```ts
+// hooks/useTTS.ts
+export const useTTS = (enabled: boolean, lang: Language) => {
+  const speakGreeting = useCallback(() => {
+    if (!enabled) return;
+    const msg = {
+      fr: "Sélectionnez la partie du texte que vous voulez que je lise, puis activez le bouton TTS.",
+      en: "Select the part of the text you want me to read, then switch on the TTS button.",
+      he: "בחרו את הקטע שתרצו שאקרא, ואחר-כך הפעילו את כפתור ה-TTS."
+    }[lang];
+    speak(msg);
+  }, [enabled, lang, speak]);
+
+  /* …votre logique existante (speak, useEffect preload) … */
+
+  return { speak, speakGreeting };
+};
+```
+
+---
+
+## 2. Sélection dans **TextViewer**
+
+```tsx
+// components/TextViewer.tsx
+const [selectedText, setSelectedText] = useState('');
+
+const handleMouseUp = () => {
+  const sel = window.getSelection()?.toString().trim() ?? '';
+  setSelectedText(sel);
+};
+…
+<div onMouseUp={handleMouseUp} …>
+  {viewLang === 'en' ? text.en.join('\n\n') : text.he.join('\n\n')}
+</div>
+```
+
+Expose :
+
+```tsx
+export default memo(TextViewer, (prev, next) => …);
+export type { TextViewerProps };
+```
+
+et dans `ChatView` :
+
+```tsx
+const [selectedText, setSelectedText] = useState('');
+…
+<TextViewer … onSelectedText={setSelectedText}/>
+```
+
+---
+
+## 3. Prononcer l’accueil une fois TTS activé
+
+```tsx
+// Header.tsx (toggle TTS)
+<input type="checkbox" … onChange={e=>{
+     onTtsToggle(e.target.checked);
+     if(e.target.checked) speakGreeting(language);
+}} />
+```
+
+*(on récupère `speakGreeting` via props transmises : voir App)*
+
+---
+
+## 4. Boutons **Analyse** & **Guidance**
+
+```tsx
+// SnippetAnalyzer.tsx
+const payload = selectedText||snippet;   // priorité à la sélection
+onAnalyze(payload);
+```
+
+```tsx
+// GuidanceCounselor.tsx
+const payload = selectedText||topic;
+onFindAdvice(payload);
+```
+
+Après envoi :
+
+```ts
+clearSelection(); // remet selectedText à ''
+```
+
+---
+
+## 5. Fallback si rien n’est sélectionné
+
+Dans `App.tsx` :
+
+```ts
+const effectiveText = selectedText || currentText?.[lang==='he'?'he':'en'].join('\n');
+streamAiResponse(mode,{text: effectiveText});
+```
+
+---
+
+## 6. Passage des props
+
+```tsx
+<ChatView
+  …
+  selectedText={selectedText}
+  clearSelection={()=>setSelectedText('')}
+  …
+/>
+```
+
+Mêmes props transmis aux deux modules `SnippetAnalyzer` & `GuidanceCounselor`.
+
+---
+
+### Tests rapides
+
+1. **Activer TTS** : la phrase d’accueil se prononce dans la langue courante.
+2. **Sélectionner trois lignes** → cliquer sur *Analyser* ➜ prompt mode 3 avec l’extrait ; si rien n’est sélectionné, on reçoit l’analyse complète.
+3. **Changer de langue** : la prochaine phrase d’accueil utilise la nouvelle langue et `utterance.lang` adapté.
+4. **TTS** lit la réponse complète à la fin du flux.
+
+> Avec ces six micro-patchs, l’expérience “sélection → lecture → analyse ciblée / conseil” est fluide, et **tous les boutons fonctionnent** quel que soit l’état de sélection.

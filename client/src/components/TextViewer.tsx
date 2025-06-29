@@ -5,11 +5,13 @@ interface TextViewerProps {
   selectedText: SefariaText | null;
   onClose: () => void;
   language: Language;
+  onTextSelection?: (selectedText: string) => void;
 }
 
-export const TextViewer = ({ selectedText, onClose, language }: TextViewerProps) => {
+export const TextViewer = ({ selectedText, onClose, language, onTextSelection }: TextViewerProps) => {
   const [displayLanguage, setDisplayLanguage] = useState<'en' | 'he' | 'fr'>('en');
   const [showFullText, setShowFullText] = useState(false);
+  const [userSelectedText, setUserSelectedText] = useState('');
 
   // Automatically set display language based on user's interface language
   useEffect(() => {
@@ -21,6 +23,16 @@ export const TextViewer = ({ selectedText, onClose, language }: TextViewerProps)
       setDisplayLanguage('en');
     }
   }, [language]);
+
+  const handleMouseUp = () => {
+    const selection = window.getSelection();
+    const selectedContent = selection?.toString().trim() || '';
+    setUserSelectedText(selectedContent);
+    if (onTextSelection && selectedContent) {
+      console.log('[TextViewer] Text selected:', selectedContent.substring(0, 100));
+      onTextSelection(selectedContent);
+    }
+  };
 
   if (!selectedText) return null;
 
