@@ -1,0 +1,140 @@
+Voici le “brief technique” que vous pouvez remettre tel quel à Gemini (ou à tout autre builder) pour qu’il comprenne **exactement** comment utiliser le nouvel endpoint **`GET /api/v3/texts/{tref}`** et garantir qu’**aucun** texte de Breslev ne manque.
+*(Tout est rédigé en langage humain, sans code source ; il suffit de copier-coller ce bloc.)*
+
+---
+
+## 1. Objectif
+
+> Construire un module « Bibliothèque Breslev » qui :
+>
+> 1. Découvre **toutes** les références Breslev dans Sefaria.
+> 2. Télécharge chaque texte via l’API v3 (`/api/v3/texts/{tref}`) en FR / EN / HE.
+> 3. Les met à disposition de l’interface React (mode 1 : analyse automatique au clic).
+>    Le tout sans aucune omission.
+
+---
+
+## 2. Découverte exhaustive des références
+
+1. **Point d’entrée** : `GET / api / index` (v2)
+   – Réponse : table complète des catégories.
+2. Parcourir récursivement **`contents`, `nodes` et `schema.nodes`**.
+3. Conserver uniquement les nœuds dont `category === "Breslov"` ou qui descendent de cette catégorie.
+4. Pour chaque nœud feuillu disposant d’une propriété `ref`, stocker ce `ref` (ex. `Likutei Moharan 1:1`).
+5. Résultat : un tableau plat **`allBreslovRefs[]`** (≈ 1 000 + entrées).
+
+---
+
+## 3. Téléchargement des textes (endpoint v3)
+
+### 3.1 URL de base
+
+`https://www.sefaria.org/api/v3/texts/{tref}`
+– Remplacer les espaces par `_` (underscore).
+– Encodage URI complet pour éviter les 404 (ex. `Likutei_Moharan.1.1`).
+
+### 3.2 Paramètres importants
+
+| Paramètre    | Valeur recommandée | Effet                                                        |
+| ------------ | ------------------ | ------------------------------------------------------------ |
+| `context`    | `0`                | Aucun verset autour, juste le segment demandé.               |
+| `commentary` | `0`                | Pas de commentaire dans le payload (on ne les veut pas ici). |
+| `pad`        | `0`                | Pas de chain padding, plus léger.                            |
+| `wrapLinks`  | `false`            | Texte brut (sinon, balises `<a>` Sefaria).                   |
+| `lang`       | `*omettant*`       | Par défaut renvoie EN+HE ; on filtrera côté client.          |
+| `version`    | *vide*             | L’API renvoie la meilleure version disponible.               |
+
+*(Ces paramètres sont détaillés dans la doc officielle : “Texts (v3)”*  ([developers.sefaria.org][1])\*)
+
+### 3.3 Exemple d’appel
+
+`GET https://www.sefaria.org/api/v3/texts/Likutei_Moharan.1.1?context=0&commentary=0&pad=0&wrapLinks=false`
+
+### 3.4 Structure de réponse (résumé)
+
+```jsonc
+{
+  "ref": "Likutei Moharan 1:1",
+  "he": ["…"],
+  "en": ["…"],
+  "versions": […],
+  "next": "Likutei Moharan 1:2",
+  "prev": "…",
+  "isComplex": false,
+  /* méta additionnelles */
+}
+```
+
+---
+
+## 4. Stratégie de téléchargement « batch »
+
+1. **File d’attente** : push chaque `tref` dans `pendingQueue`.
+2. **Ratelimit** : max 5 req/s (Sefaria tolère \~10, mais on se laisse de la marge).
+3. **Retry** simple : 3 tentatives, back-off exponentiel si `HTTP 5xx` ou `timeout`.
+4. **Caching temporaire** : stocker chaque payload dans `sessionStorage` (clé =`tref`) pour ne refetcher qu’une fois par session.
+5. **Indexation finale** : une fois toutes les réponses résolues, construire en mémoire un objet :
+
+```ts
+// clef = tref normalisé
+library[tref] = { he: string[], en: string[], fr?: string[] }
+```
+
+> **Important** : si un passage n’a pas encore de traduction française (`fr` manquant), on le marque mais on ne fail pas ; l’IA pourra le traduire à la volée.
+
+---
+
+## 5. Intégration dans l’UI
+
+* **Sidebar** :
+  – Convertir `library` en structure d’arbre accordéon.
+  – Lors du clic sur une feuille :
+
+  1. Afficher le texte complet dans `TextViewer`.
+  2. Passer `tref` + texte au **mode 1** → prompt d’analyse automatique.
+* **Modes 3 & 4** : disposent déjà de leurs `<textarea>` dédiés (cf. spec précédente).
+* **Mode 5** : bouton « Points Clés » dispo sous toute réponse IA > 200 caractères.
+
+---
+
+## 6. Points de vigilance (Replit / CORS)
+
+* L’API Sefaria **accepte CORS** par défaut.
+* Vérifier que votre workspace Replit n’intercepte pas les requêtes HTTPS (pas de service worker parasite).
+* Si vous voyez un blocage CORS, ajouter simplement :
+  – `fetch(url, { mode: "cors", credentials: "omit" })` (pas besoin de proxy).
+* Toujours **https**, jamais `http`.
+
+---
+
+## 7. Test de complétude (sanity check)
+
+1. Après le crawl initial, compter `Object.keys(library).length`.
+2. Vérifier que **Likutei Moharan** contient bien 413 références (standard count).
+3. Vérifier que vous avez aussi : “Sippurei Maasiot”, “Hishtapchut Hanefesh”, “Tzaddik”, etc.
+4. S’il manque > 0 %, relancer le crawler avec log niveau `debug` pour isoler les 404.
+
+---
+
+## 8. Livrable attendu
+
+* Front : React + Tailwind sombre type tikounaolam.com (coins `rounded-2xl`, `shadow-lg`, palette `slate/sky/amber`).
+* Back : Service `sefariaService.ts` exposant `fetchBreslovLibrary()` et `fetchText(tref)`.
+* IA : Service `geminiService.ts` initialisant chat avec la clé `AIzaSy…` et gérant les 5 modes.
+* Documentation : README “one-shot” avec `npm install && npm run dev`, + note sur la ratelimit.
+
+---
+
+**Avec ces consignes, le builder disposera de toutes les précisions nécessaires pour :**
+
+1. **Ne rien oublier** dans le corpus Breslev.
+2. **Tirer parti** du nouvel endpoint v3 (plus léger et plus stable).
+3. **Garantir** un affichage multilingue et une analyse IA sans effort utilisateur.
+
+Une fois ce brief collé, vous pouvez simplement ajouter :
+
+> *“Merci de lancer l’implémentation complète maintenant.”*
+
+Et laisser l’outil générer votre application.
+
+[1]: https://developers.sefaria.org/reference/getting-started?utm_source=chatgpt.com "Getting Started With The Sefaria API"
