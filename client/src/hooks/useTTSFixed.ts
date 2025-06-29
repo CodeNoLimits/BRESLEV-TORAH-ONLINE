@@ -14,7 +14,12 @@ export const useTTSFixed = ({ language, enabled }: TTSOptions) => {
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    setIsSupported('speechSynthesis' in window);
+    // Enhanced mobile compatibility check
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const hasWebSpeech = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+    
+    console.log(`[TTS-Fixed] Mobile detected: ${isMobile}, WebSpeech available: ${hasWebSpeech}`);
+    setIsSupported(hasWebSpeech);
     
     // Check Google Cloud TTS availability
     const checkCloudTTS = async () => {
@@ -29,6 +34,17 @@ export const useTTSFixed = ({ language, enabled }: TTSOptions) => {
     };
 
     checkCloudTTS();
+    
+    // Force load voices on mobile
+    if (isMobile && hasWebSpeech) {
+      setTimeout(() => {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+          setVoicesLoaded(true);
+          console.log(`[TTS-Fixed] Mobile voices loaded: ${voices.length}`);
+        }
+      }, 1000);
+    }
   }, []);
 
   const loadVoices = useCallback((): Promise<SpeechSynthesisVoice[]> => {
@@ -69,8 +85,21 @@ export const useTTSFixed = ({ language, enabled }: TTSOptions) => {
   }, [voicesLoaded]);
 
   const speak = useCallback(async (text: string) => {
-    if (!enabled || !isSupported || !text.trim()) {
-      console.log(`[TTS-Fixed] Not speaking - enabled: ${enabled}, supported: ${isSupported}, text: ${!!text.trim()}`);
+    if (!enabled || !text.trim()) {
+      console.log(`[TTS-Fixed] Not speaking - enabled: ${enabled}, text: ${!!text.trim()}`);
+      return;
+    }
+
+    // Mobile fallback to Cloud TTS if Web Speech is not available
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile && !isSupported && isCloudAvailable) {
+      console.log(`[TTS-Fixed] Using Cloud TTS fallback for mobile`);
+      await speakWithCloudTTS(text);
+      return;
+    }
+
+    if (!isSupported) {
+      console.log(`[TTS-Fixed] Not speaking - WebSpeech not supported`);
       return;
     }
 
@@ -100,8 +129,18 @@ export const useTTSFixed = ({ language, enabled }: TTSOptions) => {
       // Create utterance
       const utterance = new SpeechSynthesisUtterance(cleanText);
       
+      // Mobile-specific settings
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
       // Set language
       const langCode = language === 'he' ? 'he' : language === 'en' ? 'en' : 'fr';
+      
+      // Mobile optimization
+      if (isMobile) {
+        utterance.rate = 0.8;  // Slower rate for mobile
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+      }
       utterance.lang = language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'fr-FR';
       
       // Find appropriate voice
