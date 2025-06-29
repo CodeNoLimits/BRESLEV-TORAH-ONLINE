@@ -706,6 +706,104 @@ class SefariaService {
               'החיבור מספק תובנה על אישיותו של רבי נחמן וגישתו לעבודת ה\'.',
               'הנושאים כוללים אמונה, תפילה, לימוד והתגברות על מכשולים רוחניים.'
             ]
+          },
+          'Likutei Halakhot': {
+            en: [
+              'Likutei Halakhot presents Jewish law through the lens of Rabbi Nachman\'s teachings.',
+              'Written by Rabbi Nathan, it connects practical halakha with spiritual insights.',
+              'This work bridges the gap between mystical teachings and daily religious practice.',
+              'Each section relates legal principles to deeper spiritual understanding.'
+            ],
+            he: [
+              'ליקוטי הלכות מציג את ההלכה היהודית דרך עדשת תורות רבי נחמן.',
+              'נכתב על ידי רבי נתן, הוא מחבר בין הלכה מעשית לתובנות רוחניות.',
+              'חיבור זה מגשר בין תורות מיסטיות לבין מעשה דתי יומיומי.',
+              'כל קטע מקשר בין עקרונות הלכתיים להבנה רוחנית עמוקה יותר.'
+            ]
+          },
+          'Likutei Tefilot': {
+            en: [
+              'Likutei Tefilot transforms Rabbi Nachman\'s teachings into personal prayers.',
+              'These heartfelt supplications were composed by Rabbi Nathan of Breslov.',
+              'Each prayer corresponds to specific lessons from Likutei Moharan.',
+              'They provide a direct path to connect with God through Rabbi Nachman\'s wisdom.'
+            ],
+            he: [
+              'ליקוטי תפילות הופך את תורות רבי נחמן לתפילות אישיות.',
+              'תחנונים לבביים אלה נכתבו על ידי רבי נתן מברסלב.',
+              'כל תפילה מתכתבת עם שיעורים ספציפיים מליקוטי מוהר״ן.',
+              'הם מספקים דרך ישירה להתחבר לאלוקים דרך חכמת רבי נחמן.'
+            ]
+          },
+          'Sefer HaMiddot': {
+            en: [
+              'Sefer HaMiddot is an alphabetical guide to character traits and spiritual qualities.',
+              'Each entry provides practical wisdom for improving one\'s spiritual character.',
+              'Topics range from Faith and Prayer to Joy and Repentance.',
+              'This work serves as a practical handbook for spiritual development.'
+            ],
+            he: [
+              'ספר המידות הוא מדריך אלפביתי למידות אופי ותכונות רוחניות.',
+              'כל ערך מספק חכמה מעשית לשיפור האופי הרוחני.',
+              'הנושאים נעים מאמונה ותפילה ועד שמחה ותשובה.',
+              'חיבור זה משמש כמדריך מעשי לפיתוח רוחני.'
+            ]
+          },
+          'Sippurei Maasiyot': {
+            en: [
+              'Sippurei Maasiyot contains Rabbi Nachman\'s mystical stories.',
+              'These 13 tales convey deep spiritual truths through allegory and symbol.',
+              'Each story operates on multiple levels of meaning and interpretation.',
+              'They represent the pinnacle of Hasidic storytelling tradition.'
+            ],
+            he: [
+              'ספורי מעשיות מכיל את הסיפורים המיסטיים של רבי נחמן.',
+              'שלושה עשר סיפורים אלה מעבירים אמיתות רוחניות עמוקות דרך משל וסמל.',
+              'כל סיפור פועל על מספר רמות של משמעות ופירוש.',
+              'הם מייצגים את פסגת מסורת הסיפור החסידית.'
+            ]
+          },
+          'Chayei Moharan': {
+            en: [
+              'Chayei Moharan chronicles the life and daily practices of Rabbi Nachman.',
+              'This biographical work reveals the Rabbi\'s personal spiritual methods.',
+              'It provides intimate glimpses into how a great tzaddik lived and served God.',
+              'The work serves as a guide for implementing Rabbi Nachman\'s teachings.'
+            ],
+            he: [
+              'חיי מוהר״ן מתעד את חייו ונוהגיו היומיומיים של רבי נחמן.',
+              'חיבור ביוגרפי זה חושף את השיטות הרוחניות האישיות של הרבי.',
+              'הוא מספק הצצות אינטימיות לאופן שבו צדיק גדול חי ועבד את ה\'.',
+              'החיבור משמש כמדריך ליישום תורות רבי נחמן.'
+            ]
+          },
+          'Shivchei HaRan': {
+            en: [
+              'Shivchei HaRan records the praises and miraculous stories of Rabbi Nachman.',
+              'These accounts demonstrate the Rabbi\'s spiritual powers and holy character.',
+              'The work inspires faith and devotion through remarkable testimonies.',
+              'It shows how a true tzaddik impacts the world through divine connection.'
+            ],
+            he: [
+              'שבחי הר״ן מתעד את השבחים והסיפורים הנפלאים של רבי נחמן.',
+              'דיווחים אלה מפגינים את כוחותיו הרוחניים ואופיו הקדוש של הרבי.',
+              'החיבור מעורר אמונה והתמסרות דרך עדויות יוצאות דופן.',
+              'הוא מראה כיצד צדיק אמיתי משפיע על העולם דרך חיבור אלוהי.'
+            ]
+          },
+          'Likkutei Etzot': {
+            en: [
+              'Likkutei Etzot provides practical spiritual advice organized by topic.',
+              'This collection distills Rabbi Nachman\'s wisdom into accessible guidance.',
+              'Topics include faith, prayer, repentance, joy, and many other spiritual themes.',
+              'Each entry offers concrete steps for spiritual growth and improvement.'
+            ],
+            he: [
+              'ליקוטי עצות מספק עצות רוחניות מעשיות מאורגנות לפי נושא.',
+              'אוסף זה מזקק את חכמת רבי נחמן להדרכה נגישה.',
+              'הנושאים כוללים אמונה, תפילה, תשובה, שמחה ועוד נושאים רוחניים רבים.',
+              'כל ערך מציע צעדים קונקרטיים לצמיחה ושיפור רוחניים.'
+            ]
           }
         };
         
