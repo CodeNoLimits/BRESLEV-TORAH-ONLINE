@@ -69,25 +69,47 @@ class SefariaDirectClient {
 
   // Format response to consistent structure
   private formatResponse(data: any, tref: string): SefariaText {
+    console.log(`[SefariaClient] Formatting response for ${tref}:`, {
+      hasVersions: !!data.versions,
+      versionsCount: data.versions?.length || 0,
+      hasDirectText: !!data.text,
+      hasDirectHe: !!data.he
+    });
+
     // Handle V3 response format
     if (data.versions && data.versions.length > 0) {
       const hebrewVersion = data.versions.find((v: any) => v.language === 'he');
       const englishVersion = data.versions.find((v: any) => v.language === 'en');
       
+      // Extract text arrays properly
+      const englishText = englishVersion?.text ? 
+        (Array.isArray(englishVersion.text) ? englishVersion.text : [englishVersion.text]) : [];
+      const hebrewText = hebrewVersion?.text ? 
+        (Array.isArray(hebrewVersion.text) ? hebrewVersion.text : [hebrewVersion.text]) : [];
+      
+      console.log(`[SefariaClient] V3 format - EN: ${englishText.length} segments, HE: ${hebrewText.length} segments`);
+      
       return {
         ref: tref,
         title: data.title || tref,
-        text: englishVersion?.text || [],
-        he: hebrewVersion?.text || []
+        text: englishText.filter(Boolean),
+        he: hebrewText.filter(Boolean)
       };
     }
     
     // Handle V1 response format
+    const v1Text = data.text ? 
+      (Array.isArray(data.text) ? data.text : [data.text]) : [];
+    const v1He = data.he ? 
+      (Array.isArray(data.he) ? data.he : [data.he]) : [];
+    
+    console.log(`[SefariaClient] V1 format - EN: ${v1Text.length} segments, HE: ${v1He.length} segments`);
+    
     return {
       ref: tref,
       title: data.title || tref,
-      text: Array.isArray(data.text) ? data.text : [data.text].filter(Boolean),
-      he: Array.isArray(data.he) ? data.he : [data.he].filter(Boolean)
+      text: v1Text.filter(Boolean),
+      he: v1He.filter(Boolean)
     };
   }
 
