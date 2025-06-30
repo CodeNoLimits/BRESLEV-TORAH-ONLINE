@@ -233,7 +233,7 @@ export const MobileUtils = {
     
     document.body.style.touchAction = 'manipulation';
     document.body.style.webkitTextSizeAdjust = '100%';
-    document.body.style.webkitTapHighlightColor = 'transparent';
+    (document.body.style as any).webkitTapHighlightColor = 'transparent';
   },
 
   preventZoom(): void {
