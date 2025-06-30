@@ -41,17 +41,32 @@ export class BreslovDiagnostic {
         let hebrewCount = 0;
         
         if (text) {
+          console.log(`[BreslovDiagnostic] Raw data structure for ${ref}:`, {
+            hasText: !!text.text,
+            hasHe: !!text.he,
+            textType: text.text ? typeof text.text : 'undefined',
+            heType: text.he ? typeof text.he : 'undefined',
+            textLength: text.text ? (Array.isArray(text.text) ? text.text.length : 'not array') : 0,
+            heLength: text.he ? (Array.isArray(text.he) ? text.he.length : 'not array') : 0,
+            hasVersions: !!text.versions,
+            versionsCount: text.versions ? text.versions.length : 0,
+            sampleText: text.text ? (Array.isArray(text.text) ? text.text[0] : text.text) : 'none',
+            sampleHe: text.he ? (Array.isArray(text.he) ? text.he[0] : text.he) : 'none'
+          });
+          
           // Server fullTextExtractor format (from server/fullTextExtractor.js)
           if (text.text && Array.isArray(text.text)) {
             englishCount = text.text.filter(segment => 
               segment && typeof segment === 'string' && segment.trim().length > 0
             ).length;
+            console.log(`[BreslovDiagnostic] Found ${englishCount} English segments in text.text array`);
           }
           
           if (text.he && Array.isArray(text.he)) {
             hebrewCount = text.he.filter(segment => 
               segment && typeof segment === 'string' && segment.trim().length > 0
             ).length;
+            console.log(`[BreslovDiagnostic] Found ${hebrewCount} Hebrew segments in text.he array`);
           }
           
           // Fallback: Check versions format (standard Sefaria)
