@@ -16,15 +16,15 @@ export class BreslovCrawler {
 
   // Liste canonique des 9 ouvrages Breslov
   private readonly BRESLOV_BOOKS = [
-    { title: 'Likoutei Moharan', key: 'Likutei_Moharan' },
-    { title: 'Likoutei Halakhot', key: 'Likutei_Halakhot' },
-    { title: 'Likoutei Tefilot', key: 'Likutei_Tefilot' },
-    { title: 'Likkutei Etzot', key: 'Likkutei_Etzot' },
-    { title: 'Sefer HaMiddot', key: 'Sefer_HaMiddot' },
-    { title: 'Sichot HaRan', key: 'Sichot_HaRan' },
-    { title: 'Chayei Moharan', key: 'Chayei_Moharan' },
-    { title: 'Shivchei HaRan', key: 'Shivchei_HaRan' },
-    { title: 'Sippurei Maasiyot', key: 'Sippurei_Maasiyot' }
+    { title: "Likoutei Moharan", key: "Likutei_Moharan" },
+    { title: "Likoutei Halakhot", key: "Likutei_Halakhot" },
+    { title: "Likoutei Tefilot", key: "Likutei_Tefilot" },
+    { title: "Likkutei Etzot", key: "Likkutei_Etzot" },
+    { title: "Sefer HaMiddot", key: "Sefer_HaMiddot" },
+    { title: "Sichot HaRan", key: "Sichot_HaRan" },
+    { title: "Chayei Moharan", key: "Chayei_Moharan" },
+    { title: "Shivchei HaRan", key: "Shivchei_HaRan" },
+    { title: "Sippurei Maasiyot", key: "Sippurei_Maasiyot" },
   ];
 
   /**
@@ -42,7 +42,7 @@ export class BreslovCrawler {
       if (!response.ok) {
         throw new Error(`Failed to fetch TOC for ${title}: ${response.status}`);
       }
-      
+
       const toc = await response.json();
       this.cache.set(cacheKey, toc);
       console.log(`[BreslovCrawler] TOC fetched for: ${title}`);
@@ -58,17 +58,20 @@ export class BreslovCrawler {
    */
   private extractLeafRefs(node: any, refs: string[] = []): string[] {
     // Si c'est une feuille (a une ref mais pas de children)
-    if (node.ref && (!node.nodes || node.nodes.length === 0) && 
-        (!node.contents || node.contents.length === 0) &&
-        (!node.schema?.nodes || node.schema.nodes.length === 0)) {
-      refs.push(node.ref.replace(/ /g, '_'));
+    if (
+      node.ref &&
+      (!node.nodes || node.nodes.length === 0) &&
+      (!node.contents || node.contents.length === 0) &&
+      (!node.schema?.nodes || node.schema.nodes.length === 0)
+    ) {
+      refs.push(node.ref.replace(/ /g, "_"));
       return refs;
     }
 
     // Sinon, parcourir les enfants
     const children = node.nodes || node.contents || node.schema?.nodes || [];
     children.forEach((child: any) => this.extractLeafRefs(child, refs));
-    
+
     return refs;
   }
 
@@ -83,36 +86,40 @@ export class BreslovCrawler {
 
     // Générer des variantes de référence pour maximiser la compatibilité
     const refVariants = this.generateReferenceVariants(ref);
-    
+
     const endpoints = [
       `/api/sefaria/texts/`,
       `/sefaria/api/texts/`,
       `/sefaria/api/v3/texts/`,
-      `/api/sefaria/v3/texts/`
+      `/api/sefaria/v3/texts/`,
     ];
 
-    console.log(`[BreslovCrawler] Trying ${refVariants.length} reference variants for: ${ref}`);
+    console.log(
+      `[BreslovCrawler] Trying ${refVariants.length} reference variants for: ${ref}`,
+    );
 
     for (const variant of refVariants) {
       for (const endpoint of endpoints) {
         try {
           const url = `${endpoint}${encodeURIComponent(variant)}?context=0&commentary=0&pad=0&wrapLinks=false`;
           console.log(`[BreslovCrawler] Trying: ${url}`);
-          
+
           const response = await fetch(url);
-          
+
           if (!response.ok) {
             continue;
           }
 
           const data = await response.json();
-          
+
           if (this.hasValidContent(data)) {
             this.cache.set(cacheKey, data);
-            console.log(`[BreslovCrawler] ✅ Loaded ${ref} using variant "${variant}"`);
-            
+            console.log(
+              `[BreslovCrawler] ✅ Loaded ${ref} using variant "${variant}"`,
+            );
+
             // Rate limiting
-            await new Promise(resolve => setTimeout(resolve, this.DELAY));
+            await new Promise((resolve) => setTimeout(resolve, this.DELAY));
             return data;
           }
         } catch (error) {
@@ -122,7 +129,9 @@ export class BreslovCrawler {
     }
 
     // If all endpoints failed
-    console.error(`[BreslovCrawler] ❌ Failed to load: ${ref} (tried ${refVariants.length} variants)`);
+    console.error(
+      `[BreslovCrawler] ❌ Failed to load: ${ref} (tried ${refVariants.length} variants)`,
+    );
     return null;
   }
 
@@ -131,29 +140,29 @@ export class BreslovCrawler {
    */
   private generateReferenceVariants(ref: string): string[] {
     const variants = [ref];
-    
+
     // Format point vers espace (Likutei Moharan.10 -> Likutei Moharan 10)
-    if (ref.includes('.')) {
-      variants.push(ref.replace(/\./g, ' '));
-      variants.push(ref.replace(/\./g, ', '));
-      variants.push(ref.replace(/\./g, ':'));
+    if (ref.includes(".")) {
+      variants.push(ref.replace(/\./g, " "));
+      variants.push(ref.replace(/\./g, ", "));
+      variants.push(ref.replace(/\./g, ":"));
     }
-    
+
     // Format underscore vers espace (Likutei_Moharan -> Likutei Moharan)
-    if (ref.includes('_')) {
-      variants.push(ref.replace(/_/g, ' '));
-      variants.push(ref.replace(/_/g, '.'));
+    if (ref.includes("_")) {
+      variants.push(ref.replace(/_/g, " "));
+      variants.push(ref.replace(/_/g, "."));
     }
-    
+
     // Ajouter .1 à la fin si pas de sous-numéro
-    if (!ref.includes('.1') && !ref.includes(' 1') && ref.match(/\d+$/)) {
+    if (!ref.includes(".1") && !ref.includes(" 1") && ref.match(/\d+$/)) {
       variants.push(`${ref}.1`);
       variants.push(`${ref} 1`);
       variants.push(`${ref}:1`);
     }
-    
+
     // Format spécial pour certains textes
-    if (ref.includes('Likutei Moharan')) {
+    if (ref.includes("Likutei Moharan")) {
       const num = ref.match(/\d+/)?.[0];
       if (num) {
         variants.push(`Likutei Moharan ${num}`);
@@ -163,9 +172,9 @@ export class BreslovCrawler {
         variants.push(`Likutei Moharan.${num}.1`);
       }
     }
-    
+
     // Format spécial pour Sichot HaRan
-    if (ref.includes('Sichot HaRan')) {
+    if (ref.includes("Sichot HaRan")) {
       const num = ref.match(/\d+/)?.[0];
       if (num) {
         variants.push(`Sichot HaRan ${num}`);
@@ -174,7 +183,7 @@ export class BreslovCrawler {
         variants.push(`Sichot HaRan.${num}.1`);
       }
     }
-    
+
     // Supprimer les doublons et retourner les variantes
     return Array.from(new Set(variants));
   }
@@ -184,14 +193,16 @@ export class BreslovCrawler {
    */
   async fetchEntireBook(title: string): Promise<Record<string, any>> {
     console.log(`[BreslovCrawler] Starting crawl for: ${title}`);
-    
+
     // 1. Récupérer la TOC
     const toc = await this.fetchTOC(title);
-    
+
     // 2. Extraire toutes les références finales
     const leafRefs = this.extractLeafRefs(toc.schema || toc);
-    console.log(`[BreslovCrawler] Found ${leafRefs.length} sections in ${title}`);
-    
+    console.log(
+      `[BreslovCrawler] Found ${leafRefs.length} sections in ${title}`,
+    );
+
     if (leafRefs.length === 0) {
       console.warn(`[BreslovCrawler] No leaf refs found for ${title}`);
       return {};
@@ -209,16 +220,16 @@ export class BreslovCrawler {
           results[ref] = data;
         }
         // Mini-pause pour respecter les quotas
-        await new Promise(resolve => setTimeout(resolve, this.DELAY));
+        await new Promise((resolve) => setTimeout(resolve, this.DELAY));
       }
     };
 
     // Exécuter les workers en parallèle (limitation à CONCURRENCY)
-    await Promise.all(
-      Array.from({ length: this.CONCURRENCY }, () => worker())
-    );
+    await Promise.all(Array.from({ length: this.CONCURRENCY }, () => worker()));
 
-    console.log(`[BreslovCrawler] ✔ ${title}: ${Object.keys(results).length} sections downloaded`);
+    console.log(
+      `[BreslovCrawler] ✔ ${title}: ${Object.keys(results).length} sections downloaded`,
+    );
     return results;
   }
 
@@ -227,26 +238,28 @@ export class BreslovCrawler {
    */
   async crawlAllBreslovBooks(): Promise<BreslovBook[]> {
     console.log(`[BreslovCrawler] Starting complete Breslov crawl...`);
-    
+
     const books: BreslovBook[] = [];
-    
+
     for (const book of this.BRESLOV_BOOKS) {
       try {
         const sections = await this.fetchEntireBook(book.key);
         books.push({
           title: book.title,
           key: book.key,
-          sections
+          sections,
         });
-        
+
         // Pause entre livres pour éviter de surcharger l'API
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (error) {
         console.error(`[BreslovCrawler] Failed to crawl ${book.title}:`, error);
       }
     }
-    
-    console.log(`[BreslovCrawler] ✔ Complete crawl finished: ${books.length} books`);
+
+    console.log(
+      `[BreslovCrawler] ✔ Complete crawl finished: ${books.length} books`,
+    );
     return books;
   }
 
@@ -256,38 +269,40 @@ export class BreslovCrawler {
   async getTextByRef(ref: string): Promise<any> {
     // Fix reference format based on Sefaria API structure
     let correctedRef = ref;
-    
+
     // Handle different book formats based on API testing
-    if (ref.includes('Likutei_Moharan')) {
+    if (ref.includes("Likutei_Moharan")) {
       // Convert Likutei_Moharan.1 to Likutei Moharan.1.1 (Torah.Section format)
       const match = ref.match(/Likutei_Moharan\.(\d+)/);
       if (match) {
         correctedRef = `Likutei Moharan.${match[1]}.1`;
       }
-    } else if (ref.includes('Sichot_HaRan')) {
+    } else if (ref.includes("Sichot_HaRan")) {
       // Convert Sichot_HaRan.1 to Sichot HaRan.1.1 (Chapter.Verse format)
       const match = ref.match(/Sichot_HaRan\.(\d+)/);
       if (match) {
         correctedRef = `Sichot HaRan.${match[1]}.1`;
       }
-    } else if (ref.includes('Sippurei_Maasiyot')) {
+    } else if (ref.includes("Sippurei_Maasiyot")) {
       // Convert Sippurei_Maasiyot.1 to Sippurei Maasiyot.1.1
       const match = ref.match(/Sippurei_Maasiyot\.(\d+)/);
       if (match) {
         correctedRef = `Sippurei Maasiyot.${match[1]}.1`;
       }
     }
-    
-    console.log(`[BreslovCrawler] Getting text by ref: ${ref} -> ${correctedRef}`);
-    
+
+    console.log(
+      `[BreslovCrawler] Getting text by ref: ${ref} -> ${correctedRef}`,
+    );
+
     try {
       const result = await this.fetchTextSection(correctedRef);
-      
+
       // Handle both server fullTextExtractor format and standard Sefaria format
       if (result) {
         let textLength = 0;
         let heLength = 0;
-        
+
         // Server fullTextExtractor format (direct text/he arrays)
         if (result.text && Array.isArray(result.text)) {
           textLength = result.text.length;
@@ -295,16 +310,22 @@ export class BreslovCrawler {
         if (result.he && Array.isArray(result.he)) {
           heLength = result.he.length;
         }
-        
+
         // Fallback: Standard Sefaria versions format
         if (textLength === 0 && result.versions && result.versions.length > 0) {
-          textLength = Array.isArray(result.versions[0].text) ? result.versions[0].text.length : 1;
-          heLength = Array.isArray(result.versions[0].he) ? result.versions[0].he.length : 1;
+          textLength = Array.isArray(result.versions[0].text)
+            ? result.versions[0].text.length
+            : 1;
+          heLength = Array.isArray(result.versions[0].he)
+            ? result.versions[0].he.length
+            : 1;
         }
-        
-        console.log(`[BreslovCrawler] Retrieved complete text: ${textLength} English segments, ${heLength} Hebrew segments`);
+
+        console.log(
+          `[BreslovCrawler] Retrieved complete text: ${textLength} English segments, ${heLength} Hebrew segments`,
+        );
       }
-      
+
       return result;
     } catch (error) {
       console.error(`[BreslovCrawler] Error fetching ${correctedRef}:`, error);
@@ -317,12 +338,12 @@ export class BreslovCrawler {
    */
   saveCache(): void {
     const cacheData = Array.from(this.cache.entries());
-    sessionStorage.setItem('breslov_crawler_cache', JSON.stringify(cacheData));
+    sessionStorage.setItem("breslov_crawler_cache", JSON.stringify(cacheData));
     console.log(`[BreslovCrawler] Cache saved: ${cacheData.length} items`);
   }
 
   loadCache(): void {
-    const stored = sessionStorage.getItem('breslov_crawler_cache');
+    const stored = sessionStorage.getItem("breslov_crawler_cache");
     if (stored) {
       const cacheData = JSON.parse(stored);
       this.cache = new Map(cacheData);
@@ -335,7 +356,7 @@ export class BreslovCrawler {
    */
   clearCache(): void {
     this.cache.clear();
-    sessionStorage.removeItem('breslov_crawler_cache');
+    sessionStorage.removeItem("breslov_crawler_cache");
     console.log(`[BreslovCrawler] Cache cleared`);
   }
 
@@ -352,20 +373,25 @@ export class BreslovCrawler {
    */
   private hasValidContent(data: any): boolean {
     if (!data) return false;
-    
+
     // Check server fullTextExtractor format (direct text/he arrays)
     if (this.isValidText(data.text) || this.isValidText(data.he)) {
       return true;
     }
-    
+
     // Check V3 API format
-    if (data.versions && Array.isArray(data.versions) && data.versions.length > 0) {
-      return data.versions.some((version: any) => 
-        (version.text && this.isValidText(version.text)) || 
-        (version.he && this.isValidText(version.he))
+    if (
+      data.versions &&
+      Array.isArray(data.versions) &&
+      data.versions.length > 0
+    ) {
+      return data.versions.some(
+        (version: any) =>
+          (version.text && this.isValidText(version.text)) ||
+          (version.he && this.isValidText(version.he)),
       );
     }
-    
+
     return false;
   }
 
@@ -374,17 +400,18 @@ export class BreslovCrawler {
    */
   private isValidText(text: any): boolean {
     if (!text) return false;
-    
-    if (typeof text === 'string') {
+
+    if (typeof text === "string") {
       return text.trim().length > 3;
     }
-    
+
     if (Array.isArray(text)) {
-      return text.some(segment => 
-        segment && typeof segment === 'string' && segment.trim().length > 3
+      return text.some(
+        (segment) =>
+          segment && typeof segment === "string" && segment.trim().length > 3,
       );
     }
-    
+
     return false;
   }
 }

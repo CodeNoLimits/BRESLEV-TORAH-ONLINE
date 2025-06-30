@@ -17,7 +17,7 @@ if (process.env.GOOGLE_TTS_CREDENTIALS_B64) {
     const credentialsPath = path.join(process.cwd(), "serviceAccount.json");
     fs.writeFileSync(
       credentialsPath,
-      Buffer.from(process.env.GOOGLE_TTS_CREDENTIALS_B64, "base64")
+      Buffer.from(process.env.GOOGLE_TTS_CREDENTIALS_B64, "base64"),
     );
     process.env.GOOGLE_APPLICATION_CREDENTIALS = credentialsPath;
     console.log(`[TTS-Cloud] Credentials written to ${credentialsPath}`);
@@ -51,7 +51,8 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (pathReq.startsWith("/api")) {
       let logLine = `${req.method} ${pathReq} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      if (capturedJsonResponse)
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       if (logLine.length > 80) logLine = logLine.slice(0, 79) + "…";
       log(logLine);
     }
@@ -67,7 +68,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 /* ---------- Sefaria proxy ---------- */
 app.get("/sefaria/*", async (req, res) => {
-  const target = "https://www.sefaria.org" + req.originalUrl.replace("/sefaria", "");
+  const target =
+    "https://www.sefaria.org" + req.originalUrl.replace("/sefaria", "");
   console.log(`[Sefaria Proxy] ${target}`);
   const r = await fetch(target);
   res.status(r.status);
@@ -75,7 +77,8 @@ app.get("/sefaria/*", async (req, res) => {
 });
 
 /* ---------- Gemini proxy (stream) ---------- */
-if (!process.env.GEMINI_API_KEY) throw new Error("⛔️ GEMINI_API_KEY manquante");
+if (!process.env.GEMINI_API_KEY)
+  throw new Error("⛔️ GEMINI_API_KEY manquante");
 
 const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = ai.getGenerativeModel({
@@ -154,7 +157,7 @@ app.get("/api/sefaria/texts/:ref", async (req, res) => {
 
       if (isBreslovBook) {
         console.log(
-          `[Sefaria Proxy] Breslov book detected: ${ref}, using complete text extractor`
+          `[Sefaria Proxy] Breslov book detected: ${ref}, using complete text extractor`,
         );
 
         let bookTitle = "";
@@ -174,23 +177,21 @@ app.get("/api/sefaria/texts/:ref", async (req, res) => {
         if (bookTitle) {
           try {
             console.log(
-              `[Sefaria Proxy] Using complete text extractor for ${bookTitle}`
+              `[Sefaria Proxy] Using complete text extractor for ${bookTitle}`,
             );
             return await extractCompleteBook(bookTitle, sectionNumber);
           } catch (extractorError) {
             console.error(
               `[Sefaria Proxy] Complete text extractor failed for ${bookTitle}:`,
-              extractorError
+              extractorError,
             );
-            console.log(
-              `[Sefaria Proxy] Falling back to standard Sefaria API`
-            );
+            console.log(`[Sefaria Proxy] Falling back to standard Sefaria API`);
           }
         }
       }
 
       const apiUrl = `https://www.sefaria.org/api/texts/${encodeURIComponent(
-        ref
+        ref,
       )}`;
       const response = await fetch(apiUrl);
 
@@ -227,8 +228,7 @@ app.get("/api/sefaria/texts/:ref", async (req, res) => {
 
   // Port dynamique (fallback 5000)
   const port = Number(process.env.PORT) || 5000;
-  server.listen(
-    { port, host: "0.0.0.0", reusePort: true },
-    () => log(`serving on port ${port}`)
+  server.listen({ port, host: "0.0.0.0", reusePort: true }, () =>
+    log(`serving on port ${port}`),
   );
 })();

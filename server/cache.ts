@@ -1,4 +1,3 @@
-
 const cache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -27,5 +26,5 @@ export const cacheService = {
     console.log(`[Cache] CLEARED`);
   },
 
-  size: () => cache.size
+  size: () => cache.size,
 };

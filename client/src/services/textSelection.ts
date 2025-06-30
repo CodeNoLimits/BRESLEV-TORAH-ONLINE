@@ -3,7 +3,7 @@
  */
 export const getCurrentSelection = (): string => {
   const selection = window.getSelection();
-  return selection?.toString().trim() || '';
+  return selection?.toString().trim() || "";
 };
 
 /**
@@ -23,23 +23,26 @@ export const highlightSelection = (duration: number = 2000): void => {
   if (!selection || selection.rangeCount === 0) return;
 
   const range = selection.getRangeAt(0);
-  const span = document.createElement('span');
-  span.style.backgroundColor = '#fbbf24';
-  span.style.transition = 'background-color 0.3s ease';
-  
+  const span = document.createElement("span");
+  span.style.backgroundColor = "#fbbf24";
+  span.style.transition = "background-color 0.3s ease";
+
   try {
     range.surroundContents(span);
-    
+
     setTimeout(() => {
       if (span.parentNode) {
         const parent = span.parentNode;
-        parent.insertBefore(document.createTextNode(span.textContent || ''), span);
+        parent.insertBefore(
+          document.createTextNode(span.textContent || ""),
+          span,
+        );
         parent.removeChild(span);
       }
     }, duration);
   } catch (error) {
     // Selection spans multiple elements, just clear it
-    console.log('[TextSelection] Complex selection, clearing');
+    console.log("[TextSelection] Complex selection, clearing");
     clearSelection();
   }
 };

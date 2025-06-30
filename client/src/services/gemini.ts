@@ -1,23 +1,26 @@
-
 // Service Gemini utilisant le proxy serveur
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 class GeminiService {
-  private directModel: ReturnType<GoogleGenerativeAI['getGenerativeModel']> | null = null;
+  private directModel: ReturnType<
+    GoogleGenerativeAI["getGenerativeModel"]
+  > | null = null;
 
   private ensureModel() {
     if (!this.directModel) {
       const apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
-      if (!apiKey) throw new Error('GEMINI_API_KEY missing');
+      if (!apiKey) throw new Error("GEMINI_API_KEY missing");
       const ai = new GoogleGenerativeAI(apiKey);
-      this.directModel = ai.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+      this.directModel = ai.getGenerativeModel({
+        model: "gemini-1.5-flash-latest",
+      });
     }
   }
 
   private splitIntoBlocks(text: string, maxLen = 1600) {
     const sentences = text.match(/[^.!?]+[.!?]+[\])'"`’”]*|.+/g) || [text];
     const blocks: string[] = [];
-    let current = '';
+    let current = "";
     for (const sentence of sentences) {
       if ((current + sentence).length > maxLen) {
         if (current.trim()) blocks.push(current.trim());
@@ -31,7 +34,9 @@ class GeminiService {
   }
 
   private levenshtein(a: string, b: string) {
-    const matrix: number[][] = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+    const matrix: number[][] = Array.from({ length: a.length + 1 }, () =>
+      new Array(b.length + 1).fill(0),
+    );
     for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
     for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
     for (let i = 1; i <= a.length; i++) {
@@ -40,7 +45,7 @@ class GeminiService {
         matrix[i][j] = Math.min(
           matrix[i - 1][j] + 1,
           matrix[i][j - 1] + 1,
-          matrix[i - 1][j - 1] + cost
+          matrix[i - 1][j - 1] + cost,
         );
       }
     }
@@ -55,7 +60,7 @@ class GeminiService {
   async generateContentStream({
     prompt,
     onChunk,
-    signal
+    signal,
   }: {
     prompt: string;
     onChunk: (chunk: string) => void;
@@ -64,18 +69,18 @@ class GeminiService {
     try {
       // Check if request was aborted before starting
       if (signal?.aborted) {
-        throw new Error('Request aborted');
+        throw new Error("Request aborted");
       }
 
-      const response = await fetch('/gemini/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/gemini/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),
-        signal
+        signal,
       });
 
       if (!response.ok || !response.body) {
-        throw new Error('Failed to stream response from Gemini proxy');
+        throw new Error("Failed to stream response from Gemini proxy");
       }
 
       const reader = response.body.getReader();
@@ -85,12 +90,12 @@ class GeminiService {
         // Check for abort signal
         if (signal?.aborted) {
           reader.cancel();
-          throw new Error('Request aborted');
+          throw new Error("Request aborted");
         }
 
         const { done, value } = await reader.read();
         if (done) break;
-        
+
         const chunk = decoder.decode(value, { stream: true });
         if (chunk) {
           onChunk(chunk);
@@ -98,44 +103,50 @@ class GeminiService {
       }
     } catch (error: any) {
       // Handle abort gracefully
-      if (signal?.aborted || error.message === 'Request aborted') {
-        throw new Error('Request aborted');
+      if (signal?.aborted || error.message === "Request aborted") {
+        throw new Error("Request aborted");
       }
-      
+
       // Handle API errors
-      if (error.message?.includes('API_KEY')) {
-        throw new Error('Clé API Gemini invalide. Veuillez vérifier votre configuration.');
+      if (error.message?.includes("API_KEY")) {
+        throw new Error(
+          "Clé API Gemini invalide. Veuillez vérifier votre configuration.",
+        );
       }
-      
-      if (error.message?.includes('quota')) {
-        throw new Error('Quota API Gemini dépassé. Veuillez réessayer plus tard.');
+
+      if (error.message?.includes("quota")) {
+        throw new Error(
+          "Quota API Gemini dépassé. Veuillez réessayer plus tard.",
+        );
       }
-      
-      if (error.message?.includes('safety')) {
-        throw new Error('La réponse a été bloquée par les filtres de sécurité. Reformulez votre question.');
+
+      if (error.message?.includes("safety")) {
+        throw new Error(
+          "La réponse a été bloquée par les filtres de sécurité. Reformulez votre question.",
+        );
       }
-      
+
       // Generic error
-      console.error('Gemini API Error:', error);
-      throw new Error('Erreur de communication avec l\'IA. Veuillez réessayer.');
+      console.error("Gemini API Error:", error);
+      throw new Error("Erreur de communication avec l'IA. Veuillez réessayer.");
     }
   }
 
   async generateContent(prompt: string): Promise<string> {
     try {
-      const response = await fetch('/gemini/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+      const response = await fetch("/gemini/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
       });
 
       if (!response.ok || !response.body) {
-        throw new Error('Failed to get response from Gemini proxy');
+        throw new Error("Failed to get response from Gemini proxy");
       }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let fullResponse = '';
+      let fullResponse = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -143,31 +154,37 @@ class GeminiService {
         fullResponse += decoder.decode(value, { stream: true });
       }
 
-      return fullResponse || 'Aucune réponse générée.';
+      return fullResponse || "Aucune réponse générée.";
     } catch (error: any) {
       // Handle API errors
-      if (error.message?.includes('API_KEY')) {
-        throw new Error('Clé API Gemini invalide. Veuillez vérifier votre configuration.');
+      if (error.message?.includes("API_KEY")) {
+        throw new Error(
+          "Clé API Gemini invalide. Veuillez vérifier votre configuration.",
+        );
       }
-      
-      if (error.message?.includes('quota')) {
-        throw new Error('Quota API Gemini dépassé. Veuillez réessayer plus tard.');
+
+      if (error.message?.includes("quota")) {
+        throw new Error(
+          "Quota API Gemini dépassé. Veuillez réessayer plus tard.",
+        );
       }
-      
-      if (error.message?.includes('safety')) {
-        throw new Error('La réponse a été bloquée par les filtres de sécurité. Reformulez votre question.');
+
+      if (error.message?.includes("safety")) {
+        throw new Error(
+          "La réponse a été bloquée par les filtres de sécurité. Reformulez votre question.",
+        );
       }
-      
+
       // Generic error
-      console.error('Gemini API Error:', error);
-      throw new Error('Erreur de communication avec l\'IA. Veuillez réessayer.');
+      console.error("Gemini API Error:", error);
+      throw new Error("Erreur de communication avec l'IA. Veuillez réessayer.");
     }
   }
 
   // Utility method to validate API connection
   async validateConnection(): Promise<boolean> {
     try {
-      await this.generateContent('Test de connexion');
+      await this.generateContent("Test de connexion");
       return true;
     } catch (error) {
       return false;
@@ -177,9 +194,9 @@ class GeminiService {
   // Method to get model information
   getModelInfo() {
     return {
-      model: 'gemini-1.5-flash-latest',
-      provider: 'Google AI',
-      capabilities: ['text-generation', 'streaming', 'multilingual']
+      model: "gemini-1.5-flash-latest",
+      provider: "Google AI",
+      capabilities: ["text-generation", "streaming", "multilingual"],
     };
   }
 

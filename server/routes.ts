@@ -2,77 +2,84 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { v1beta1, protos } from '@google-cloud/text-to-speech';
-import { createRequire } from 'module';
+import { v1beta1, protos } from "@google-cloud/text-to-speech";
+import { createRequire } from "module";
 const require = createRequire(import.meta.url);
-const { extractCompleteBook } = require('./fullTextExtractor');
+const { extractCompleteBook } = require("./fullTextExtractor");
 
 // Initialize Google Cloud TTS client using service account file
 let ttsClient: v1beta1.TextToSpeechClient | null = null;
 try {
   const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  if (!credentialsPath) throw new Error('GOOGLE_APPLICATION_CREDENTIALS not set');
+  if (!credentialsPath)
+    throw new Error("GOOGLE_APPLICATION_CREDENTIALS not set");
   ttsClient = new v1beta1.TextToSpeechClient({ keyFilename: credentialsPath });
-  console.log('[TTS-Cloud] Google Cloud TTS initialized');
+  console.log("[TTS-Cloud] Google Cloud TTS initialized");
 } catch (error) {
-  console.warn('[TTS-Cloud] Google Cloud TTS not available, using fallback:', error);
+  console.warn(
+    "[TTS-Cloud] Google Cloud TTS not available, using fallback:",
+    error,
+  );
   ttsClient = null;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Sefaria CORS Proxy to fix fetch errors
-  app.get('/sefaria/*', async (req, res) => {
-    const target = 'https://www.sefaria.org' + req.originalUrl.replace('/sefaria', '');
+  app.get("/sefaria/*", async (req, res) => {
+    const target =
+      "https://www.sefaria.org" + req.originalUrl.replace("/sefaria", "");
     console.log(`[Sefaria Proxy] Fetching: ${target}`);
 
     // CORS headers always returned
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
 
     try {
-      const fetch = (await import('node-fetch')).default;
+      const fetch = (await import("node-fetch")).default;
       const response = await fetch(target);
 
-      res.header('Content-Type', 'application/json');
+      res.header("Content-Type", "application/json");
 
       if (response.ok) {
         const data = await response.text();
         res.status(response.status).send(data);
       } else {
-        console.error(`[Sefaria Proxy] Error ${response.status}: ${response.statusText}`);
+        console.error(
+          `[Sefaria Proxy] Error ${response.status}: ${response.statusText}`,
+        );
         res.status(response.status).json({
           error: `Sefaria API error: ${response.status}`,
-          url: target
+          url: target,
         });
       }
     } catch (error) {
-      console.error('[Sefaria Proxy] Fetch failed:', error);
+      console.error("[Sefaria Proxy] Fetch failed:", error);
       res.status(502).json({
-        error: 'Proxy failure',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        url: target
+        error: "Proxy failure",
+        message: error instanceof Error ? error.message : "Unknown error",
+        url: target,
       });
     }
   });
 
   // Initialize Gemini AI
   if (!process.env.GEMINI_API_KEY) {
-    console.error('GEMINI_API_KEY environment variable is missing!');
+    console.error("GEMINI_API_KEY environment variable is missing!");
   }
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   // Gemini proxy (stream) - simplified route
-  app.post('/gemini/chat', async (req, res) => {
+  app.post("/gemini/chat", async (req, res) => {
     try {
       const { prompt } = req.body;
       console.log(`[Gemini Proxy] Processing request`);
       const chat = model.startChat();
       const result = await chat.sendMessageStream(prompt);
 
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      res.setHeader('Transfer-Encoding', 'chunked');
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader("Transfer-Encoding", "chunked");
       res.flushHeaders();
 
       for await (const chunk of result.stream) {
@@ -80,253 +87,320 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.end();
     } catch (e) {
-      console.error('[Gemini Error]', e);
-      res.status(500).json({ error: 'Gemini fail' });
+      console.error("[Gemini Error]", e);
+      res.status(500).json({ error: "Gemini fail" });
     }
   });
 
-
   // Sefaria Breslov-specific proxy routes
   // NEW: Complete text extraction endpoint
-  app.get('/api/complete-text/:bookTitle/:section?', async (req, res) => {
+  app.get("/api/complete-text/:bookTitle/:section?", async (req, res) => {
     try {
       const { bookTitle, section } = req.params;
-      console.log(`[CompleteText] Extracting full content: ${bookTitle}${section ? ` section ${section}` : ''}`);
-      
-      const completeText = await extractCompleteBook(bookTitle, section ? parseInt(section) : null);
-      
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET');
-      res.header('Access-Control-Allow-Headers', 'Content-Type');
-      
+      console.log(
+        `[CompleteText] Extracting full content: ${bookTitle}${section ? ` section ${section}` : ""}`,
+      );
+
+      const completeText = await extractCompleteBook(
+        bookTitle,
+        section ? parseInt(section) : null,
+      );
+
+      res.header("Access-Control-Allow-Origin", "*");
+      res.header("Access-Control-Allow-Methods", "GET");
+      res.header("Access-Control-Allow-Headers", "Content-Type");
+
       res.json(completeText);
-      
     } catch (error) {
       console.error(`[CompleteText] Error:`, error);
-      res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+      res
+        .status(500)
+        .json({
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
     }
   });
 
   // NEW: Book sections endpoint
-  app.get('/api/book-sections/:bookTitle', async (req, res) => {
+  app.get("/api/book-sections/:bookTitle", async (req, res) => {
     try {
       const { bookTitle } = req.params;
       console.log(`[BookSections] Getting sections for: ${bookTitle}`);
-      
-      const { BRESLOV_BOOKS } = require('./fullTextExtractor');
+
+      const { BRESLOV_BOOKS } = require("./fullTextExtractor");
       const book = BRESLOV_BOOKS[bookTitle];
-      
+
       if (!book) {
         return res.status(404).json({ error: `Book ${bookTitle} not found` });
       }
-      
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET');
-      res.header('Access-Control-Allow-Headers', 'Content-Type');
-      
+
+      res.header("Access-Control-Allow-Origin", "*");
+      res.header("Access-Control-Allow-Methods", "GET");
+      res.header("Access-Control-Allow-Headers", "Content-Type");
+
       res.json(book.sections || []);
-      
     } catch (error) {
       console.error(`[BookSections] Error:`, error);
-      res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+      res
+        .status(500)
+        .json({
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
     }
   });
 
-  app.get('/api/sefaria/texts/:ref(*)', async (req, res) => {
+  app.get("/api/sefaria/texts/:ref(*)", async (req, res) => {
     try {
       const ref = req.params.ref;
-      
+
       // Check if this is a Breslov book request - use complete text extractor
-      const breslovBooks = ['Likutei Moharan', 'Sichot HaRan', 'Sippurei Maasiyot', 'Chayei Moharan', 'Shivchei HaRan'];
-      const bookTitle = breslovBooks.find(book => ref.includes(book));
-      
+      const breslovBooks = [
+        "Likutei Moharan",
+        "Sichot HaRan",
+        "Sippurei Maasiyot",
+        "Chayei Moharan",
+        "Shivchei HaRan",
+      ];
+      const bookTitle = breslovBooks.find((book) => ref.includes(book));
+
       if (bookTitle) {
-        console.log(`[Sefaria Proxy] Breslov book detected: ${ref}, using complete text extractor`);
-        
+        console.log(
+          `[Sefaria Proxy] Breslov book detected: ${ref}, using complete text extractor`,
+        );
+
         // Extract section number if present
         const sectionMatch = ref.match(/(\d+)$/);
         const section = sectionMatch ? parseInt(sectionMatch[1]) : null;
-        
+
         try {
           const completeText = await extractCompleteBook(bookTitle, section);
-          res.header('Access-Control-Allow-Origin', '*');
-          res.header('Access-Control-Allow-Methods', 'GET');
-          res.header('Access-Control-Allow-Headers', 'Content-Type');
+          res.header("Access-Control-Allow-Origin", "*");
+          res.header("Access-Control-Allow-Methods", "GET");
+          res.header("Access-Control-Allow-Headers", "Content-Type");
           return res.json(completeText);
         } catch (extractError) {
-          console.log(`[Sefaria Proxy] Complete extractor failed, falling back to regular proxy`);
+          console.log(
+            `[Sefaria Proxy] Complete extractor failed, falling back to regular proxy`,
+          );
         }
       }
-      
+
       // Try multiple API endpoints for better text access
-      const fetch = (await import('node-fetch')).default;
+      const fetch = (await import("node-fetch")).default;
       const encodedRef = encodeURIComponent(ref);
-      
+
       const endpoints = [
         `https://www.sefaria.org/api/v3/texts/${encodedRef}?context=0&commentary=0&pad=0&wrapLinks=false`,
         `https://www.sefaria.org/api/texts/${encodedRef}?context=0&commentary=0`,
-        `https://www.sefaria.org/api/v3/texts/${ref.replace(/\s+/g, '_')}?context=0&commentary=0&pad=0&wrapLinks=false`
+        `https://www.sefaria.org/api/v3/texts/${ref.replace(/\s+/g, "_")}?context=0&commentary=0&pad=0&wrapLinks=false`,
       ];
-      
+
       let lastError = null;
-      
+
       for (const url of endpoints) {
         try {
           console.log(`[Sefaria Proxy] Trying: ${url}`);
-          
+
           const response = await fetch(url, {
             headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'Mozilla/5.0 (compatible; BreslovStudyApp/1.0)'
-            }
+              Accept: "application/json",
+              "User-Agent": "Mozilla/5.0 (compatible; BreslovStudyApp/1.0)",
+            },
           });
-          
+
           if (response.ok) {
             const data = await response.json();
-            
+
             // Validate that we have actual content
             let hasContent = false;
-            if ((data as any).versions && Array.isArray((data as any).versions)) {
-              hasContent = (data as any).versions.some((v: any) => v.text && (
-                (typeof v.text === 'string' && v.text.trim().length > 3) ||
-                (Array.isArray(v.text) && v.text.some((segment: any) => segment && segment.trim().length > 3))
-              ));
+            if (
+              (data as any).versions &&
+              Array.isArray((data as any).versions)
+            ) {
+              hasContent = (data as any).versions.some(
+                (v: any) =>
+                  v.text &&
+                  ((typeof v.text === "string" && v.text.trim().length > 3) ||
+                    (Array.isArray(v.text) &&
+                      v.text.some(
+                        (segment: any) => segment && segment.trim().length > 3,
+                      ))),
+              );
             } else if ((data as any).text || (data as any).he) {
               hasContent = true;
             }
-            
+
             if (hasContent) {
               console.log(`[Sefaria Proxy] ✅ Successfully fetched: ${ref}`);
-              res.header('Access-Control-Allow-Origin', '*');
-              res.header('Access-Control-Allow-Methods', 'GET');
-              res.header('Access-Control-Allow-Headers', 'Content-Type');
+              res.header("Access-Control-Allow-Origin", "*");
+              res.header("Access-Control-Allow-Methods", "GET");
+              res.header("Access-Control-Allow-Headers", "Content-Type");
               return res.json(data);
             }
           }
-          
-          lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+          lastError = new Error(
+            `HTTP ${response.status}: ${response.statusText}`,
+          );
         } catch (fetchError) {
           lastError = fetchError;
           continue;
         }
       }
-      
-      console.error(`[Sefaria Proxy] All endpoints failed for ${ref}:`, lastError);
-      res.status(404).json({ 
-        error: 'Text not found', 
+
+      console.error(
+        `[Sefaria Proxy] All endpoints failed for ${ref}:`,
+        lastError,
+      );
+      res.status(404).json({
+        error: "Text not found",
         ref: ref,
-        suggestion: 'This text may not be available on Sefaria or the reference format may be incorrect'
+        suggestion:
+          "This text may not be available on Sefaria or the reference format may be incorrect",
       });
-      
     } catch (error) {
-      console.error('[Sefaria Proxy] Text fetch error:', error);
-      res.status(500).json({ error: `Failed to fetch text: ${error instanceof Error ? error.message : 'Unknown error'}` });
+      console.error("[Sefaria Proxy] Text fetch error:", error);
+      res
+        .status(500)
+        .json({
+          error: `Failed to fetch text: ${error instanceof Error ? error.message : "Unknown error"}`,
+        });
     }
   });
 
-  app.get('/api/sefaria/breslov-index', async (req, res) => {
+  app.get("/api/sefaria/breslov-index", async (req, res) => {
     try {
       console.log(`[Sefaria Proxy] Building Breslov index from known books`);
-      
+
       // ALL Breslov books on Sefaria with their validated working references
       const breslovBooks = [
-        { title: 'Likutei Moharan', ref: 'Likutei Moharan.1.1.1' },
-        { title: 'Sichot HaRan', ref: 'Sichot HaRan.1.1' },
-        { title: 'Sippurei Maasiyot', ref: 'Sippurei Maasiyot.1.1' },
-        { title: 'Chayei Moharan', ref: 'Chayei Moharan.1.1' },
-        { title: 'Shivchei HaRan', ref: 'Shivchei HaRan.1.1' },
-        { title: 'Sefer HaMiddot', ref: 'Sefer HaMiddot, Introduction.1' },
-        { title: 'Likutei Tefilot', ref: 'Likutei Tefilot, Introduction.1' },
-        { title: 'Likutei Halakhot', ref: 'Likutei Halakhot, Author\'s Introduction.1' },
-        { title: 'Likkutei Etzot', ref: 'Likkutei Etzot, Introduction to First Edition.1' }
+        { title: "Likutei Moharan", ref: "Likutei Moharan.1.1.1" },
+        { title: "Sichot HaRan", ref: "Sichot HaRan.1.1" },
+        { title: "Sippurei Maasiyot", ref: "Sippurei Maasiyot.1.1" },
+        { title: "Chayei Moharan", ref: "Chayei Moharan.1.1" },
+        { title: "Shivchei HaRan", ref: "Shivchei HaRan.1.1" },
+        { title: "Sefer HaMiddot", ref: "Sefer HaMiddot, Introduction.1" },
+        { title: "Likutei Tefilot", ref: "Likutei Tefilot, Introduction.1" },
+        {
+          title: "Likutei Halakhot",
+          ref: "Likutei Halakhot, Author's Introduction.1",
+        },
+        {
+          title: "Likkutei Etzot",
+          ref: "Likkutei Etzot, Introduction to First Edition.1",
+        },
       ];
-      
-      console.log(`[Sefaria Proxy] Breslov index built with ${breslovBooks.length} books`);
-      
+
+      console.log(
+        `[Sefaria Proxy] Breslov index built with ${breslovBooks.length} books`,
+      );
+
       // Set CORS headers
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET');
-      res.header('Access-Control-Allow-Headers', 'Content-Type');
-      
+      res.header("Access-Control-Allow-Origin", "*");
+      res.header("Access-Control-Allow-Methods", "GET");
+      res.header("Access-Control-Allow-Headers", "Content-Type");
+
       res.json(breslovBooks);
     } catch (error) {
-      console.error('[Sefaria Proxy] Breslov index build error:', error);
-      res.status(500).json({ error: `Failed to build Breslov index: ${error instanceof Error ? error.message : 'Unknown error'}` });
+      console.error("[Sefaria Proxy] Breslov index build error:", error);
+      res
+        .status(500)
+        .json({
+          error: `Failed to build Breslov index: ${error instanceof Error ? error.message : "Unknown error"}`,
+        });
     }
   });
 
   // Handle preflight requests
-  app.options('/api/sefaria/*', (req, res) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
+  app.options("/api/sefaria/*", (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
     res.status(200).end();
   });
 
   // Premium TTS endpoint with masculine voice
-  app.post('/api/tts/speak', async (req, res) => {
+  app.post("/api/tts/speak", async (req, res) => {
     try {
       const { text, lang } = req.body as { text: string; lang: string };
-      
+
       if (!ttsClient) {
-        console.log('[TTS-Cloud] Service unavailable, returning fallback response');
-        return res.status(503).json({ error: 'TTS service unavailable' });
+        console.log(
+          "[TTS-Cloud] Service unavailable, returning fallback response",
+        );
+        return res.status(503).json({ error: "TTS service unavailable" });
       }
 
       // Voice mapping with masculine voices for all languages
       const voiceMap = {
-        fr: { languageCode: 'fr-FR', name: 'fr-FR-Wavenet-D', ssmlGender: 'MALE' as const },
-        en: { languageCode: 'en-US', name: 'en-US-Studio-M', ssmlGender: 'MALE' as const },
-        he: { languageCode: 'he-IL', name: 'he-IL-Wavenet-B', ssmlGender: 'MALE' as const }
+        fr: {
+          languageCode: "fr-FR",
+          name: "fr-FR-Wavenet-D",
+          ssmlGender: "MALE" as const,
+        },
+        en: {
+          languageCode: "en-US",
+          name: "en-US-Studio-M",
+          ssmlGender: "MALE" as const,
+        },
+        he: {
+          languageCode: "he-IL",
+          name: "he-IL-Wavenet-B",
+          ssmlGender: "MALE" as const,
+        },
       };
 
       const voice = voiceMap[lang as keyof typeof voiceMap] || voiceMap.fr;
-      
-      console.log(`[TTS-Cloud] Synthesizing: ${text.substring(0, 50)}... (${lang})`);
 
-      const request: protos.google.cloud.texttospeech.v1beta1.ISynthesizeSpeechRequest = {
-        input: { text },
-        voice: {
-          languageCode: voice.languageCode,
-          name: voice.name,
-          ssmlGender: protos.google.cloud.texttospeech.v1beta1.SsmlVoiceGender.MALE
-        },
-        audioConfig: {
-          audioEncoding: protos.google.cloud.texttospeech.v1beta1.AudioEncoding.MP3,
-          speakingRate: 0.95,
-          pitch: -2.0,
-          volumeGainDb: 2.0
-        }
-      };
+      console.log(
+        `[TTS-Cloud] Synthesizing: ${text.substring(0, 50)}... (${lang})`,
+      );
+
+      const request: protos.google.cloud.texttospeech.v1beta1.ISynthesizeSpeechRequest =
+        {
+          input: { text },
+          voice: {
+            languageCode: voice.languageCode,
+            name: voice.name,
+            ssmlGender:
+              protos.google.cloud.texttospeech.v1beta1.SsmlVoiceGender.MALE,
+          },
+          audioConfig: {
+            audioEncoding:
+              protos.google.cloud.texttospeech.v1beta1.AudioEncoding.MP3,
+            speakingRate: 0.95,
+            pitch: -2.0,
+            volumeGainDb: 2.0,
+          },
+        };
 
       const [response] = await ttsClient.synthesizeSpeech(request);
 
       if (!response.audioContent) {
-        throw new Error('No audio content received from TTS service');
+        throw new Error("No audio content received from TTS service");
       }
 
-      res.setHeader('Content-Type', 'audio/mpeg');
-      res.setHeader('Content-Length', response.audioContent.length);
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Content-Length", response.audioContent.length);
       res.send(response.audioContent);
-      
     } catch (error) {
-      console.error('[TTS-Cloud] Error:', error);
-      res.status(500).json({ error: 'TTS synthesis failed' });
+      console.error("[TTS-Cloud] Error:", error);
+      res.status(500).json({ error: "TTS synthesis failed" });
     }
   });
 
   // TTS health check endpoint
-  app.get('/api/tts/ping', async (req, res) => {
+  app.get("/api/tts/ping", async (req, res) => {
     if (ttsClient) {
-      res.json({ available: true, provider: 'Google Cloud TTS' });
+      res.json({ available: true, provider: "Google Cloud TTS" });
     } else {
-      res.status(503).json({ available: false, fallback: 'Web Speech API' });
+      res.status(503).json({ available: false, fallback: "Web Speech API" });
     }
   });
 
   // Basic health check for automated tests
-  app.get('/health', (_req, res) => {
-    res.json({ status: 'ok' });
+  app.get("/health", (_req, res) => {
+    res.json({ status: "ok" });
   });
 
   const httpServer = createServer(app);

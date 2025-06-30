@@ -1,6 +1,6 @@
-export type Language = 'fr' | 'en' | 'he';
+export type Language = "fr" | "en" | "he";
 
-export type Sender = 'user' | 'ai';
+export type Sender = "user" | "ai";
 
 export interface Message {
   id: string;
@@ -34,14 +34,14 @@ export interface SefariaCategory {
   contents?: SefariaIndexNode[];
 }
 
-export type InteractionMode = 'chat' | 'analysis' | 'guidance';
+export type InteractionMode = "chat" | "analysis" | "guidance";
 
-export type AIMode = 
-  | 'study' // Mode 1: Deep study analysis
-  | 'explore' // Mode 2: General exploration
-  | 'analyze' // Mode 3: Text analysis
-  | 'counsel' // Mode 4: Personal guidance
-  | 'summarize'; // Mode 5: Key points summary
+export type AIMode =
+  | "study" // Mode 1: Deep study analysis
+  | "explore" // Mode 2: General exploration
+  | "analyze" // Mode 3: Text analysis
+  | "counsel" // Mode 4: Personal guidance
+  | "summarize"; // Mode 5: Key points summary
 
 // Extend window for Web Speech API
 declare global {
