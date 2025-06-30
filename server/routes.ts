@@ -206,32 +206,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Fallback to regular Sefaria proxy
+      // Try multiple API endpoints for better text access
+      const fetch = (await import('node-fetch')).default;
       const encodedRef = encodeURIComponent(ref);
-      const url = `https://www.sefaria.org/api/v3/texts/${encodedRef}?context=0&commentary=0&pad=0&wrapLinks=false`;
       
-      console.log(`[Sefaria Proxy] Fetching text: ${ref} -> ${url}`);
+      const endpoints = [
+        `https://www.sefaria.org/api/v3/texts/${encodedRef}?context=0&commentary=0&pad=0&wrapLinks=false`,
+        `https://www.sefaria.org/api/texts/${encodedRef}?context=0&commentary=0`,
+        `https://www.sefaria.org/api/v3/texts/${ref.replace(/\s+/g, '_')}?context=0&commentary=0&pad=0&wrapLinks=false`
+      ];
       
-      const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (compatible; BreslovStudyApp/1.0)'
+      let lastError = null;
+      
+      for (const url of endpoints) {
+        try {
+          console.log(`[Sefaria Proxy] Trying: ${url}`);
+          
+          const response = await fetch(url, {
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'Mozilla/5.0 (compatible; BreslovStudyApp/1.0)'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            // Validate that we have actual content
+            let hasContent = false;
+            if (data.versions && Array.isArray(data.versions)) {
+              hasContent = data.versions.some(v => v.text && (
+                (typeof v.text === 'string' && v.text.trim().length > 3) ||
+                (Array.isArray(v.text) && v.text.some(segment => segment && segment.trim().length > 3))
+              ));
+            } else if (data.text || data.he) {
+              hasContent = true;
+            }
+            
+            if (hasContent) {
+              console.log(`[Sefaria Proxy] ✅ Successfully fetched: ${ref}`);
+              res.header('Access-Control-Allow-Origin', '*');
+              res.header('Access-Control-Allow-Methods', 'GET');
+              res.header('Access-Control-Allow-Headers', 'Content-Type');
+              return res.json(data);
+            }
+          }
+          
+          lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+        } catch (fetchError) {
+          lastError = fetchError;
+          continue;
         }
-      });
-      
-      if (!response.ok) {
-        console.error(`[Sefaria Proxy] Error ${response.status}: ${response.statusText} for ${ref}`);
-        return res.status(response.status).json({ error: 'Sefaria error' });
       }
       
-      const data = await response.json();
+      console.error(`[Sefaria Proxy] All endpoints failed for ${ref}:`, lastError);
+      res.status(404).json({ 
+        error: 'Text not found', 
+        ref: ref,
+        suggestion: 'This text may not be available on Sefaria or the reference format may be incorrect'
+      });
       
-      // Set CORS headers
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET');
-      res.header('Access-Control-Allow-Headers', 'Content-Type');
-      
-      res.json(data);
     } catch (error) {
       console.error('[Sefaria Proxy] Text fetch error:', error);
       res.status(500).json({ error: `Failed to fetch text: ${error instanceof Error ? error.message : 'Unknown error'}` });
