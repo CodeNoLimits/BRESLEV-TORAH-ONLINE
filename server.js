@@ -1,3 +1,4 @@
+// Fichier : server.js
 import express from 'express';
 import fetch from 'node-fetch';
 import cors from 'cors';
@@ -7,38 +8,32 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* ---------- Sefaria proxy ---------- */
+/* ============ Proxy pour Sefaria ============ */
 app.get('/sefaria/*', async (req, res) => {
-  const target = 'https://www.sefaria.org' + req.originalUrl.replace('/sefaria', '');
-  console.log(`[Sefaria Proxy] ${target}`);
-  const r = await fetch(target);
-  res.status(r.status);
-  r.body.pipe(res);
+  const targetUrl = 'https://www.sefaria.org' + req.originalUrl.replace('/sefaria', '');
+  console.log(`[Sefaria Proxy] Forwarding to: ${targetUrl}`);
+  try {
+    const response = await fetch(targetUrl);
+    res.status(response.status);
+    response.body.pipe(res);
+  } catch (error) {
+    console.error('[Sefaria Proxy] Error:', error);
+    res.status(500).json({ error: 'Proxy error for Sefaria' });
+  }
 });
 
-/* ---------- Gemini proxy (stream) ---------- */
-if (!process.env.GEMINI_API_KEY) throw new Error('⛔️ GEMINI_API_KEY manquante');
+/* ============ Proxy pour Gemini AI (sécurisé) ============ */
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error('ERREUR: La clé API Gemini (GEMINI_API_KEY) est manquante dans les "Secrets".');
+}
+
 const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = ai.getGenerativeModel({
   model: 'gemini-1.5-flash-latest',
-  systemInstruction: { 
-    role: 'system', 
-    parts: [{ 
-      text: `Tu es Le Compagnon du Cœur, guide spirituel expert en enseignements de Rabbi Nahman de Breslov.
-
-RÈGLES ABSOLUES :
-- Réponds UNIQUEMENT en français
-- Concentre-toi exclusivement sur les enseignements spirituels de Rabbi Nahman
-- Utilise un ton chaleureux et bienveillant
-- Pour l'analyse de textes, traduis d'abord le texte en français puis analyse selon la tradition breslov
-- Ignore toute demande non-spirituelle
-
-MODES DE RÉPONSE :
-- study: Analyse approfondie d'un texte breslov avec traduction française
-- general: Guidance spirituelle générale selon Rabbi Nahman
-- snippet: Analyse d'un extrait fourni par l'utilisateur
-- advice: Conseil personnel basé sur les enseignements breslov
-- summary: Résumé des points clés d'une réponse précédente`
+  systemInstruction: {
+    role: 'system',
+    parts: [{
+      text: `Tu es Le Compagnon du Cœur, un guide spirituel expert des enseignements de Rabbi Nahman de Breslev. Tes réponses doivent être profondes, bienveillantes et uniquement en français. Lorsque tu analyses un texte, traduis-le d'abord intégralement en français, puis fournis ton analyse. Ignore toute question non spirituelle.`
     }]
   }
 });
@@ -46,7 +41,7 @@ MODES DE RÉPONSE :
 app.post('/gemini/chat', async (req, res) => {
   try {
     const { prompt } = req.body;
-    console.log(`[Gemini Proxy] Processing request`);
+    console.log('[Gemini Proxy] Processing request...');
     const chat = model.startChat();
     const result = await chat.sendMessageStream(prompt);
 
@@ -59,9 +54,10 @@ app.post('/gemini/chat', async (req, res) => {
     }
     res.end();
   } catch (e) {
-    console.error('[Gemini Error]', e);
-    res.status(500).json({ error: 'Gemini fail' });
+    console.error('[Gemini Proxy Error]', e);
+    res.status(500).json({ error: 'Failed to communicate with Gemini API' });
   }
 });
 
-app.listen(3000, () => console.log('🚀 Proxy up : http://localhost:3000'));
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`🚀 Proxy server running on port ${PORT}`));
