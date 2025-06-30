@@ -1,8 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { extractCompleteBook } from "./fullTextExtractor.js";
-import { cacheService } from "./cache.js";
+import { extractCompleteBook } from "./fullTextExtractor";
+import { cacheService } from "./cache";
 
 // Set environment variables for frontend
 process.env.VITE_GEMINI_API_KEY = process.env.GEMINI_API_KEY;

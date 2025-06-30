@@ -1,7 +1,29 @@
 // Complete text extraction system for Breslov books
 // This ensures we get FULL texts, not fragments
 
-const BRESLOV_BOOKS = {
+import fetch from 'node-fetch';
+
+interface BreslovSection {
+  ref: string;
+  title: string;
+  number: string;
+}
+
+interface BreslovBook {
+  baseRef: string;
+  sections: BreslovSection[];
+  totalSections?: number;
+}
+
+interface BreslovTextResult {
+  ref: string;
+  book: string;
+  text: string[];
+  he: string[];
+  title: string;
+}
+
+const BRESLOV_BOOKS: Record<string, BreslovBook> = {
   'Likutei Moharan': {
     baseRef: 'Likutei Moharan',
     sections: [
@@ -55,7 +77,7 @@ const BRESLOV_BOOKS = {
   }
 };
 
-async function extractCompleteBook(bookTitle, sectionNumber = null) {
+export async function extractCompleteBook(bookTitle: string, sectionNumber: string | null = null): Promise<BreslovTextResult> {
   console.log(`[FullTextExtractor] Extracting complete content for ${bookTitle}${sectionNumber ? ` section ${sectionNumber}` : ''}`);
   
   const book = BRESLOV_BOOKS[bookTitle];
@@ -64,8 +86,8 @@ async function extractCompleteBook(bookTitle, sectionNumber = null) {
   }
   
   try {
-    let completeEnglishText = [];
-    let completeHebrewText = [];
+    let completeEnglishText: string[] = [];
+    let completeHebrewText: string[] = [];
     
     if (sectionNumber) {
       // Extract specific section with ALL its content
@@ -84,10 +106,10 @@ async function extractCompleteBook(bookTitle, sectionNumber = null) {
         try {
           const response = await fetch(`https://www.sefaria.org/api/texts/${encodeURIComponent(approach)}?lang=both&context=1&commentary=0&multiple=1`);
           if (response.ok) {
-            const data = await response.json();
+            const data = await response.json() as any;
             
             // Extract all text recursively
-            const extractText = (textData) => {
+            const extractText = (textData: any): string[] => {
               if (!textData) return [];
               if (typeof textData === 'string') return [textData.trim()].filter(t => t);
               if (Array.isArray(textData)) {
@@ -109,7 +131,7 @@ async function extractCompleteBook(bookTitle, sectionNumber = null) {
             if (english.length >= 5) break;
             
           }
-        } catch (error) {
+        } catch (error: any) {
           console.log(`[FullTextExtractor] Approach ${approach} failed:`, error.message);
         }
       }
@@ -118,34 +140,34 @@ async function extractCompleteBook(bookTitle, sectionNumber = null) {
       // Extract entire book (first few sections for preview)
       console.log(`[FullTextExtractor] Extracting book overview for ${bookTitle}`);
       
-      for (let section = 1; section <= Math.min(5, book.totalSections); section++) {
+      for (let section = 1; section <= Math.min(5, book.totalSections || 5); section++) {
         try {
           const sectionRef = `${book.baseRef} ${section}`;
           const response = await fetch(`https://www.sefaria.org/api/texts/${encodeURIComponent(sectionRef)}?lang=both&context=1`);
           
           if (response.ok) {
-            const data = await response.json();
+            const data = await response.json() as any;
             
             if (data.text && Array.isArray(data.text)) {
               completeEnglishText = completeEnglishText.concat(
-                data.text.flat(Infinity).filter(t => typeof t === 'string' && t.trim())
+                data.text.flat(Infinity).filter((t: any) => typeof t === 'string' && t.trim())
               );
             }
             
             if (data.he && Array.isArray(data.he)) {
               completeHebrewText = completeHebrewText.concat(
-                data.he.flat(Infinity).filter(t => typeof t === 'string' && t.trim())
+                data.he.flat(Infinity).filter((t: any) => typeof t === 'string' && t.trim())
               );
             }
           }
-        } catch (error) {
+        } catch (error: any) {
           console.log(`[FullTextExtractor] Failed to fetch section ${section}:`, error.message);
         }
       }
     }
     
     // Clean the texts
-    const cleanTexts = (texts) => {
+    const cleanTexts = (texts: string[]): string[] => {
       return texts
         .map(text => text.replace(/<[^>]*>/g, '').trim())
         .filter(text => text.length > 0);
@@ -168,10 +190,10 @@ async function extractCompleteBook(bookTitle, sectionNumber = null) {
       title: `${bookTitle}${sectionNumber ? ` - Section ${sectionNumber}` : ''}`
     };
     
-  } catch (error) {
+  } catch (error: any) {
     console.error(`[FullTextExtractor] Error extracting ${bookTitle}:`, error);
     throw error;
   }
 }
 
-module.exports = { extractCompleteBook, BRESLOV_BOOKS };
+export { BRESLOV_BOOKS };
