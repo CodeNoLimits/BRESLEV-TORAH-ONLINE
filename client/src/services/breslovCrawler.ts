@@ -81,46 +81,102 @@ export class BreslovCrawler {
       return this.cache.get(cacheKey);
     }
 
-    // Try multiple API endpoints for better success rate
+    // Générer des variantes de référence pour maximiser la compatibilité
+    const refVariants = this.generateReferenceVariants(ref);
+    
     const endpoints = [
-      `/api/sefaria/texts/${encodeURIComponent(ref)}`,
-      `/sefaria/api/texts/${encodeURIComponent(ref)}?context=0&commentary=0`,
-      `/sefaria/api/v3/texts/${encodeURIComponent(ref)}?context=0&commentary=0&pad=0&wrapLinks=false`
+      `/api/sefaria/texts/`,
+      `/sefaria/api/texts/`,
+      `/sefaria/api/v3/texts/`,
+      `/api/sefaria/v3/texts/`
     ];
 
-    for (const url of endpoints) {
-      try {
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          continue; // Try next endpoint
+    console.log(`[BreslovCrawler] Trying ${refVariants.length} reference variants for: ${ref}`);
+
+    for (const variant of refVariants) {
+      for (const endpoint of endpoints) {
+        try {
+          const url = `${endpoint}${encodeURIComponent(variant)}?context=0&commentary=0&pad=0&wrapLinks=false`;
+          console.log(`[BreslovCrawler] Trying: ${url}`);
+          
+          const response = await fetch(url);
+          
+          if (!response.ok) {
+            continue;
+          }
+
+          const data = await response.json();
+          
+          if (this.hasValidContent(data)) {
+            this.cache.set(cacheKey, data);
+            console.log(`[BreslovCrawler] ✅ Loaded ${ref} using variant "${variant}"`);
+            
+            // Rate limiting
+            await new Promise(resolve => setTimeout(resolve, this.DELAY));
+            return data;
+          }
+        } catch (error) {
+          continue;
         }
-        
-        const data = await response.json();
-        
-        // Debug: Log the actual structure to understand the text/he mapping
-        if (data && data.versions && data.versions.length > 0) {
-          const version = data.versions[0];
-          console.log(`[BreslovCrawler] Data structure for ${ref}:`, {
-            hasText: !!version.text,
-            hasHe: !!version.he,
-            textType: Array.isArray(version.text) ? 'array' : typeof version.text,
-            heType: Array.isArray(version.he) ? 'array' : typeof version.he,
-            textSample: Array.isArray(version.text) ? version.text[0]?.substring(0, 50) : 'N/A',
-            heSample: Array.isArray(version.he) ? version.he[0]?.substring(0, 50) : 'N/A'
-          });
-        }
-        
-        this.cache.set(cacheKey, data);
-        return data;
-      } catch (fetchError) {
-        continue; // Try next endpoint
       }
     }
 
     // If all endpoints failed
-    console.error(`[BreslovCrawler] All endpoints failed for ${ref}`);
+    console.error(`[BreslovCrawler] ❌ Failed to load: ${ref} (tried ${refVariants.length} variants)`);
     return null;
+  }
+
+  /**
+   * Génère différentes variantes de référence pour maximiser la compatibilité
+   */
+  private generateReferenceVariants(ref: string): string[] {
+    const variants = [ref];
+    
+    // Format point vers espace (Likutei Moharan.10 -> Likutei Moharan 10)
+    if (ref.includes('.')) {
+      variants.push(ref.replace(/\./g, ' '));
+      variants.push(ref.replace(/\./g, ', '));
+      variants.push(ref.replace(/\./g, ':'));
+    }
+    
+    // Format underscore vers espace (Likutei_Moharan -> Likutei Moharan)
+    if (ref.includes('_')) {
+      variants.push(ref.replace(/_/g, ' '));
+      variants.push(ref.replace(/_/g, '.'));
+    }
+    
+    // Ajouter .1 à la fin si pas de sous-numéro
+    if (!ref.includes('.1') && !ref.includes(' 1') && ref.match(/\d+$/)) {
+      variants.push(`${ref}.1`);
+      variants.push(`${ref} 1`);
+      variants.push(`${ref}:1`);
+    }
+    
+    // Format spécial pour certains textes
+    if (ref.includes('Likutei Moharan')) {
+      const num = ref.match(/\d+/)?.[0];
+      if (num) {
+        variants.push(`Likutei Moharan ${num}`);
+        variants.push(`Likutei Moharan.${num}`);
+        variants.push(`Likutei Moharan, ${num}`);
+        variants.push(`Likutei Moharan ${num}:1`);
+        variants.push(`Likutei Moharan.${num}.1`);
+      }
+    }
+    
+    // Format spécial pour Sichot HaRan
+    if (ref.includes('Sichot HaRan')) {
+      const num = ref.match(/\d+/)?.[0];
+      if (num) {
+        variants.push(`Sichot HaRan ${num}`);
+        variants.push(`Sichot HaRan.${num}`);
+        variants.push(`Sichot HaRan ${num}:1`);
+        variants.push(`Sichot HaRan.${num}.1`);
+      }
+    }
+    
+    // Supprimer les doublons et retourner les variantes
+    return Array.from(new Set(variants));
   }
 
   /**
@@ -273,6 +329,43 @@ export class BreslovCrawler {
       cacheObject[key] = value;
     });
     return cacheObject;
+  }
+
+  /**
+   * Vérifie si les données contiennent du contenu textuel valide
+   */
+  private hasValidContent(data: any): boolean {
+    if (!data) return false;
+    
+    // Check V3 API format
+    if (data.versions && Array.isArray(data.versions) && data.versions.length > 0) {
+      return data.versions.some((version: any) => 
+        (version.text && this.isValidText(version.text)) || 
+        (version.he && this.isValidText(version.he))
+      );
+    }
+    
+    // Check V1 API format
+    return this.isValidText(data.text) || this.isValidText(data.he);
+  }
+
+  /**
+   * Vérifie si un texte est valide (non vide et suffisamment long)
+   */
+  private isValidText(text: any): boolean {
+    if (!text) return false;
+    
+    if (typeof text === 'string') {
+      return text.trim().length > 3;
+    }
+    
+    if (Array.isArray(text)) {
+      return text.some(segment => 
+        segment && typeof segment === 'string' && segment.trim().length > 3
+      );
+    }
+    
+    return false;
   }
 }
 

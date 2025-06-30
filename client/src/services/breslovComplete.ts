@@ -147,40 +147,82 @@ class BreslovCompleteService {
     }
 
     try {
-      // Try multiple API endpoints for comprehensive text access
+      // Generate multiple reference variants for maximum compatibility
+      const refVariants = this.generateRefVariants(ref);
+      
+      // Try multiple API endpoints for each variant
       const endpoints = [
-        `/api/sefaria/texts/${encodeURIComponent(ref)}`,
-        `/api/sefaria/v3/texts/${encodeURIComponent(ref)}?context=0&commentary=0&pad=0&wrapLinks=false`,
-        `/sefaria/api/texts/${encodeURIComponent(ref)}?context=0&commentary=0`
+        '/api/sefaria/texts/',
+        '/api/sefaria/v3/texts/',
+        '/sefaria/api/texts/',
+        '/sefaria/api/v3/texts/'
       ];
 
-      for (const endpoint of endpoints) {
-        try {
-          const response = await fetch(endpoint);
-          
-          if (!response.ok) {
-            continue; // Try next endpoint
-          }
+      for (const variant of refVariants) {
+        for (const endpoint of endpoints) {
+          try {
+            const url = `${endpoint}${encodeURIComponent(variant)}?context=0&commentary=0&pad=0&wrapLinks=false`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+              continue; // Try next combination
+            }
 
-          const data = await response.json();
-          
-          // Check for content in multiple API formats
-          if (this.hasValidContent(data)) {
-            this.cache.set(ref, data);
-            console.log(`[BreslovComplete] ✅ Loaded: ${ref} with complete segments`);
-            return data;
+            const data = await response.json();
+            
+            // Check for content in multiple API formats
+            if (this.hasValidContent(data)) {
+              this.cache.set(ref, data);
+              console.log(`[BreslovComplete] ✅ Loaded: ${ref} (variant: ${variant}) with complete segments`);
+              return data;
+            }
+          } catch (fetchError) {
+            continue; // Try next combination
           }
-        } catch (fetchError) {
-          continue; // Try next endpoint
         }
       }
 
-      console.warn(`[BreslovComplete] No content available for ${ref}`);
+      console.warn(`[BreslovComplete] No content available for ${ref} (tried ${refVariants.length} variants)`);
       return null;
     } catch (error) {
       console.error(`[BreslovComplete] Error fetching ${ref}:`, error);
       return null;
     }
+  }
+
+  private generateRefVariants(ref: string): string[] {
+    const variants = [ref];
+    
+    // Handle different numbering formats
+    if (ref.includes('.')) {
+      const parts = ref.split('.');
+      const base = parts[0];
+      const num = parts[1];
+      
+      // Add variants with different separators
+      variants.push(`${base} ${num}`);
+      variants.push(`${base}, ${num}`);
+      variants.push(`${base}:${num}`);
+      
+      // For multi-part numbers (like 1.1)
+      if (num && !num.includes('.')) {
+        variants.push(`${base}.${num}.1`);
+        variants.push(`${base} ${num}:1`);
+      }
+    }
+    
+    // Handle underscore format
+    if (ref.includes('_')) {
+      variants.push(ref.replace(/_/g, ' '));
+    }
+    
+    // Handle space format
+    if (ref.includes(' ')) {
+      variants.push(ref.replace(/ /g, '_'));
+      variants.push(ref.replace(/ /g, '.'));
+    }
+    
+    return [...new Set(variants)]; // Remove duplicates
   }
 
   private hasValidContent(data: any): boolean {
