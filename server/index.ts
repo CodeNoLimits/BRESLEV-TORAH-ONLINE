@@ -11,6 +11,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Simple health check route
+app.get('/health', (_req, res) => res.send('ok'));
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
