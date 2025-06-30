@@ -36,12 +36,40 @@ export class BreslovDiagnostic {
         console.log(`[BreslovDiagnostic] Checking ${ref}...`);
         const text = await breslovCrawler.getTextByRef(ref);
         
-        // Compter correctement les segments non-vides
-        const englishCount = Array.isArray(text?.text) ? 
-          text.text.filter(segment => segment && typeof segment === 'string' && segment.trim().length > 10).length : 0;
+        // Handle both server fullTextExtractor format and standard Sefaria format
+        let englishCount = 0;
+        let hebrewCount = 0;
         
-        const hebrewCount = Array.isArray(text?.he) ? 
-          text.he.filter(segment => segment && typeof segment === 'string' && segment.trim().length > 5).length : 0;
+        if (text) {
+          // Server fullTextExtractor format (from server/fullTextExtractor.js)
+          if (text.text && Array.isArray(text.text)) {
+            englishCount = text.text.filter(segment => 
+              segment && typeof segment === 'string' && segment.trim().length > 10
+            ).length;
+          }
+          
+          if (text.he && Array.isArray(text.he)) {
+            hebrewCount = text.he.filter(segment => 
+              segment && typeof segment === 'string' && segment.trim().length > 5
+            ).length;
+          }
+          
+          // Fallback: Check versions format (standard Sefaria)
+          if (englishCount === 0 && text.versions && Array.isArray(text.versions)) {
+            for (const version of text.versions) {
+              if (version.text && Array.isArray(version.text)) {
+                englishCount += version.text.filter(segment => 
+                  segment && typeof segment === 'string' && segment.trim().length > 10
+                ).length;
+              }
+              if (version.he && Array.isArray(version.he)) {
+                hebrewCount += version.he.filter(segment => 
+                  segment && typeof segment === 'string' && segment.trim().length > 5
+                ).length;
+              }
+            }
+          }
+        }
 
         const diagnostic: BookDiagnostic = {
           ref,

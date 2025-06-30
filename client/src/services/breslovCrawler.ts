@@ -283,9 +283,25 @@ export class BreslovCrawler {
     try {
       const result = await this.fetchTextSection(correctedRef);
       
-      if (result && result.versions && result.versions.length > 0) {
-        const textLength = Array.isArray(result.versions[0].text) ? result.versions[0].text.length : 1;
-        const heLength = Array.isArray(result.versions[0].he) ? result.versions[0].he.length : 1;
+      // Handle both server fullTextExtractor format and standard Sefaria format
+      if (result) {
+        let textLength = 0;
+        let heLength = 0;
+        
+        // Server fullTextExtractor format (direct text/he arrays)
+        if (result.text && Array.isArray(result.text)) {
+          textLength = result.text.length;
+        }
+        if (result.he && Array.isArray(result.he)) {
+          heLength = result.he.length;
+        }
+        
+        // Fallback: Standard Sefaria versions format
+        if (textLength === 0 && result.versions && result.versions.length > 0) {
+          textLength = Array.isArray(result.versions[0].text) ? result.versions[0].text.length : 1;
+          heLength = Array.isArray(result.versions[0].he) ? result.versions[0].he.length : 1;
+        }
+        
         console.log(`[BreslovCrawler] Retrieved complete text: ${textLength} English segments, ${heLength} Hebrew segments`);
       }
       
@@ -337,6 +353,11 @@ export class BreslovCrawler {
   private hasValidContent(data: any): boolean {
     if (!data) return false;
     
+    // Check server fullTextExtractor format (direct text/he arrays)
+    if (this.isValidText(data.text) || this.isValidText(data.he)) {
+      return true;
+    }
+    
     // Check V3 API format
     if (data.versions && Array.isArray(data.versions) && data.versions.length > 0) {
       return data.versions.some((version: any) => 
@@ -345,8 +366,7 @@ export class BreslovCrawler {
       );
     }
     
-    // Check V1 API format
-    return this.isValidText(data.text) || this.isValidText(data.he);
+    return false;
   }
 
   /**
