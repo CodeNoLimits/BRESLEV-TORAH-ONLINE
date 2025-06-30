@@ -245,7 +245,8 @@ ${text}`
       // Speak complete response after streaming is done
       if (ttsEnabled && fullResponse.trim()) {
         console.log(`[AppSimple] TTS - Speaking complete response (${fullResponse.length} chars)`);
-        speak(fullResponse);
+        console.log(`[AppSimple] TTS enabled: ${ttsEnabled}, Cloud available: ${true}`);
+        await speak(fullResponse);
       }
 
     } catch (error) {

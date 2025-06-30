@@ -90,10 +90,11 @@ export const useTTSFixed = ({ language, enabled }: TTSOptions) => {
       return;
     }
 
-    // Mobile fallback to Cloud TTS if Web Speech is not available
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobile && !isSupported && isCloudAvailable) {
-      console.log(`[TTS-Fixed] Using Cloud TTS fallback for mobile`);
+    console.log(`[TTS-Fixed] ATTEMPTING TO SPEAK: ${text.substring(0, 100)}...`);
+
+    // ALWAYS try Cloud TTS first when available for better quality
+    if (isCloudAvailable) {
+      console.log(`[TTS-Fixed] Using Cloud TTS for high-quality speech`);
       try {
         setIsSpeaking(true);
         const response = await fetch('/api/tts/speak', {
@@ -117,14 +118,23 @@ export const useTTSFixed = ({ language, enabled }: TTSOptions) => {
             URL.revokeObjectURL(audioUrl);
           };
           
+          audio.onerror = () => {
+            console.error(`[TTS-Fixed] Audio playback error`);
+            setIsSpeaking(false);
+            setCurrentAudio(null);
+            URL.revokeObjectURL(audioUrl);
+          };
+          
           await audio.play();
-          console.log(`[TTS-Fixed] Mobile Cloud TTS started`);
+          console.log(`[TTS-Fixed] Cloud TTS audio started successfully`);
+          return;
+        } else {
+          console.error(`[TTS-Fixed] Cloud TTS request failed: ${response.status}`);
         }
       } catch (error) {
-        console.error(`[TTS-Fixed] Mobile TTS error:`, error);
+        console.error(`[TTS-Fixed] Cloud TTS error:`, error);
         setIsSpeaking(false);
       }
-      return;
     }
 
     if (!isSupported) {

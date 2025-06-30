@@ -81,13 +81,43 @@ class SefariaDirectClient {
       const hebrewVersion = data.versions.find((v: any) => v.language === 'he');
       const englishVersion = data.versions.find((v: any) => v.language === 'en');
       
-      // Extract text arrays properly
-      const englishText = englishVersion?.text ? 
-        (Array.isArray(englishVersion.text) ? englishVersion.text : [englishVersion.text]) : [];
-      const hebrewText = hebrewVersion?.text ? 
-        (Array.isArray(hebrewVersion.text) ? hebrewVersion.text : [hebrewVersion.text]) : [];
+      // Extract text arrays properly - check both text and chapter fields
+      let englishText: string[] = [];
+      let hebrewText: string[] = [];
+      
+      if (englishVersion) {
+        if (englishVersion.text) {
+          englishText = Array.isArray(englishVersion.text) ? englishVersion.text : [englishVersion.text];
+        } else if (englishVersion.chapter) {
+          englishText = Array.isArray(englishVersion.chapter) ? englishVersion.chapter : [englishVersion.chapter];
+        }
+      }
+      
+      if (hebrewVersion) {
+        if (hebrewVersion.text) {
+          hebrewText = Array.isArray(hebrewVersion.text) ? hebrewVersion.text : [hebrewVersion.text];
+        } else if (hebrewVersion.chapter) {
+          hebrewText = Array.isArray(hebrewVersion.chapter) ? hebrewVersion.chapter : [hebrewVersion.chapter];
+        }
+      }
+      
+      // Fallback: if no English, try to get it from the first version
+      if (englishText.length === 0 && data.versions[0]) {
+        const firstVersion = data.versions[0];
+        if (firstVersion.text) {
+          englishText = Array.isArray(firstVersion.text) ? firstVersion.text : [firstVersion.text];
+        } else if (firstVersion.chapter) {
+          englishText = Array.isArray(firstVersion.chapter) ? firstVersion.chapter : [firstVersion.chapter];
+        }
+      }
       
       console.log(`[SefariaClient] V3 format - EN: ${englishText.length} segments, HE: ${hebrewText.length} segments`);
+      console.log(`[SefariaClient] Sample data:`, {
+        englishVersion: englishVersion ? Object.keys(englishVersion) : 'none',
+        hebrewVersion: hebrewVersion ? Object.keys(hebrewVersion) : 'none',
+        englishSample: englishText[0]?.substring(0, 100),
+        hebrewSample: hebrewText[0]?.substring(0, 100)
+      });
       
       return {
         ref: tref,
