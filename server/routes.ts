@@ -12,19 +12,36 @@ let ttsClient: TextToSpeechClient | null = null;
 try {
   // Check if we have Google Cloud credentials
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    // Try to parse as JSON first (for direct key content)
-    try {
-      const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
-      ttsClient = new TextToSpeechClient({
-        credentials: credentials
-      });
-    } catch (parseError) {
-      // If parsing fails, treat as file path
-      ttsClient = new TextToSpeechClient({
-        keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
-      });
+    const credentialsEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    
+    // Check if it looks like JSON (starts with { and ends with })
+    if (credentialsEnv.trim().startsWith('{') && credentialsEnv.trim().endsWith('}')) {
+      try {
+        const credentials = JSON.parse(credentialsEnv);
+        ttsClient = new TextToSpeechClient({
+          credentials: credentials
+        });
+        console.log('[TTS-Cloud] Google Cloud TTS initialized with JSON credentials');
+      } catch (parseError) {
+        console.warn('[TTS-Cloud] Failed to parse JSON credentials:', parseError);
+        ttsClient = null;
+      }
+    } else if (credentialsEnv.includes('AIza')) {
+      // This looks like an API key, not service account credentials
+      console.log('[TTS-Cloud] Detected API key instead of service account credentials - TTS disabled');
+      ttsClient = null;
+    } else {
+      // Treat as file path
+      try {
+        ttsClient = new TextToSpeechClient({
+          keyFilename: credentialsEnv
+        });
+        console.log('[TTS-Cloud] Google Cloud TTS initialized with key file');
+      } catch (fileError) {
+        console.warn('[TTS-Cloud] Failed to load credentials from file:', fileError);
+        ttsClient = null;
+      }
     }
-    console.log('[TTS-Cloud] Google Cloud TTS initialized');
   } else {
     console.log('[TTS-Cloud] No Google Cloud credentials found, TTS disabled');
   }
