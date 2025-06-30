@@ -2,35 +2,43 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { extractCompleteBook } from "./fullTextExtractor";
-import { cacheService } from "./cache";
+import { getOrFetch } from "../src/services/cache";
 import fs from "fs";
 import path from "path";
 
-// Set environment variables for frontend
+// ---------------------------------------------------------
+// Variables d’environnement accessibles côté client (Vite)
 process.env.VITE_GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-// Decode Google TTS credentials if provided
+// ---------------------------------------------------------
+// Décodage éventuel des credentials Google TTS
 if (process.env.GOOGLE_TTS_CREDENTIALS_B64) {
   try {
-    const credentialsPath = path.join(process.cwd(), 'serviceAccount.json');
+    const credentialsPath = path.join(process.cwd(), "serviceAccount.json");
     fs.writeFileSync(
       credentialsPath,
-      Buffer.from(process.env.GOOGLE_TTS_CREDENTIALS_B64, 'base64')
+      Buffer.from(process.env.GOOGLE_TTS_CREDENTIALS_B64, "base64")
     );
     process.env.GOOGLE_APPLICATION_CREDENTIALS = credentialsPath;
     console.log(`[TTS-Cloud] Credentials written to ${credentialsPath}`);
   } catch (err) {
-    console.error('[TTS-Cloud] Failed to decode credentials', err);
+    console.error("[TTS-Cloud] Failed to decode credentials", err);
   }
 }
 
+// ---------------------------------------------------------
+// App & middlewares
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Basic health-check
+app.get("/health", (_req, res) => res.send("ok"));
+
+// Logger API simple
 app.use((req, res, next) => {
   const start = Date.now();
-  const path = req.path;
+  const pathReq = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
@@ -41,16 +49,10 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
+    if (pathReq.startsWith("/api")) {
+      let logLine = `${req.method} ${pathReq} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      if (logLine.length > 80) logLine = logLine.slice(0, 79) + "…";
       log(logLine);
     }
   });
@@ -58,13 +60,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Core proxy routes FIRST - must be before registerRoutes and Vite setup
-import fetch from 'node-fetch';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// ---------------------------------------------------------
+// Core proxy routes (avant Vite)
+import fetch from "node-fetch";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 /* ---------- Sefaria proxy ---------- */
-app.get('/sefaria/*', async (req, res) => {
-  const target = 'https://www.sefaria.org' + req.originalUrl.replace('/sefaria', '');
+app.get("/sefaria/*", async (req, res) => {
+  const target = "https://www.sefaria.org" + req.originalUrl.replace("/sefaria", "");
   console.log(`[Sefaria Proxy] ${target}`);
   const r = await fetch(target);
   res.status(r.status);
@@ -72,14 +75,16 @@ app.get('/sefaria/*', async (req, res) => {
 });
 
 /* ---------- Gemini proxy (stream) ---------- */
-if (!process.env.GEMINI_API_KEY) throw new Error('⛔️ GEMINI_API_KEY manquante');
+if (!process.env.GEMINI_API_KEY) throw new Error("⛔️ GEMINI_API_KEY manquante");
+
 const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = ai.getGenerativeModel({
-  model: 'gemini-1.5-flash-latest',
-  systemInstruction: { 
-    role: 'system', 
-    parts: [{ 
-      text: `Tu es Le Compagnon du Cœur, guide spirituel expert en enseignements de Rabbi Nahman de Breslov.
+  model: "gemini-1.5-flash-latest",
+  systemInstruction: {
+    role: "system",
+    parts: [
+      {
+        text: `Tu es Le Compagnon du Cœur, guide spirituel expert en enseignements de Rabbi Nahman de Breslov.
 
 RÈGLES ABSOLUES :
 - Réponds UNIQUEMENT en français
@@ -93,138 +98,137 @@ MODES DE RÉPONSE :
 - general: Guidance spirituelle générale selon Rabbi Nahman
 - snippet: Analyse d'un extrait fourni par l'utilisateur
 - advice: Conseil personnel basé sur les enseignements breslov
-- summary: Résumé des points clés d'une réponse précédente`
-    }]
-  }
+- summary: Résumé des points clés d'une réponse précédente`,
+      },
+    ],
+  },
 });
 
-app.post('/gemini/chat', async (req, res) => {
+app.post("/gemini/chat", async (req, res) => {
   try {
     const { prompt } = req.body;
-    console.log(`[Gemini Proxy] Processing request`);
+    console.log("[Gemini Proxy] Processing request");
     const chat = model.startChat();
     const result = await chat.sendMessageStream(prompt);
 
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Transfer-Encoding", "chunked");
     res.flushHeaders();
 
     for await (const chunk of result.stream) res.write(chunk.text());
     res.end();
   } catch (e) {
-    console.error('[Gemini Error]', e); 
-    res.status(500).json({ error: 'Gemini fail' });
+    console.error("[Gemini Error]", e);
+    res.status(500).json({ error: "Gemini fail" });
   }
 });
 
-// Route pour récupérer les textes via Sefaria API avec proxy
-app.get('/api/sefaria/texts/:ref', async (req, res) => {
+// ---------------------------------------------------------
+// Route API Sefaria (avec cache)
+app.get("/api/sefaria/texts/:ref", async (req, res) => {
   try {
     const rawRef = req.params.ref;
-    // Normalize reference format: Likutei_Moharan.1 -> Likutei Moharan 1
-    const ref = rawRef.replace(/_/g, ' ').replace(/\./g, ' ');
+    const ref = rawRef.replace(/_/g, " ").replace(/\./g, " ");
     console.log(`[Sefaria Proxy] Request for: ${rawRef} (normalized: ${ref})`);
 
-    // Check cache first
-    const cachedData = cacheService.get(ref);
-    if (cachedData) {
-      return res.json(cachedData);
-    }
-    console.log(`[Cache] MISS for ${ref}`);
+    const data = await getOrFetch(ref, async () => {
+      console.log(`[Cache] MISS for ${ref}`);
 
-    // Comprehensive Breslov book detection
-    const BRESLOV_BOOKS = [
-      'Likutei Moharan', 'Sichot HaRan', 'Sippurei Maasiyot', 
-      'Chayei Moharan', 'Shivchei HaRan', 'Sefer HaMiddot',
-      'Likutei Tefilot', 'Likutei Halakhot', 'Likkutei Etzot',
-      'Kitzur Likutei Moharan', 'Hishtapchut HaNefesh',
-      'Meshivat Nefesh', 'Alim LiTrufah'
-    ];
-    
-    const isBreslovBook = BRESLOV_BOOKS.some(book => ref.includes(book));
+      const BRESLOV_BOOKS = [
+        "Likutei Moharan",
+        "Sichot HaRan",
+        "Sippurei Maasiyot",
+        "Chayei Moharan",
+        "Shivchei HaRan",
+        "Sefer HaMiddot",
+        "Likutei Tefilot",
+        "Likutei Halakhot",
+        "Likkutei Etzot",
+        "Kitzur Likutei Moharan",
+        "Hishtapchut HaNefesh",
+        "Meshivat Nefesh",
+        "Alim LiTrufah",
+      ];
 
-    if (isBreslovBook) {
-      console.log(`[Sefaria Proxy] Breslov book detected: ${ref}, using complete text extractor`);
+      const isBreslovBook = BRESLOV_BOOKS.some((book) => ref.includes(book));
 
-      // Parse book title and section from ref
-      let bookTitle = '';
-      let sectionNumber = null;
+      if (isBreslovBook) {
+        console.log(
+          `[Sefaria Proxy] Breslov book detected: ${ref}, using complete text extractor`
+        );
 
-      if (ref.includes('Likutei Moharan')) {
-        bookTitle = 'Likutei Moharan';
-        const sectionMatch = ref.match(/(\d+)/);
-        if (sectionMatch) sectionNumber = sectionMatch[1];
-      } else if (ref.includes('Sichot HaRan')) {
-        bookTitle = 'Sichot HaRan';
-        const sectionMatch = ref.match(/(\d+)/);
-        if (sectionMatch) sectionNumber = sectionMatch[1];
-      } else if (ref.includes('Sippurei Maasiyot')) {
-        bookTitle = 'Sippurei Maasiyot';
-        const sectionMatch = ref.match(/(\d+)/);
-        if (sectionMatch) sectionNumber = sectionMatch[1];
-      }
+        let bookTitle = "";
+        let sectionNumber: string | null = null;
 
-      if (bookTitle) {
-        try {
-          console.log(`[Sefaria Proxy] Using complete text extractor for ${bookTitle}`);
-          const completeText = await extractCompleteBook(bookTitle, sectionNumber);
-          // Cache the successful result
-          cacheService.set(ref, completeText);
-          return res.json(completeText);
-        } catch (extractorError) {
-          console.error(`[Sefaria Proxy] Complete text extractor failed for ${bookTitle}:`, extractorError);
-          console.log(`[Sefaria Proxy] Falling back to standard Sefaria API`);
-          // Continue to fallback below
+        if (ref.includes("Likutei Moharan")) {
+          bookTitle = "Likutei Moharan";
+          sectionNumber = ref.match(/(\d+)/)?.[1] ?? null;
+        } else if (ref.includes("Sichot HaRan")) {
+          bookTitle = "Sichot HaRan";
+          sectionNumber = ref.match(/(\d+)/)?.[1] ?? null;
+        } else if (ref.includes("Sippurei Maasiyot")) {
+          bookTitle = "Sippurei Maasiyot";
+          sectionNumber = ref.match(/(\d+)/)?.[1] ?? null;
+        }
+
+        if (bookTitle) {
+          try {
+            console.log(
+              `[Sefaria Proxy] Using complete text extractor for ${bookTitle}`
+            );
+            return await extractCompleteBook(bookTitle, sectionNumber);
+          } catch (extractorError) {
+            console.error(
+              `[Sefaria Proxy] Complete text extractor failed for ${bookTitle}:`,
+              extractorError
+            );
+            console.log(
+              `[Sefaria Proxy] Falling back to standard Sefaria API`
+            );
+          }
         }
       }
-    }
 
-    // Regular Sefaria API call (fallback for failed Breslov extraction or non-Breslov texts)
-    const apiUrl = `https://www.sefaria.org/api/texts/${encodeURIComponent(ref)}`;
-    const response = await fetch(apiUrl);
+      const apiUrl = `https://www.sefaria.org/api/texts/${encodeURIComponent(
+        ref
+      )}`;
+      const response = await fetch(apiUrl);
 
-    if (!response.ok) {
-      return res.status(response.status).json({ error: 'Failed to fetch from Sefaria' });
-    }
+      if (!response.ok) throw new Error("Failed to fetch from Sefaria");
 
-    const data = await response.json();
-    // Cache the standard API response
-    cacheService.set(ref, data);
+      return await response.json();
+    });
+
     res.json(data);
   } catch (error) {
-    console.error('[Sefaria Proxy] Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("[Sefaria Proxy] Error:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
+// ---------------------------------------------------------
+// Bootstrap
 (async () => {
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
     res.status(status).json({ message });
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Vite en dev uniquement
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // Use dynamic port from environment or fallback to 5000
-  // this serves both the API and the client.
+  // Port dynamique (fallback 5000)
   const port = Number(process.env.PORT) || 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  server.listen(
+    { port, host: "0.0.0.0", reusePort: true },
+    () => log(`serving on port ${port}`)
+  );
 })();
