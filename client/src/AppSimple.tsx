@@ -359,7 +359,7 @@ ${text}`
 
       // Deuxième tentative: BreslovCompleteLoader
       console.log(`[AppSimple] Trying BreslovCompleteLoader for: ${ref}`);
-      const completeLoaderText = await breslovComplete.getCompleteText(ref);
+      const completeLoaderText = await breslovComplete.getAuthenticText(ref);
       
       if (completeLoaderText && completeLoaderText.english && completeLoaderText.english.length > 0) {
         console.log(`[AppSimple] ✅ CompleteLoader success: ${completeLoaderText.english.length} English, ${completeLoaderText.hebrew?.length || 0} Hebrew segments`);

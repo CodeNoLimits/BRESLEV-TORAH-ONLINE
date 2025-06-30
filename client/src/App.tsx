@@ -10,8 +10,8 @@ import { TextViewer } from './components/TextViewer';
 import { BookNavigator } from './components/BookNavigator';
 import { LoadingModal } from './components/LoadingModal';
 import { useTTS } from './hooks/useTTS';
-import { getText } from './services/sefariaSimple';
-import { streamGemini } from './services/geminiSimple';
+import { sefariaService } from './services/sefaria';
+import { useGemini } from './hooks/useGemini';
 import { Message, Language, SefariaText, InteractionMode, AIMode } from './types';
 
 function App() {
@@ -28,9 +28,15 @@ function App() {
 
   // Custom hooks
   const { speak, stop: stopTTS, isSpeaking } = useTTS({ language, enabled: ttsEnabled });
-  
-  // Gemini streaming state
-  const [isAILoading, setIsAILoading] = useState(false);
+  const {
+    sendMessage,
+    isLoading: isAILoading,
+    isStreaming
+  } = useGemini({
+    language,
+    onResponse: setStreamingText,
+    onError: (err) => setError(err)
+  });
 
   // Voice recognition setup
   const [recognition, setRecognition] = useState<any>(null);
@@ -248,13 +254,13 @@ INSTRUCTIONS STRICTES:
           onSendMessage={handleSendMessage}
           onAnalyzeText={handleAnalyzeText}
           onSeekGuidance={handleSeekGuidance}
-          isLoading={isLoading}
+          isLoading={isAILoading}
           onStartVoiceInput={handleStartVoiceInput}
         />
       </div>
       
       {/* Loading Modal */}
-      <LoadingModal isVisible={isLoading && !isStreaming} />
+      <LoadingModal isVisible={isAILoading && !isStreaming} />
       
       {/* Error Handling */}
       {error && (
