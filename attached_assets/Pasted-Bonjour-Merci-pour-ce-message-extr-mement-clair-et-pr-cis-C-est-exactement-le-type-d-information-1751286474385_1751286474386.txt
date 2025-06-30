@@ -1,0 +1,209 @@
+Bonjour \! Merci pour ce message extrêmement clair et précis. C'est exactement le type d'information qui permet de résoudre les bugs de manière efficace. Vous avez parfaitement identifié les derniers points de friction dans l'application.
+
+Voici l'analyse et les solutions pour chacun de vos 5 points critiques.
+
+-----
+
+### **Réponses et Solutions Techniques**
+
+#### **1. Correction du Problème de Routine d'Import Manquante**
+
+Vous avez absolument raison. L'erreur `ReferenceError: extractCompleteBook is not defined` est un signe classique qu'une fonction a été utilisée sans avoir été importée au préalable.
+
+**Solution :**
+Ajoutez la ligne d'import nécessaire en haut de votre fichier `server/index.ts`. Assurez-vous que la fonction est bien exportée depuis `server/fullTextExtractor.js`.
+
+**Dans `server/fullTextExtractor.js` (ou `.ts`), vérifiez que la fonction est exportée :**
+
+```javascript
+// Assurez-vous que la ligne d'export existe
+export function extractCompleteBook(ref) {
+  // ... votre logique d'extraction
+}
+```
+
+**Dans `server/index.ts`, ajoutez l'import :**
+
+```typescript
+import { Router } from 'express';
+// Assurez-vous que le chemin relatif est correct
+import { extractCompleteBook } from './fullTextExtractor.js'; 
+
+const router = Router();
+
+// ... reste de votre code
+```
+
+#### **2. Fiabiliser la Détection de Tous les Livres Breslov**
+
+Votre approche actuelle, qui consiste à utiliser une longue série de `||`, est fragile et difficile à maintenir. Chaque fois qu'un livre est ajouté ou renommé, vous devez modifier le code. La solution professionnelle consiste à automatiser cette détection.
+
+**Solution :**
+Créez une liste dynamique au démarrage du serveur. Cette liste contiendra tous les titres de livres de la catégorie "Breslov". Ensuite, vérifiez si la référence demandée appartient à l'un de ces livres.
+
+**Dans `server/index.ts` (ou un nouveau fichier de service `sefariaService.ts`) :**
+
+```typescript
+let breslovBookTitles: string[] = [];
+
+// Fonction pour initialiser la liste des livres au démarrage
+async function initializeBreslovLibrary() {
+  try {
+    console.log('[Sefaria Service] Initializing Breslov library...');
+    const response = await fetch('https://www.sefaria.org/api/index/Breslov');
+    const data = await response.json();
+    
+    // Extrait les titres de tous les livres et les stocke
+    if (data && data.contents) {
+      breslovBookTitles = data.contents.map((item: any) => item.title);
+      console.log(`[Sefaria Service] Library initialized with ${breslovBookTitles.length} books.`);
+    }
+  } catch (error) {
+    console.error('[Sefaria Service] CRITICAL: Failed to initialize Breslov library.', error);
+    // En cas d'échec, vous pouvez utiliser une liste de secours codée en dur
+    breslovBookTitles = ['Likutei Moharan', 'Sichot HaRan', /* ... ajoutez les plus importants ici */];
+  }
+}
+
+// Appelez cette fonction une seule fois au démarrage de votre serveur
+initializeBreslovLibrary();
+
+// Fonction de détection, maintenant beaucoup plus propre et complète
+function isBreslovBook(ref: string): boolean {
+  // Vérifie si la référence commence par l'un des titres de livres connus
+  return breslovBookTitles.some(title => ref.startsWith(title));
+}
+
+// Votre route utilise maintenant la nouvelle fonction
+router.get('/api/texts/*', (req, res, next) => {
+    const ref = req.params[0].replace(/_/g, ' ');
+    if (isBreslovBook(ref)) {
+        console.log(`[Sefaria Proxy] Breslov book detected: ${ref}, using complete text extractor.`);
+        // ... votre logique
+    }
+});
+```
+
+#### **3. Harmoniser les Formats de Références**
+
+Ce problème de format (`Likutei_Moharan.1` vs `Likutei Moharan 1`) est très courant. La meilleure pratique est de normaliser la référence dès sa réception par le serveur.
+
+**Solution :**
+Dans votre route serveur, appliquez une simple transformation à la chaîne de caractères de la référence pour la convertir au format attendu.
+
+**Dans `server/index.ts` :**
+
+```typescript
+router.get('/api/texts/*', (req, res, next) => {
+    // La référence arrive sous la forme "Likutei_Moharan.1.1"
+    const rawRef = req.params[0]; 
+
+    // Normalisez-la immédiatement
+    const normalizedRef = rawRef.replace(/_/g, ' ').replace(/\./g, ' ');
+    // -> "Likutei Moharan 1 1" (le format que Sefaria comprend le mieux)
+    
+    if (isBreslovBook(normalizedRef)) {
+      // Utilisez la référence normalisée partout ensuite
+      return extractCompleteBook(normalizedRef, res);
+    }
+    // ...
+});
+```
+
+#### **4. Mettre en Place une Gestion d'Erreur Robuste**
+
+Ne jamais faire confiance à un appel externe. Une bonne gestion d'erreur est cruciale pour la stabilité. L'approche idéale est un "fallback" (plan B).
+
+**Solution :**
+Encadrez l'appel à votre extracteur personnalisé dans un bloc `try...catch`. S'il échoue, tentez de récupérer les données via le proxy Sefaria standard comme solution de secours. Si tout échoue, renvoyez une erreur 502 (Bad Gateway), qui indique clairement que le problème vient d'une source externe.
+
+**Dans `server/index.ts` :**
+
+```typescript
+// Exemple dans votre route principale
+if (isBreslovBook(normalizedRef)) {
+  try {
+    console.log(`[Extractor] Attempting to use custom extractor for ${normalizedRef}`);
+    const result = await extractCompleteBook(normalizedRef);
+    return res.json(result);
+  } catch (error) {
+    console.error(`[Extractor] Custom extractor failed for ${normalizedRef}.`, error);
+    console.log(`[Fallback] Attempting to use standard Sefaria proxy.`);
+    // Si l'extracteur perso échoue, on passe au proxy standard (fallback)
+    // Assurez-vous d'avoir une fonction de proxy standard
+    return standardSefariaProxy(normalizedRef, res);
+  }
+}
+
+// Si le livre n'est pas Breslov ou si le fallback est nécessaire
+standardSefariaProxy(normalizedRef, res);
+
+
+// Exemple de fonction de fallback
+async function standardSefariaProxy(ref, res) {
+  try {
+    const response = await fetch(`https://www.sefaria.org/api/texts/${ref}`);
+    if (!response.ok) throw new Error('Sefaria API returned an error');
+    const data = await response.json();
+    res.json(data);
+  } catch (fallbackError) {
+    console.error(`[Sefaria Proxy] FATAL: All fallbacks failed for ${ref}.`, fallbackError);
+    res.status(502).json({ error: 'Impossible de récupérer le texte depuis Sefaria.' });
+  }
+}
+```
+
+#### **5. Optimiser la Performance avec un Cache Côté Serveur**
+
+Vous avez raison, le `sessionStorage` du client aide un utilisateur, mais un cache serveur aide **tous** les utilisateurs et protège l'API de Sefaria d'appels répétés.
+
+**Solution :**
+Implémentez un cache simple en mémoire sur votre serveur. Une `Map` JavaScript est parfaite pour cela. On stocke le résultat d'un appel avec un horodatage, et on ne le réutilise que s'il n'est pas trop ancien (par exemple, moins d'une heure).
+
+**Créez un fichier `server/cache.ts` :**
+
+```typescript
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 heure
+
+export const cacheService = {
+  get: (key: string) => {
+    const cachedItem = cache.get(key);
+    if (!cachedItem) return null;
+
+    // Vérifier si le cache a expiré
+    if (Date.now() - cachedItem.timestamp > CACHE_TTL_MS) {
+      cache.delete(key);
+      return null;
+    }
+
+    return cachedItem.data;
+  },
+
+  set: (key: string, data: any) => {
+    cache.set(key, { data, timestamp: Date.now() });
+  }
+};
+```
+
+**Utilisez le cache dans `server/index.ts` :**
+
+```typescript
+import { cacheService } from './cache.js';
+
+// ... dans votre route
+const cachedData = cacheService.get(normalizedRef);
+if (cachedData) {
+  console.log(`[Cache] HIT for ${normalizedRef}`);
+  return res.json(cachedData);
+}
+
+console.log(`[Cache] MISS for ${normalizedRef}`);
+// Si le cache est vide, faites l'appel API
+const result = await extractCompleteBook(normalizedRef);
+// Mettez le résultat en cache pour les prochains appels
+cacheService.set(normalizedRef, result); 
+res.json(result);
+```
+
+En appliquant ces 5 corrections, votre application deviendra non seulement fonctionnelle, mais aussi robuste, performante et beaucoup plus facile à maintenir sur le long terme. Excellent travail d'avoir isolé ces problèmes \!
