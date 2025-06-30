@@ -77,14 +77,14 @@ export class BreslovDiagnostic {
           
           // Server fullTextExtractor format (from server/fullTextExtractor.js)
           if (text.text && Array.isArray(text.text)) {
-            englishCount = text.text.filter(segment => 
+            englishCount = text.text.filter((segment: any) => 
               segment && typeof segment === 'string' && segment.trim().length > 0
             ).length;
             console.log(`[BreslovDiagnostic] Found ${englishCount} English segments in text.text array`);
           }
           
           if (text.he && Array.isArray(text.he)) {
-            hebrewCount = text.he.filter(segment => 
+            hebrewCount = text.he.filter((segment: any) => 
               segment && typeof segment === 'string' && segment.trim().length > 0
             ).length;
             console.log(`[BreslovDiagnostic] Found ${hebrewCount} Hebrew segments in text.he array`);
@@ -94,12 +94,12 @@ export class BreslovDiagnostic {
           if (englishCount === 0 && text.versions && Array.isArray(text.versions)) {
             for (const version of text.versions) {
               if (version.text && Array.isArray(version.text)) {
-                englishCount += version.text.filter(segment => 
+                englishCount += version.text.filter((segment: any) => 
                   segment && typeof segment === 'string' && segment.trim().length > 0
                 ).length;
               }
               if (version.he && Array.isArray(version.he)) {
-                hebrewCount += version.he.filter(segment => 
+                hebrewCount += version.he.filter((segment: any) => 
                   segment && typeof segment === 'string' && segment.trim().length > 0
                 ).length;
               }
