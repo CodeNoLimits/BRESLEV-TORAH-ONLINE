@@ -24,32 +24,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/sefaria/*', async (req, res) => {
     const target = 'https://www.sefaria.org' + req.originalUrl.replace('/sefaria', '');
     console.log(`[Sefaria Proxy] Fetching: ${target}`);
-    
+
+    // CORS headers always returned
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+
     try {
       const fetch = (await import('node-fetch')).default;
       const response = await fetch(target);
-      
-      res.set('Content-Type', 'application/json');
-      res.set('Access-Control-Allow-Origin', '*');
-      res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.set('Access-Control-Allow-Headers', 'Content-Type');
-      
+
+      res.header('Content-Type', 'application/json');
+
       if (response.ok) {
         const data = await response.text();
         res.status(response.status).send(data);
       } else {
         console.error(`[Sefaria Proxy] Error ${response.status}: ${response.statusText}`);
-        res.status(response.status).json({ 
+        res.status(response.status).json({
           error: `Sefaria API error: ${response.status}`,
-          url: target 
+          url: target
         });
       }
     } catch (error) {
       console.error('[Sefaria Proxy] Fetch failed:', error);
-      res.status(502).json({ 
-        error: 'Proxy failure', 
+      res.status(502).json({
+        error: 'Proxy failure',
         message: error instanceof Error ? error.message : 'Unknown error',
-        url: target 
+        url: target
       });
     }
   });
@@ -83,25 +85,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Universal Sefaria proxy - route ALL /sefaria/* requests
-  app.get('/sefaria/*', async (req, res) => {
-    try {
-      const target = 'https://www.sefaria.org' + req.originalUrl.replace('/sefaria', '');
-      console.log(`[Sefaria Proxy] ${target}`);
-      const response = await fetch(target);
-      
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET');
-      res.header('Access-Control-Allow-Headers', 'Content-Type');
-      
-      res.status(response.status);
-      const data = await response.json();
-      res.json(data);
-    } catch (error) {
-      console.error('[Sefaria Proxy Error]', error);
-      res.status(500).json({ error: 'Sefaria proxy failed' });
-    }
-  });
 
   // Sefaria Breslov-specific proxy routes
   // NEW: Complete text extraction endpoint
