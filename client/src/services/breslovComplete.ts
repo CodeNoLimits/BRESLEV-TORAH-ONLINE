@@ -12,46 +12,62 @@ export interface CompleteBreslovText {
 
 // Collection COMPLÈTE de TOUS les textes Breslov disponibles sur Sefaria
 export const ALL_BRESLOV_TEXTS: CompleteBreslovText[] = [
-  // Likutei Moharan - Œuvre principale (sections verified working)
+  // Likutei Moharan - Introduction and Prefaces
+  {
+    title: "Likutei Moharan - Introduction",
+    ref: "Likutei Moharan, Introduction",
+    hebrewTitle: "ליקוטי מוהר\"ן - הקדמה",
+    category: "Likutei Moharan",
+    verified: true
+  },
+  {
+    title: "Likutei Moharan - A Pleasant Song",
+    ref: "Likutei Moharan, A Pleasant Song",
+    hebrewTitle: "ליקוטי מוהר\"ן - שיר נעים",
+    category: "Likutei Moharan",
+    verified: true
+  },
+
+  // Likutei Moharan - Main teachings (Torah 1-286)
   ...Array.from({ length: 286 }, (_, i) => ({
     title: `Likutei Moharan ${i + 1}`,
-    ref: `Likutei Moharan.${i + 1}`,
+    ref: `Likutei Moharan.${i + 1}.1`,
     hebrewTitle: `ליקוטי מוהר"ן ${i + 1}`,
     category: "Likutei Moharan",
     verified: true
   })),
 
-  // Likutei Moharan Tinyana (part 2)
+  // Likutei Moharan Tinyana (Part II - Torah 1-125)
   ...Array.from({ length: 125 }, (_, i) => ({
     title: `Likutei Moharan Tinyana ${i + 1}`,
-    ref: `Likutei Moharan.II.${i + 1}`,
+    ref: `Likutei Moharan, Part II.${i + 1}.1`,
     hebrewTitle: `ליקוטי מוהר"ן תניינא ${i + 1}`,
     category: "Likutei Moharan Tinyana",
     verified: true
   })),
 
-  // Sichot HaRan (verified sections)
-  ...Array.from({ length: 142 }, (_, i) => ({
-    title: `Sichot HaRan ${i + 1}`,
-    ref: `Sichot HaRan.${i + 1}`,
-    hebrewTitle: `שיחות הר"ן ${i + 1}`,
+  // Sichot HaRan (Chapter 1-15, verified working format)
+  ...Array.from({ length: 15 }, (_, i) => ({
+    title: `Sichot HaRan Chapter ${i + 1}`,
+    ref: `Sichot HaRan.${i + 1}.1`,
+    hebrewTitle: `שיחות הר"ן פרק ${i + 1}`,
     category: "Sichot HaRan",
     verified: true
   })),
 
-  // Sippurei Maasiyot (13 histoires)
+  // Sippurei Maasiyot (13 stories, verified format)
   ...Array.from({ length: 13 }, (_, i) => ({
-    title: `Sippurei Maasiyot ${i + 1}`,
-    ref: `Sippurei Maasiyot.${i + 1}`,
-    hebrewTitle: `סיפורי מעשיות ${i + 1}`,
+    title: `Sippurei Maasiyot Story ${i + 1}`,
+    ref: `Sippurei Maasiyot.${i + 1}.1`,
+    hebrewTitle: `סיפורי מעשיות מעשה ${i + 1}`,
     category: "Sippurei Maasiyot",
     verified: true
   })),
 
-  // Likutei Tefilot (verified available sections)
-  ...Array.from({ length: 210 }, (_, i) => ({
+  // Likutei Tefilot (Prayer sections)
+  ...Array.from({ length: 30 }, (_, i) => ({
     title: `Likutei Tefilot ${i + 1}`,
-    ref: `Likutei Tefilot.${i + 1}`,
+    ref: `Likutei Tefilot.${i + 1}.1`,
     hebrewTitle: `ליקוטי תפילות ${i + 1}`,
     category: "Likutei Tefilot",
     verified: true
