@@ -98,6 +98,63 @@ app.post('/gemini/chat', async (req, res) => {
   }
 });
 
+// Route pour récupérer les textes via Sefaria API avec proxy
+app.get('/api/sefaria/texts/:ref', async (req, res) => {
+  try {
+    const { ref } = req.params;
+    console.log(`[Sefaria Proxy] Request for: ${ref}`);
+
+    // Check if this is a Breslov book that needs complete text extraction
+    const isBreslovBook = ref.includes('Likutei Moharan') || 
+                         ref.includes('Sichot HaRan') || 
+                         ref.includes('Sippurei Maasiyot') ||
+                         ref.includes('Chayei Moharan') ||
+                         ref.includes('Shivchei HaRan');
+
+    if (isBreslovBook) {
+      console.log(`[Sefaria Proxy] Breslov book detected: ${ref}, using complete text extractor`);
+
+      // Parse book title and section from ref
+      let bookTitle = '';
+      let sectionNumber = null;
+
+      if (ref.includes('Likutei Moharan')) {
+        bookTitle = 'Likutei Moharan';
+        const sectionMatch = ref.match(/(\d+)/);
+        if (sectionMatch) sectionNumber = sectionMatch[1];
+      } else if (ref.includes('Sichot HaRan')) {
+        bookTitle = 'Sichot HaRan';
+        const sectionMatch = ref.match(/(\d+)/);
+        if (sectionMatch) sectionNumber = sectionMatch[1];
+      } else if (ref.includes('Sippurei Maasiyot')) {
+        bookTitle = 'Sippurei Maasiyot';
+        const sectionMatch = ref.match(/(\d+)/);
+        if (sectionMatch) sectionNumber = sectionMatch[1];
+      }
+
+      if (bookTitle) {
+        const completeText = await extractCompleteBook(bookTitle, sectionNumber);
+        // FIX: Send the extracted data directly, not wrapped in { text: ... }
+        return res.json(completeText);
+      }
+    }
+
+    // Regular Sefaria API call for non-Breslov texts
+    const apiUrl = `https://www.sefaria.org/api/texts/${encodeURIComponent(ref)}`;
+    const response = await fetch(apiUrl);
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Failed to fetch from Sefaria' });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('[Sefaria Proxy] Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 (async () => {
   const server = await registerRoutes(app);
 
