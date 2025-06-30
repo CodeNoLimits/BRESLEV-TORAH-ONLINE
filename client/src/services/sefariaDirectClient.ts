@@ -138,7 +138,7 @@ class SefariaDirectClient {
       }
     }
     
-    return [...new Set(variants)]; // Remove duplicates
+    return Array.from(new Set(variants)); // Remove duplicates
   }
 
   // Check if response contains actual text content
