@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { extractCompleteBook } from "./fullTextExtractor.js";
+import { cacheService } from "./cache.js";
 
 // Set environment variables for frontend
 process.env.VITE_GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -101,15 +103,28 @@ app.post('/gemini/chat', async (req, res) => {
 // Route pour récupérer les textes via Sefaria API avec proxy
 app.get('/api/sefaria/texts/:ref', async (req, res) => {
   try {
-    const { ref } = req.params;
-    console.log(`[Sefaria Proxy] Request for: ${ref}`);
+    const rawRef = req.params.ref;
+    // Normalize reference format: Likutei_Moharan.1 -> Likutei Moharan 1
+    const ref = rawRef.replace(/_/g, ' ').replace(/\./g, ' ');
+    console.log(`[Sefaria Proxy] Request for: ${rawRef} (normalized: ${ref})`);
 
-    // Check if this is a Breslov book that needs complete text extraction
-    const isBreslovBook = ref.includes('Likutei Moharan') || 
-                         ref.includes('Sichot HaRan') || 
-                         ref.includes('Sippurei Maasiyot') ||
-                         ref.includes('Chayei Moharan') ||
-                         ref.includes('Shivchei HaRan');
+    // Check cache first
+    const cachedData = cacheService.get(ref);
+    if (cachedData) {
+      return res.json(cachedData);
+    }
+    console.log(`[Cache] MISS for ${ref}`);
+
+    // Comprehensive Breslov book detection
+    const BRESLOV_BOOKS = [
+      'Likutei Moharan', 'Sichot HaRan', 'Sippurei Maasiyot', 
+      'Chayei Moharan', 'Shivchei HaRan', 'Sefer HaMiddot',
+      'Likutei Tefilot', 'Likutei Halakhot', 'Likkutei Etzot',
+      'Kitzur Likutei Moharan', 'Hishtapchut HaNefesh',
+      'Meshivat Nefesh', 'Alim LiTrufah'
+    ];
+    
+    const isBreslovBook = BRESLOV_BOOKS.some(book => ref.includes(book));
 
     if (isBreslovBook) {
       console.log(`[Sefaria Proxy] Breslov book detected: ${ref}, using complete text extractor`);
@@ -133,13 +148,21 @@ app.get('/api/sefaria/texts/:ref', async (req, res) => {
       }
 
       if (bookTitle) {
-        const completeText = await extractCompleteBook(bookTitle, sectionNumber);
-        // FIX: Send the extracted data directly, not wrapped in { text: ... }
-        return res.json(completeText);
+        try {
+          console.log(`[Sefaria Proxy] Using complete text extractor for ${bookTitle}`);
+          const completeText = await extractCompleteBook(bookTitle, sectionNumber);
+          // Cache the successful result
+          cacheService.set(ref, completeText);
+          return res.json(completeText);
+        } catch (extractorError) {
+          console.error(`[Sefaria Proxy] Complete text extractor failed for ${bookTitle}:`, extractorError);
+          console.log(`[Sefaria Proxy] Falling back to standard Sefaria API`);
+          // Continue to fallback below
+        }
       }
     }
 
-    // Regular Sefaria API call for non-Breslov texts
+    // Regular Sefaria API call (fallback for failed Breslov extraction or non-Breslov texts)
     const apiUrl = `https://www.sefaria.org/api/texts/${encodeURIComponent(ref)}`;
     const response = await fetch(apiUrl);
 
@@ -148,6 +171,8 @@ app.get('/api/sefaria/texts/:ref', async (req, res) => {
     }
 
     const data = await response.json();
+    // Cache the standard API response
+    cacheService.set(ref, data);
     res.json(data);
   } catch (error) {
     console.error('[Sefaria Proxy] Error:', error);
