@@ -73,7 +73,7 @@ export class BreslovCrawler {
   }
 
   /**
-   * Télécharge le contenu d'une référence spécifique
+   * Télécharge le contenu d'une référence spécifique avec fallback API
    */
   async fetchTextSection(ref: string): Promise<any> {
     const cacheKey = `text_${ref}`;
@@ -81,35 +81,46 @@ export class BreslovCrawler {
       return this.cache.get(cacheKey);
     }
 
-    try {
-      const url = `/sefaria/api/v3/texts/${ref}?context=0&commentary=0&pad=0&wrapLinks=false`;
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${ref}: ${response.status}`);
+    // Try multiple API endpoints for better success rate
+    const endpoints = [
+      `/api/sefaria/texts/${encodeURIComponent(ref)}`,
+      `/sefaria/api/texts/${encodeURIComponent(ref)}?context=0&commentary=0`,
+      `/sefaria/api/v3/texts/${encodeURIComponent(ref)}?context=0&commentary=0&pad=0&wrapLinks=false`
+    ];
+
+    for (const url of endpoints) {
+      try {
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          continue; // Try next endpoint
+        }
+        
+        const data = await response.json();
+        
+        // Debug: Log the actual structure to understand the text/he mapping
+        if (data && data.versions && data.versions.length > 0) {
+          const version = data.versions[0];
+          console.log(`[BreslovCrawler] Data structure for ${ref}:`, {
+            hasText: !!version.text,
+            hasHe: !!version.he,
+            textType: Array.isArray(version.text) ? 'array' : typeof version.text,
+            heType: Array.isArray(version.he) ? 'array' : typeof version.he,
+            textSample: Array.isArray(version.text) ? version.text[0]?.substring(0, 50) : 'N/A',
+            heSample: Array.isArray(version.he) ? version.he[0]?.substring(0, 50) : 'N/A'
+          });
+        }
+        
+        this.cache.set(cacheKey, data);
+        return data;
+      } catch (fetchError) {
+        continue; // Try next endpoint
       }
-      
-      const data = await response.json();
-      
-      // Debug: Log the actual structure to understand the text/he mapping
-      if (data && data.versions && data.versions.length > 0) {
-        const version = data.versions[0];
-        console.log(`[BreslovCrawler] Data structure for ${ref}:`, {
-          hasText: !!version.text,
-          hasHe: !!version.he,
-          textType: Array.isArray(version.text) ? 'array' : typeof version.text,
-          heType: Array.isArray(version.he) ? 'array' : typeof version.he,
-          textSample: Array.isArray(version.text) ? version.text[0]?.substring(0, 50) : 'N/A',
-          heSample: Array.isArray(version.he) ? version.he[0]?.substring(0, 50) : 'N/A'
-        });
-      }
-      
-      this.cache.set(cacheKey, data);
-      return data;
-    } catch (error) {
-      console.error(`[BreslovCrawler] Error fetching ${ref}:`, error);
-      return null;
     }
+
+    // If all endpoints failed
+    console.error(`[BreslovCrawler] All endpoints failed for ${ref}`);
+    return null;
   }
 
   /**
@@ -184,20 +195,49 @@ export class BreslovCrawler {
   }
 
   /**
-   * Récupère un texte spécifique par référence
+   * Récupère un texte spécifique par référence avec format correct
    */
   async getTextByRef(ref: string): Promise<any> {
-    const formattedRef = ref.replace(/ /g, '_');
-    console.log(`[BreslovCrawler] Getting text by ref: ${formattedRef}`);
-    const result = await this.fetchTextSection(formattedRef);
+    // Fix reference format based on Sefaria API structure
+    let correctedRef = ref;
     
-    if (result && result.versions && result.versions.length > 0) {
-      const textLength = Array.isArray(result.versions[0].text) ? result.versions[0].text.length : 1;
-      const heLength = Array.isArray(result.versions[0].he) ? result.versions[0].he.length : 1;
-      console.log(`[BreslovCrawler] Retrieved complete text: ${textLength} English segments, ${heLength} Hebrew segments`);
+    // Handle different book formats based on API testing
+    if (ref.includes('Likutei_Moharan')) {
+      // Convert Likutei_Moharan.1 to Likutei Moharan.1.1 (Torah.Section format)
+      const match = ref.match(/Likutei_Moharan\.(\d+)/);
+      if (match) {
+        correctedRef = `Likutei Moharan.${match[1]}.1`;
+      }
+    } else if (ref.includes('Sichot_HaRan')) {
+      // Convert Sichot_HaRan.1 to Sichot HaRan.1.1 (Chapter.Verse format)
+      const match = ref.match(/Sichot_HaRan\.(\d+)/);
+      if (match) {
+        correctedRef = `Sichot HaRan.${match[1]}.1`;
+      }
+    } else if (ref.includes('Sippurei_Maasiyot')) {
+      // Convert Sippurei_Maasiyot.1 to Sippurei Maasiyot.1.1
+      const match = ref.match(/Sippurei_Maasiyot\.(\d+)/);
+      if (match) {
+        correctedRef = `Sippurei Maasiyot.${match[1]}.1`;
+      }
     }
     
-    return result;
+    console.log(`[BreslovCrawler] Getting text by ref: ${ref} -> ${correctedRef}`);
+    
+    try {
+      const result = await this.fetchTextSection(correctedRef);
+      
+      if (result && result.versions && result.versions.length > 0) {
+        const textLength = Array.isArray(result.versions[0].text) ? result.versions[0].text.length : 1;
+        const heLength = Array.isArray(result.versions[0].he) ? result.versions[0].he.length : 1;
+        console.log(`[BreslovCrawler] Retrieved complete text: ${textLength} English segments, ${heLength} Hebrew segments`);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error(`[BreslovCrawler] Error fetching ${correctedRef}:`, error);
+      return null;
+    }
   }
 
   /**
