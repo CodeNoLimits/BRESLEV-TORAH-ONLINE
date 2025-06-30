@@ -301,9 +301,30 @@ ${text}`
       // Use crawler to get complete authentic content
       const completeText = await breslovCrawler.getTextByRef(ref);
       
+      // Vérifier si BreslovCrawler a réussi (format principal)
+      if (completeText && completeText.text && completeText.text.length > 0) {
+        console.log(`[AppSimple] ✅ BreslovCrawler success: ${completeText.text.length} English, ${completeText.he?.length || 0} Hebrew segments`);
+        
+        const sefariaText: SefariaText = {
+          ref: ref,
+          title: title,
+          text: Array.isArray(completeText.text) ? completeText.text : [completeText.text],
+          he: Array.isArray(completeText.he) ? completeText.he : (completeText.he ? [completeText.he] : [])
+        };
+        
+        setSelectedText(sefariaText);
+        setSidebarOpen(false);
+
+        const completeTextContent = sefariaText.text.join('\n\n');
+        console.log(`[AppSimple] Sending complete text to AI (${completeTextContent.length} characters)`);
+        await handleAIRequest(`TEXTE COMPLET DE ${title}:\n\n${completeTextContent}`, 'study');
+        return;
+      }
+      
+      // Vérifier le format versions de BreslovCrawler
       if (completeText && completeText.versions && completeText.versions.length > 0) {
+        console.log(`[AppSimple] ✅ BreslovCrawler versions format success`);
         const version = completeText.versions[0];
-        // Smart language detection and organization
         const rawText = Array.isArray(version.text) ? version.text : [version.text || ""];
         const hebrew: string[] = [];
         const english: string[] = [];
@@ -320,32 +341,61 @@ ${text}`
         const sefariaText: SefariaText = {
           ref: ref,
           title: title,
-          text: english,  // English text in correct field
-          he: hebrew      // Hebrew text in correct field
+          text: english,
+          he: hebrew
         };
         
         console.log(`[AppSimple] Complete text loaded: ${sefariaText.text.length} segments (English), ${sefariaText.he.length} segments (Hebrew)`);
         setSelectedText(sefariaText);
         setSidebarOpen(false);
 
-        // Auto-trigger study analysis with COMPLETE text content
         if (sefariaText.text && sefariaText.text.length > 0) {
           const completeTextContent = sefariaText.text.join('\n\n');
           console.log(`[AppSimple] Sending complete text to AI (${completeTextContent.length} characters)`);
           await handleAIRequest(`TEXTE COMPLET DE ${title}:\n\n${completeTextContent}`, 'study');
         }
-      } else {
-        // Fallback to direct client
-        console.log(`[AppSimple] Fallback to direct client for: ${ref}`);
-        const text = await sefariaClient.fetchSection(ref);
-        setSelectedText(text);
+        return;
+      }
+
+      // Deuxième tentative: BreslovCompleteLoader
+      console.log(`[AppSimple] Trying BreslovCompleteLoader for: ${ref}`);
+      const completeLoaderText = await breslovCompleteLoader.getCompleteText(ref);
+      
+      if (completeLoaderText && completeLoaderText.english && completeLoaderText.english.length > 0) {
+        console.log(`[AppSimple] ✅ CompleteLoader success: ${completeLoaderText.english.length} English, ${completeLoaderText.hebrew?.length || 0} Hebrew segments`);
+        
+        const sefariaText: SefariaText = {
+          ref: ref,
+          title: title,
+          text: completeLoaderText.english,
+          he: completeLoaderText.hebrew || []
+        };
+        
+        setSelectedText(sefariaText);
         setSidebarOpen(false);
 
-        if (text.text && text.text.length > 0) {
-          const textContent = text.text.join('\n\n');
-          await handleAIRequest(`${title}\n\n${textContent}`, 'study');
-        }
+        const completeTextContent = sefariaText.text.join('\n\n');
+        console.log(`[AppSimple] Sending complete text to AI (${completeTextContent.length} characters)`);
+        await handleAIRequest(`TEXTE COMPLET DE ${title}:\n\n${completeTextContent}`, 'study');
+        return;
       }
+
+      // Troisième tentative: SefariaClient direct
+      console.log(`[AppSimple] Trying SefariaClient for: ${ref}`);
+      const directText = await sefariaClient.fetchSection(ref);
+      
+      if (directText && directText.text && directText.text.length > 0) {
+        console.log(`[AppSimple] ✅ SefariaClient success: ${directText.text.length} segments`);
+        setSelectedText(directText);
+        setSidebarOpen(false);
+
+        const textContent = directText.text.join('\n\n');
+        await handleAIRequest(`${title}\n\n${textContent}`, 'study');
+        return;
+      }
+
+      // Si aucune méthode n'a fonctionné
+      throw new Error(`Impossible de charger le texte ${title} avec la référence ${ref}`);
     } catch (error) {
       console.error('[AppSimple] Complete text loading error:', error);
       // Final fallback
@@ -360,7 +410,20 @@ ${text}`
         }
       } catch (fallbackError) {
         console.error('[AppSimple] All loading methods failed:', fallbackError);
-        await handleAIRequest('Erreur lors du chargement du texte sélectionné.', 'general');
+        
+        // Message d'erreur informatif pour l'utilisateur
+        const errorMessage = `Désolé, je n'ai pas pu charger "${title}". Cela peut être dû à une référence incorrecte ou à un problème de connexion temporaire. Pouvez-vous essayer un autre texte ou reformuler votre demande ?`;
+        
+        await handleAIRequest(errorMessage, 'general');
+        
+        // Afficher un texte d'erreur dans le viewer
+        const errorText: SefariaText = {
+          ref: ref,
+          title: `Erreur: ${title}`,
+          text: [errorMessage],
+          he: []
+        };
+        setSelectedText(errorText);
       }
     }
   }, [handleAIRequest]);

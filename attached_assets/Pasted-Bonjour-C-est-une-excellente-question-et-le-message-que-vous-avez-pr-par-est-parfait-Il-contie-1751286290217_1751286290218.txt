@@ -1,0 +1,99 @@
+Bonjour \! C'est une excellente question, et le message que vous avez préparé est parfait. Il contient précisément les indices nécessaires pour résoudre ce bug. En tant que Gemini, je peux analyser cette situation et vous donner la solution exacte.
+
+Le problème que vous décrivez est un cas classique et très fréquent d'incompatibilité de "forme" des données entre un backend (serveur) et un frontend (client). Vous avez absolument raison : le serveur envoie un paquet, et le client ne l'ouvre pas de la bonne manière.
+
+Voici l'analyse et la solution.
+
+-----
+
+### **Diagnostic Précis du Problème**
+
+Le bug ne se trouve ni dans `fullTextExtractor.js` (qui, comme vous le dites, fonctionne parfaitement) ni dans `breslovDiagnostic.ts` (qui révèle le problème). L'erreur se situe très probablement dans le **fichier de la route du serveur** qui *utilise* `fullTextExtractor.js` pour envoyer la réponse.
+
+Voici ce qui se passe, étape par étape :
+
+1.  **Serveur (`fullTextExtractor.js`)** : Cette fonction prépare un objet JavaScript propre, qui ressemble à ceci :
+
+    ```javascript
+    {
+      text: [ "Segment 1", "Segment 2", ... ], // 34 segments
+      he: [ "קטע 1", "קטע 2", ... ]          // 34 segments
+    }
+    ```
+
+2.  **Serveur (Route Express, par ex. `server.js`)** : C'est ici que l'erreur se produit. Votre route prend l'objet ci-dessus et, au lieu de l'envoyer directement, l'enveloppe dans un *autre* objet. Le code de votre route ressemble probablement à ceci :
+
+    ```javascript
+    // Code PROBABLE et incorrect dans votre route serveur
+    app.get('/api/full-text/:ref', async (req, res) => {
+      const extractedData = await fullTextExtractor.extract(req.params.ref);
+      // Le problème est ici : vous mettez l'objet dans une propriété "text"
+      res.json({ text: extractedData }); // <--- ERREUR D'ENVELOPPEMENT
+    });
+    ```
+
+    À cause de cette ligne, ce que le serveur envoie réellement n'est pas l'objet de base, mais cet objet **imbriqué** :
+
+    ```json
+    {
+      "text": {
+        "text": [ "Segment 1", ... ],
+        "he": [ "קטע 1", ... ]
+      }
+    }
+    ```
+
+3.  **Client (`breslovDiagnostic.ts`)** : Le client reçoit cet objet imbriqué. Quand votre code de diagnostic accède à `text.text`, il fait en réalité `objet_reçu.text`, ce qui lui donne `{ text: [...], he: [...] }`. Il n'y a pas de propriété `.length` sur cet objet, donc le résultat est `0` (ou `undefined` qui est interprété comme 0). Votre log `Found 0 English segments in text.text array` est la preuve parfaite de cette imbrication accidentelle.
+
+### **Solution : Corriger l'incompatibilité**
+
+La solution la plus propre est de corriger le serveur pour qu'il envoie les données dans le format plat que le client attend.
+
+#### **Option 1 (Recommandée) : Correction Côté Serveur**
+
+Modifiez le fichier de votre route sur le serveur pour qu'il ne fasse pas l'enveloppement inutile.
+
+**Code à modifier sur le serveur (fichier de la route, ex: `server.js`) :**
+
+```javascript
+// ANCIEN CODE INCORRECT
+// res.json({ text: extractedData });
+
+// NOUVEAU CODE CORRECT
+// Envoyez l'objet directement, sans l'envelopper
+res.json(extractedData);
+```
+
+En faisant cela, le client recevra directement l'objet `{ text: [...], he: [...] }` et votre code de diagnostic fonctionnera sans aucune modification.
+
+#### **Option 2 (Alternative) : Correction Côté Client**
+
+Si pour une raison quelconque vous ne pouvez pas modifier le serveur, vous pouvez apprendre au client à ouvrir correctement le "paquet" imbriqué.
+
+**Code à modifier sur le client (`client/src/utils/breslovDiagnostic.ts`) :**
+
+```typescript
+// ANCIEN CODE INCORRECT DANS LE DIAGNOSTIC
+// const englishSegments = text.text || [];
+// const hebrewSegments = text.he || [];
+
+// NOUVEAU CODE CORRECT
+// On accède à la propriété "text" pour "déballer" l'objet intérieur
+const innerObject = text.text; 
+const englishSegments = innerObject.text || [];
+const hebrewSegments = innerObject.he || [];
+```
+
+Et de même dans `client/src/services/breslovCrawler.ts` si celui-ci traite les données :
+
+```typescript
+// ANCIEN CODE INCORRECT DANS LE CRAWLER
+// return response.json();
+
+// NOUVEAU CODE CORRECT
+// Déballer les données dès leur réception
+const data = await response.json();
+return data.text; // On retourne directement l'objet intérieur
+```
+
+**Conclusion :** Je vous recommande vivement d'appliquer la **solution n°1**. C'est la plus propre, car elle garantit que votre API serveur est simple et prévisible. Une API doit retourner les données de la manière la plus directe possible. L'enveloppement inutile est une source fréquente de bugs.
