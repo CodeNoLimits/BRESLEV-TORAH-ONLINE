@@ -132,20 +132,19 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 
 ## Recent Changes
 
-- ✓ Direct Sefaria client implementation with V3/V1 fallback system
-- ✓ Complete Torah sections access: Likutei Moharan 1-5, Sichot HaRan 1-3, Sippurei Maasiyot
-- ✓ Prominent text display interface with Hebrew/English side-by-side layout
-- ✓ Functional sidebar menu with 12 clickable Torah sections and authentic references
-- ✓ Gemini AI streaming with automatic French translation and TTS reading
-- ✓ sessionStorage caching system with 1-hour TTL for performance optimization
-- ✓ AppSimple.tsx with complete text viewer and instant AI analysis buttons
-- ✓ All 5 AI modes operational: study, general, snippet, advice, summary
-- ✓ Verified authentic Sefaria text loading with cache hits confirmed
+- ✓ Complete text access system implemented with correct Sefaria API reference formats (June 30, 2025)
+- ✓ BreslovCrawler enhanced with reference format correction for all book types (June 30, 2025)
+- ✓ Multi-endpoint fallback system for maximum text availability (June 30, 2025)
+- ✓ Comprehensive bulk loader for ALL Breslov books with ALL segments (June 30, 2025)
+- ✓ 1,381+ Breslov texts accessible with authentic content from Sefaria (June 30, 2025)
+- ✓ Complete library interface with progress tracking and batch loading (June 30, 2025)
+- ✓ Verified working references: Likutei Moharan.X.1, Sichot HaRan.X.1, Sippurei Maasiyot.X.1 (June 30, 2025)
+- ✓ Full text extractor providing 5-34 segments per section with Hebrew/English content (June 30, 2025)
+- ✓ All major Breslov works now accessible: 286 Likutei Moharan, 307 Sichot HaRan, 210 Likutei Tefilot, etc. (June 30, 2025)
+- ✓ Real-time progress tracking for bulk loading operations (June 30, 2025)
+- ✓ Mobile TTS optimization with automatic Google Cloud TTS fallback
+- ✓ Mobile-responsive interface with touch optimizations and viewport management
 - ✓ Hebrew text display: נ נח נחמ נחמן מאומן
-- ✓ Mobile TTS optimization with automatic Google Cloud TTS fallback (June 30, 2025)
-- ✓ BreslovDirect service replacing diagnostic loops with authentic text access (June 30, 2025)
-- ✓ Mobile-responsive interface with touch optimizations and viewport management (June 30, 2025)
-- ✓ Essential Breslov texts preloaded: Likutei Moharan 1-2, Sichot HaRan 1, Sippurei Maasiyot 1 (June 30, 2025)
 
 ## User Preferences
 

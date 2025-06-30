@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Book, ChevronRight, Search, Download } from 'lucide-react';
+import { X, Book, ChevronRight, Search, Download, Database } from 'lucide-react';
 import { breslovComplete, type CompleteBreslovText, BRESLOV_STATS } from '../services/breslovComplete';
+import { CompleteBreslovLoader } from './CompleteBreslovLoader';
+import { CompleteBreslovLibrary } from '../services/breslovBulkLoader';
 
 interface BreslovCompleteLibraryProps {
   isOpen: boolean;
@@ -19,6 +21,8 @@ export const BreslovCompleteLibrary: React.FC<BreslovCompleteLibraryProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [showBulkLoader, setShowBulkLoader] = useState(false);
+  const [completeLibrary, setCompleteLibrary] = useState<CompleteBreslovLibrary | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -104,6 +108,11 @@ export const BreslovCompleteLibrary: React.FC<BreslovCompleteLibraryProps> = ({
             </h2>
             <p className="text-sm text-gray-400 mt-1">
               {BRESLOV_STATS.totalTexts} textes • {BRESLOV_STATS.estimatedWords.toLocaleString()} mots estimés
+              {completeLibrary && (
+                <span className="text-green-400 ml-2">
+                  • {completeLibrary.metadata.totalSegments.toLocaleString()} segments chargés
+                </span>
+              )}
             </p>
           </div>
           <button
@@ -114,8 +123,28 @@ export const BreslovCompleteLibrary: React.FC<BreslovCompleteLibraryProps> = ({
           </button>
         </div>
 
-        {/* Search and Filters */}
+        {/* Bulk Loader and Search */}
         <div className="p-4 border-b border-slate-600 space-y-4">
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowBulkLoader(true)}
+              className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg 
+                         flex items-center gap-2 transition-colors font-medium"
+            >
+              <Database className="w-4 h-4" />
+              Charger TOUS les Segments
+            </button>
+            
+            {completeLibrary && (
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                <span className="text-green-400 font-medium">
+                  {completeLibrary.metadata.totalSegments.toLocaleString()} segments disponibles
+                </span>
+              </div>
+            )}
+          </div>
+          
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
@@ -242,6 +271,16 @@ export const BreslovCompleteLibrary: React.FC<BreslovCompleteLibraryProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Complete Library Bulk Loader */}
+      <CompleteBreslovLoader
+        isOpen={showBulkLoader}
+        onClose={() => setShowBulkLoader(false)}
+        onLibraryLoaded={(library) => {
+          setCompleteLibrary(library);
+          console.log(`[BreslovCompleteLibrary] Complete library loaded: ${library.metadata.totalSegments} segments`);
+        }}
+      />
     </div>
   );
 };
