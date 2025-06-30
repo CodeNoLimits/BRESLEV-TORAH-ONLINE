@@ -191,7 +191,7 @@ class BreslovBulkLoader {
       for (const version of data.versions) {
         if (version.text) {
           if (Array.isArray(version.text)) {
-            segments.push(...version.text.filter(seg => seg && seg.trim().length > 0));
+            segments.push(...version.text.filter((seg: any) => seg && seg.trim().length > 0));
           } else if (typeof version.text === 'string') {
             segments.push(version.text);
           }
@@ -199,7 +199,7 @@ class BreslovBulkLoader {
         
         if (version.he) {
           if (Array.isArray(version.he)) {
-            segments.push(...version.he.filter(seg => seg && seg.trim().length > 0));
+            segments.push(...version.he.filter((seg: any) => seg && seg.trim().length > 0));
           } else if (typeof version.he === 'string') {
             segments.push(version.he);
           }
@@ -210,7 +210,7 @@ class BreslovBulkLoader {
     // Handle V1 API format
     if (data.text) {
       if (Array.isArray(data.text)) {
-        segments.push(...data.text.filter(seg => seg && seg.trim().length > 0));
+        segments.push(...data.text.filter((seg: any) => seg && seg.trim().length > 0));
       } else if (typeof data.text === 'string') {
         segments.push(data.text);
       }
@@ -218,7 +218,7 @@ class BreslovBulkLoader {
     
     if (data.he) {
       if (Array.isArray(data.he)) {
-        segments.push(...data.he.filter(seg => seg && seg.trim().length > 0));
+        segments.push(...data.he.filter((seg: any) => seg && seg.trim().length > 0));
       } else if (typeof data.he === 'string') {
         segments.push(data.he);
       }

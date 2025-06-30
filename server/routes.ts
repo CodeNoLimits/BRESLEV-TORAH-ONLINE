@@ -234,12 +234,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Validate that we have actual content
             let hasContent = false;
-            if (data.versions && Array.isArray(data.versions)) {
-              hasContent = data.versions.some(v => v.text && (
+            if ((data as any).versions && Array.isArray((data as any).versions)) {
+              hasContent = (data as any).versions.some((v: any) => v.text && (
                 (typeof v.text === 'string' && v.text.trim().length > 3) ||
-                (Array.isArray(v.text) && v.text.some(segment => segment && segment.trim().length > 3))
+                (Array.isArray(v.text) && v.text.some((segment: any) => segment && segment.trim().length > 3))
               ));
-            } else if (data.text || data.he) {
+            } else if ((data as any).text || (data as any).he) {
               hasContent = true;
             }
             

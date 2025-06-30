@@ -222,7 +222,7 @@ class BreslovCompleteService {
       variants.push(ref.replace(/ /g, '.'));
     }
     
-    return [...new Set(variants)]; // Remove duplicates
+    return Array.from(new Set(variants)); // Remove duplicates
   }
 
   private hasValidContent(data: any): boolean {
