@@ -51,8 +51,29 @@ export class BreslovDiagnostic {
             hasVersions: !!text.versions,
             versionsCount: text.versions ? text.versions.length : 0,
             sampleText: text.text ? (Array.isArray(text.text) ? text.text[0] : text.text) : 'none',
-            sampleHe: text.he ? (Array.isArray(text.he) ? text.he[0] : text.he) : 'none'
+            sampleHe: text.he ? (Array.isArray(text.he) ? text.he[0] : text.he) : 'none',
+            wholeObjectKeys: Object.keys(text),
+            wholeObject: text
           });
+          
+          // Debug the exact filtering process
+          if (text.text && Array.isArray(text.text)) {
+            console.log(`[BreslovDiagnostic] Analyzing ${text.text.length} text segments:`);
+            text.text.forEach((segment, i) => {
+              if (i < 5) { // Only log first 5 for brevity
+                console.log(`  Segment ${i}: type=${typeof segment}, length=${segment ? segment.length : 'null'}, content="${segment ? segment.substring(0, 50) : 'null'}..."`);
+              }
+            });
+          }
+          
+          if (text.he && Array.isArray(text.he)) {
+            console.log(`[BreslovDiagnostic] Analyzing ${text.he.length} Hebrew segments:`);
+            text.he.forEach((segment, i) => {
+              if (i < 5) { // Only log first 5 for brevity
+                console.log(`  Hebrew ${i}: type=${typeof segment}, length=${segment ? segment.length : 'null'}, content="${segment ? segment.substring(0, 50) : 'null'}..."`);
+              }
+            });
+          }
           
           // Server fullTextExtractor format (from server/fullTextExtractor.js)
           if (text.text && Array.isArray(text.text)) {
