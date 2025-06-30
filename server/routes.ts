@@ -10,12 +10,27 @@ const { extractCompleteBook } = require('./fullTextExtractor');
 // Initialize Google Cloud TTS client
 let ttsClient: TextToSpeechClient | null = null;
 try {
-  ttsClient = new TextToSpeechClient({
-    keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
-  });
-  console.log('[TTS-Cloud] Google Cloud TTS initialized');
+  // Check if we have Google Cloud credentials
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    // Try to parse as JSON first (for direct key content)
+    try {
+      const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+      ttsClient = new TextToSpeechClient({
+        credentials: credentials
+      });
+    } catch (parseError) {
+      // If parsing fails, treat as file path
+      ttsClient = new TextToSpeechClient({
+        keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
+      });
+    }
+    console.log('[TTS-Cloud] Google Cloud TTS initialized');
+  } else {
+    console.log('[TTS-Cloud] No Google Cloud credentials found, TTS disabled');
+  }
 } catch (error) {
   console.warn('[TTS-Cloud] Google Cloud TTS not available, using fallback:', error);
+  ttsClient = null;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -251,6 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { text, lang } = req.body as { text: string; lang: string };
       
       if (!ttsClient) {
+        console.log('[TTS-Cloud] Service unavailable, returning fallback response');
         return res.status(503).json({ error: 'TTS service unavailable' });
       }
 
@@ -282,8 +298,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const [response] = await ttsClient.synthesizeSpeech(request);
 
+      if (!response.audioContent) {
+        throw new Error('No audio content received from TTS service');
+      }
+
       res.setHeader('Content-Type', 'audio/mpeg');
-      res.setHeader('Content-Length', response.audioContent?.length || 0);
+      res.setHeader('Content-Length', response.audioContent.length);
       res.send(response.audioContent);
       
     } catch (error) {

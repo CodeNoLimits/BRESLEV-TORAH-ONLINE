@@ -19,7 +19,7 @@ class SefariaDirectClient {
   private cache = new Map<string, { data: any; expires: number }>();
   private readonly TTL = 3600000; // 1 hour
 
-  // Fetch section with V3/V1 fallback
+  // Fetch section with proper Breslov reference handling
   async fetchSection(tref: string): Promise<SefariaText> {
     const cacheKey = tref;
     const cached = this.cache.get(cacheKey);
@@ -30,117 +30,253 @@ class SefariaDirectClient {
     }
 
     try {
-      // Convert ref format: "Likutei Moharan 1:1" → "Likutei_Moharan.1.1"
-      const encodedRef = tref.replace(/\s+/g, '_').replace(/:/g, '.');
+      // Get multiple reference formats to try
+      const refVariants = this.getBreslovRefVariants(tref);
+      console.log(`[SefariaClient] Trying ${refVariants.length} reference variants for: ${tref}`);
       
-      // Try V3 first via proxy
-      let url = `/sefaria/api/v3/texts/${encodedRef}?context=0&commentary=0&pad=0&wrapLinks=false`;
-      console.log(`[SefariaClient] Fetching V3 via proxy: ${url}`);
-      
-      let response = await fetch(url);
-      
-      if (!response.ok && response.status === 404) {
-        // Fallback to V1 via proxy
-        url = `/sefaria/api/texts/${encodedRef}?context=0&commentary=0`;
-        console.log(`[SefariaClient] Fallback to V1 via proxy: ${url}`);
-        response = await fetch(url);
+      for (const variant of refVariants) {
+        try {
+          const urlFormats = [
+            `/sefaria/api/v3/texts/${encodeURIComponent(variant)}?context=0&commentary=0&pad=0&wrapLinks=false`,
+            `/sefaria/api/texts/${encodeURIComponent(variant)}?context=0&commentary=0`,
+            `/sefaria/api/v3/texts/${variant.replace(/\s+/g, '_')}?context=0&commentary=0&pad=0&wrapLinks=false`,
+            `/sefaria/api/texts/${variant.replace(/\s+/g, '_')}?context=0&commentary=0`
+          ];
+
+          for (const url of urlFormats) {
+            console.log(`[SefariaClient] Trying: ${url}`);
+            const response = await fetch(url);
+            
+            if (response.ok) {
+              const data = await response.json();
+              
+              // Check if we actually got text content
+              if (this.hasValidTextContent(data)) {
+                console.log(`[SefariaClient] Success! Found content with: ${variant}`);
+                
+                // Cache the successful response
+                this.cache.set(cacheKey, {
+                  data,
+                  expires: Date.now() + this.TTL
+                });
+                
+                return this.formatResponse(data, tref);
+              }
+            }
+          }
+        } catch (variantError) {
+          console.log(`[SefariaClient] Variant "${variant}" failed:`, variantError);
+          continue;
+        }
       }
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
       
-      // Cache the response
-      this.cache.set(cacheKey, {
-        data,
-        expires: Date.now() + this.TTL
-      });
-
-      console.log(`[SefariaClient] Successfully fetched: ${tref}`);
-      return this.formatResponse(data, tref);
+      throw new Error(`No valid content found for any reference variant of: ${tref}`);
 
     } catch (error) {
       console.error('[SefariaClient]', tref, error);
-      throw new Error(`Impossible de charger "${tref}" (${error instanceof Error ? error.message : 'Unknown error'})`);
+      throw new Error(`Cannot load "${tref}" - text may not be available`);
     }
   }
 
-  // Format response to consistent structure
+  // Generate multiple reference variants for Breslov texts
+  private getBreslovRefVariants(ref: string): string[] {
+    const variants: string[] = [ref]; // Always include original
+    
+    // Handle Likutei Moharan Tinyana (Part II)
+    if (ref.includes('Tinyana')) {
+      const match = ref.match(/Likutei Moharan Tinyana (\d+)/i);
+      if (match) {
+        const section = match[1];
+        variants.push(
+          `Likutei Moharan II, ${section}`,
+          `Likutei Moharan II, ${section}:1`,
+          `Likutei Moharan, Part II, ${section}`,
+          `Likutei Moharan II.${section}`,
+          `Likutei_Moharan_II.${section}`
+        );
+      }
+    }
+    // Handle Likutei Moharan (Part I)
+    else if (ref.includes('Likutei Moharan') && !ref.includes('II')) {
+      const match = ref.match(/Likutei Moharan (\d+)/i);
+      if (match) {
+        const section = match[1];
+        variants.push(
+          `Likutei Moharan I, ${section}`,
+          `Likutei Moharan I, ${section}:1`,
+          `Likutei Moharan, Part I, ${section}`,
+          `Likutei Moharan I.${section}`,
+          `Likutei_Moharan_I.${section}`,
+          `Likutei Moharan ${section}` // Without part designation
+        );
+      }
+    }
+    
+    // Handle Sichot HaRan
+    if (ref.includes('Sichot HaRan')) {
+      const match = ref.match(/Sichot HaRan (\d+)/i);
+      if (match) {
+        const section = match[1];
+        variants.push(
+          `Sichot HaRan ${section}`,
+          `Sichot HaRan, ${section}`,
+          `Sichot_HaRan.${section}`
+        );
+      }
+    }
+    
+    // Handle Sippurei Maasiyot
+    if (ref.includes('Sippurei Maasiyot')) {
+      const match = ref.match(/Sippurei Maasiyot (\d+)/i);
+      if (match) {
+        const section = match[1];
+        variants.push(
+          `Sippurei Maasiyot ${section}`,
+          `Sippurei Maasiyot, ${section}`,
+          `Sippurei_Maasiyot.${section}`
+        );
+      }
+    }
+    
+    return [...new Set(variants)]; // Remove duplicates
+  }
+
+  // Check if response contains actual text content
+  private hasValidTextContent(data: any): boolean {
+    if (!data) return false;
+    
+    // Check V3 format with versions
+    if (data.versions && Array.isArray(data.versions)) {
+      return data.versions.some((version: any) => {
+        const hasText = version.text && Array.isArray(version.text) && version.text.some((t: any) => t && t.trim());
+        const hasChapter = version.chapter && Array.isArray(version.chapter) && version.chapter.some((c: any) => c && c.trim());
+        return hasText || hasChapter;
+      });
+    }
+    
+    // Check V1 format
+    const hasV1Text = data.text && Array.isArray(data.text) && data.text.some((t: any) => t && t.trim());
+    const hasV1He = data.he && Array.isArray(data.he) && data.he.some((h: any) => h && h.trim());
+    
+    return hasV1Text || hasV1He;
+  }
+
+  // Format response to consistent structure with comprehensive text extraction
   private formatResponse(data: any, tref: string): SefariaText {
     console.log(`[SefariaClient] Formatting response for ${tref}:`, {
       hasVersions: !!data.versions,
       versionsCount: data.versions?.length || 0,
       hasDirectText: !!data.text,
-      hasDirectHe: !!data.he
+      hasDirectHe: !!data.he,
+      responseKeys: Object.keys(data)
     });
 
-    // Handle V3 response format
-    if (data.versions && data.versions.length > 0) {
-      const hebrewVersion = data.versions.find((v: any) => v.language === 'he');
-      const englishVersion = data.versions.find((v: any) => v.language === 'en');
+    let englishText: string[] = [];
+    let hebrewText: string[] = [];
+
+    // Handle V3 response format with versions
+    if (data.versions && Array.isArray(data.versions)) {
+      console.log(`[SefariaClient] Processing ${data.versions.length} versions`);
       
-      // Extract text arrays properly - check both text and chapter fields
-      let englishText: string[] = [];
-      let hebrewText: string[] = [];
-      
-      if (englishVersion) {
-        if (englishVersion.text) {
-          englishText = Array.isArray(englishVersion.text) ? englishVersion.text : [englishVersion.text];
-        } else if (englishVersion.chapter) {
-          englishText = Array.isArray(englishVersion.chapter) ? englishVersion.chapter : [englishVersion.chapter];
+      for (const version of data.versions) {
+        console.log(`[SefariaClient] Version:`, {
+          language: version.language,
+          title: version.versionTitle,
+          hasText: !!version.text,
+          hasChapter: !!version.chapter,
+          keys: Object.keys(version)
+        });
+        
+        // Extract English content
+        if (version.language === 'en' && englishText.length === 0) {
+          if (version.text && Array.isArray(version.text)) {
+            englishText = this.flattenTextArray(version.text);
+          } else if (version.chapter && Array.isArray(version.chapter)) {
+            englishText = this.flattenTextArray(version.chapter);
+          } else if (version.text) {
+            englishText = [String(version.text)];
+          }
+        }
+        
+        // Extract Hebrew content
+        if (version.language === 'he' && hebrewText.length === 0) {
+          if (version.text && Array.isArray(version.text)) {
+            hebrewText = this.flattenTextArray(version.text);
+          } else if (version.chapter && Array.isArray(version.chapter)) {
+            hebrewText = this.flattenTextArray(version.chapter);
+          } else if (version.text) {
+            hebrewText = [String(version.text)];
+          }
+        }
+        
+        // Fallback: if no language specified but has content
+        if (!version.language || version.language === '') {
+          if (version.text && Array.isArray(version.text)) {
+            const content = this.flattenTextArray(version.text);
+            if (englishText.length === 0) englishText = content;
+            if (hebrewText.length === 0) hebrewText = content;
+          }
         }
       }
       
-      if (hebrewVersion) {
-        if (hebrewVersion.text) {
-          hebrewText = Array.isArray(hebrewVersion.text) ? hebrewVersion.text : [hebrewVersion.text];
-        } else if (hebrewVersion.chapter) {
-          hebrewText = Array.isArray(hebrewVersion.chapter) ? hebrewVersion.chapter : [hebrewVersion.chapter];
-        }
-      }
-      
-      // Fallback: if no English, try to get it from the first version
-      if (englishText.length === 0 && data.versions[0]) {
-        const firstVersion = data.versions[0];
-        if (firstVersion.text) {
-          englishText = Array.isArray(firstVersion.text) ? firstVersion.text : [firstVersion.text];
-        } else if (firstVersion.chapter) {
-          englishText = Array.isArray(firstVersion.chapter) ? firstVersion.chapter : [firstVersion.chapter];
-        }
-      }
-      
-      console.log(`[SefariaClient] V3 format - EN: ${englishText.length} segments, HE: ${hebrewText.length} segments`);
-      console.log(`[SefariaClient] Sample data:`, {
-        englishVersion: englishVersion ? Object.keys(englishVersion) : 'none',
-        hebrewVersion: hebrewVersion ? Object.keys(hebrewVersion) : 'none',
-        englishSample: englishText[0]?.substring(0, 100),
-        hebrewSample: hebrewText[0]?.substring(0, 100)
-      });
-      
-      return {
-        ref: tref,
-        title: data.title || tref,
-        text: englishText.filter(Boolean),
-        he: hebrewText.filter(Boolean)
-      };
+      console.log(`[SefariaClient] V3 extraction - EN: ${englishText.length} segments, HE: ${hebrewText.length} segments`);
     }
     
-    // Handle V1 response format
-    const v1Text = data.text ? 
-      (Array.isArray(data.text) ? data.text : [data.text]) : [];
-    const v1He = data.he ? 
-      (Array.isArray(data.he) ? data.he : [data.he]) : [];
+    // Handle V1 response format or direct text properties
+    if (englishText.length === 0 && data.text) {
+      englishText = this.flattenTextArray(data.text);
+    }
     
-    console.log(`[SefariaClient] V1 format - EN: ${v1Text.length} segments, HE: ${v1He.length} segments`);
+    if (hebrewText.length === 0 && data.he) {
+      hebrewText = this.flattenTextArray(data.he);
+    }
+    
+    // Clean and validate text arrays
+    englishText = englishText.filter(t => t && typeof t === 'string' && t.trim().length > 0);
+    hebrewText = hebrewText.filter(t => t && typeof t === 'string' && t.trim().length > 0);
+    
+    console.log(`[SefariaClient] Final result - EN: ${englishText.length} segments, HE: ${hebrewText.length} segments`);
+    if (englishText.length > 0) {
+      console.log(`[SefariaClient] First English segment: ${englishText[0].substring(0, 100)}...`);
+    }
+    if (hebrewText.length > 0) {
+      console.log(`[SefariaClient] First Hebrew segment: ${hebrewText[0].substring(0, 100)}...`);
+    }
     
     return {
       ref: tref,
       title: data.title || tref,
-      text: v1Text.filter(Boolean),
-      he: v1He.filter(Boolean)
+      text: englishText,
+      he: hebrewText
     };
+  }
+
+  // Recursively flatten nested text arrays
+  private flattenTextArray(textData: any): string[] {
+    if (!textData) return [];
+    
+    if (typeof textData === 'string') {
+      return [textData];
+    }
+    
+    if (Array.isArray(textData)) {
+      const flattened: string[] = [];
+      for (const item of textData) {
+        if (typeof item === 'string') {
+          flattened.push(item);
+        } else if (Array.isArray(item)) {
+          flattened.push(...this.flattenTextArray(item));
+        } else if (item && typeof item === 'object') {
+          // Handle objects that might contain text properties
+          if (item.text) {
+            flattened.push(...this.flattenTextArray(item.text));
+          }
+        }
+      }
+      return flattened;
+    }
+    
+    return [];
   }
 
   // Load Breslov library from index
