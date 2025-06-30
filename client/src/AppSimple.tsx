@@ -359,7 +359,7 @@ ${text}`
 
       // Deuxième tentative: BreslovCompleteLoader
       console.log(`[AppSimple] Trying BreslovCompleteLoader for: ${ref}`);
-      const completeLoaderText = await breslovCompleteLoader.getCompleteText(ref);
+      const completeLoaderText = await breslovComplete.getCompleteText(ref);
       
       if (completeLoaderText && completeLoaderText.english && completeLoaderText.english.length > 0) {
         console.log(`[AppSimple] ✅ CompleteLoader success: ${completeLoaderText.english.length} English, ${completeLoaderText.hebrew?.length || 0} Hebrew segments`);
@@ -396,37 +396,25 @@ ${text}`
 
       // Si aucune méthode n'a fonctionné
       throw new Error(`Impossible de charger le texte ${title} avec la référence ${ref}`);
+
     } catch (error) {
       console.error('[AppSimple] Complete text loading error:', error);
-      // Final fallback
-      try {
-        const text = await sefariaClient.fetchSection(ref);
-        setSelectedText(text);
-        setSidebarOpen(false);
-        
-        if (text.text && text.text.length > 0) {
-          const textContent = text.text.join('\n\n');
-          await handleAIRequest(`${title}\n\n${textContent}`, 'study');
-        }
-      } catch (fallbackError) {
-        console.error('[AppSimple] All loading methods failed:', fallbackError);
-        
-        // Message d'erreur informatif pour l'utilisateur
-        const errorMessage = `Désolé, je n'ai pas pu charger "${title}". Cela peut être dû à une référence incorrecte ou à un problème de connexion temporaire. Pouvez-vous essayer un autre texte ou reformuler votre demande ?`;
-        
-        await handleAIRequest(errorMessage, 'general');
-        
-        // Afficher un texte d'erreur dans le viewer
-        const errorText: SefariaText = {
-          ref: ref,
-          title: `Erreur: ${title}`,
-          text: [errorMessage],
-          he: []
-        };
-        setSelectedText(errorText);
-      }
+      
+      // Message d'erreur informatif pour l'utilisateur
+      const errorMessage = `Désolé, je n'ai pas pu charger "${title}". Cela peut être dû à une référence incorrecte ou à un problème de connexion temporaire. Pouvez-vous essayer un autre texte ou reformuler votre demande ?`;
+      
+      await handleAIRequest(errorMessage, 'general');
+      
+      // Afficher un texte d'erreur dans le viewer
+      const errorText: SefariaText = {
+        ref: ref,
+        title: `Erreur: ${title}`,
+        text: [errorMessage],
+        he: []
+      };
+      setSelectedText(errorText);
     }
-  }, [handleAIRequest]);
+  }, [handleAIRequest, breslovCrawler, breslovComplete, sefariaClient]);
 
   // Handle input submission
   const handleSendMessage = useCallback(async (message: string, mode: InteractionMode) => {
