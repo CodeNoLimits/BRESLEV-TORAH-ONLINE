@@ -3,9 +3,26 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { extractCompleteBook } from "./fullTextExtractor";
 import { cacheService } from "./cache";
+import fs from "fs";
+import path from "path";
 
 // Set environment variables for frontend
 process.env.VITE_GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+// Decode Google TTS credentials if provided
+if (process.env.GOOGLE_TTS_CREDENTIALS_B64) {
+  try {
+    const credentialsPath = path.join(process.cwd(), 'serviceAccount.json');
+    fs.writeFileSync(
+      credentialsPath,
+      Buffer.from(process.env.GOOGLE_TTS_CREDENTIALS_B64, 'base64')
+    );
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = credentialsPath;
+    console.log(`[TTS-Cloud] Credentials written to ${credentialsPath}`);
+  } catch (err) {
+    console.error('[TTS-Cloud] Failed to decode credentials', err);
+  }
+}
 
 const app = express();
 app.use(express.json());

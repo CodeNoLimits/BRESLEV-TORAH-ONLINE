@@ -2,49 +2,18 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { TextToSpeechClient, protos } from '@google-cloud/text-to-speech';
+import { v1beta1, protos } from '@google-cloud/text-to-speech';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { extractCompleteBook } = require('./fullTextExtractor');
 
-// Initialize Google Cloud TTS client
-let ttsClient: TextToSpeechClient | null = null;
+// Initialize Google Cloud TTS client using service account file
+let ttsClient: v1beta1.TextToSpeechClient | null = null;
 try {
-  // Check if we have Google Cloud credentials
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    const credentialsEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    
-    // Check if it looks like JSON (starts with { and ends with })
-    if (credentialsEnv.trim().startsWith('{') && credentialsEnv.trim().endsWith('}')) {
-      try {
-        const credentials = JSON.parse(credentialsEnv);
-        ttsClient = new TextToSpeechClient({
-          credentials: credentials
-        });
-        console.log('[TTS-Cloud] Google Cloud TTS initialized with JSON credentials');
-      } catch (parseError) {
-        console.warn('[TTS-Cloud] Failed to parse JSON credentials:', parseError);
-        ttsClient = null;
-      }
-    } else if (credentialsEnv.includes('AIza')) {
-      // This looks like an API key, not service account credentials
-      console.log('[TTS-Cloud] Detected API key instead of service account credentials - TTS disabled');
-      ttsClient = null;
-    } else {
-      // Treat as file path
-      try {
-        ttsClient = new TextToSpeechClient({
-          keyFilename: credentialsEnv
-        });
-        console.log('[TTS-Cloud] Google Cloud TTS initialized with key file');
-      } catch (fileError) {
-        console.warn('[TTS-Cloud] Failed to load credentials from file:', fileError);
-        ttsClient = null;
-      }
-    }
-  } else {
-    console.log('[TTS-Cloud] No Google Cloud credentials found, TTS disabled');
-  }
+  const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  if (!credentialsPath) throw new Error('GOOGLE_APPLICATION_CREDENTIALS not set');
+  ttsClient = new v1beta1.TextToSpeechClient({ keyFilename: credentialsPath });
+  console.log('[TTS-Cloud] Google Cloud TTS initialized');
 } catch (error) {
   console.warn('[TTS-Cloud] Google Cloud TTS not available, using fallback:', error);
   ttsClient = null;
@@ -332,15 +301,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[TTS-Cloud] Synthesizing: ${text.substring(0, 50)}... (${lang})`);
 
-      const request: protos.google.cloud.texttospeech.v1.ISynthesizeSpeechRequest = {
+      const request: protos.google.cloud.texttospeech.v1beta1.ISynthesizeSpeechRequest = {
         input: { text },
         voice: {
           languageCode: voice.languageCode,
           name: voice.name,
-          ssmlGender: protos.google.cloud.texttospeech.v1.SsmlVoiceGender.MALE
+          ssmlGender: protos.google.cloud.texttospeech.v1beta1.SsmlVoiceGender.MALE
         },
-        audioConfig: { 
-          audioEncoding: protos.google.cloud.texttospeech.v1.AudioEncoding.MP3,
+        audioConfig: {
+          audioEncoding: protos.google.cloud.texttospeech.v1beta1.AudioEncoding.MP3,
           speakingRate: 0.95,
           pitch: -2.0,
           volumeGainDb: 2.0
