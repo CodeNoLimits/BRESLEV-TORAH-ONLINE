@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { extractCompleteBook } from "./fullTextExtractor";
-import { cacheService } from "./cache";
+import { getOrFetch } from "../src/services/cache";
 
 // Set environment variables for frontend
 process.env.VITE_GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -107,75 +107,63 @@ app.post('/gemini/chat', async (req, res) => {
 app.get('/api/sefaria/texts/:ref', async (req, res) => {
   try {
     const rawRef = req.params.ref;
-    // Normalize reference format: Likutei_Moharan.1 -> Likutei Moharan 1
     const ref = rawRef.replace(/_/g, ' ').replace(/\./g, ' ');
     console.log(`[Sefaria Proxy] Request for: ${rawRef} (normalized: ${ref})`);
 
-    // Check cache first
-    const cachedData = cacheService.get(ref);
-    if (cachedData) {
-      return res.json(cachedData);
-    }
-    console.log(`[Cache] MISS for ${ref}`);
+    const data = await getOrFetch(ref, async () => {
+      console.log(`[Cache] MISS for ${ref}`);
 
-    // Comprehensive Breslov book detection
-    const BRESLOV_BOOKS = [
-      'Likutei Moharan', 'Sichot HaRan', 'Sippurei Maasiyot', 
-      'Chayei Moharan', 'Shivchei HaRan', 'Sefer HaMiddot',
-      'Likutei Tefilot', 'Likutei Halakhot', 'Likkutei Etzot',
-      'Kitzur Likutei Moharan', 'Hishtapchut HaNefesh',
-      'Meshivat Nefesh', 'Alim LiTrufah'
-    ];
-    
-    const isBreslovBook = BRESLOV_BOOKS.some(book => ref.includes(book));
+      const BRESLOV_BOOKS = [
+        'Likutei Moharan', 'Sichot HaRan', 'Sippurei Maasiyot',
+        'Chayei Moharan', 'Shivchei HaRan', 'Sefer HaMiddot',
+        'Likutei Tefilot', 'Likutei Halakhot', 'Likkutei Etzot',
+        'Kitzur Likutei Moharan', 'Hishtapchut HaNefesh',
+        'Meshivat Nefesh', 'Alim LiTrufah'
+      ];
 
-    if (isBreslovBook) {
-      console.log(`[Sefaria Proxy] Breslov book detected: ${ref}, using complete text extractor`);
+      const isBreslovBook = BRESLOV_BOOKS.some(book => ref.includes(book));
 
-      // Parse book title and section from ref
-      let bookTitle = '';
-      let sectionNumber = null;
+      if (isBreslovBook) {
+        console.log(`[Sefaria Proxy] Breslov book detected: ${ref}, using complete text extractor`);
 
-      if (ref.includes('Likutei Moharan')) {
-        bookTitle = 'Likutei Moharan';
-        const sectionMatch = ref.match(/(\d+)/);
-        if (sectionMatch) sectionNumber = sectionMatch[1];
-      } else if (ref.includes('Sichot HaRan')) {
-        bookTitle = 'Sichot HaRan';
-        const sectionMatch = ref.match(/(\d+)/);
-        if (sectionMatch) sectionNumber = sectionMatch[1];
-      } else if (ref.includes('Sippurei Maasiyot')) {
-        bookTitle = 'Sippurei Maasiyot';
-        const sectionMatch = ref.match(/(\d+)/);
-        if (sectionMatch) sectionNumber = sectionMatch[1];
-      }
+        let bookTitle = '';
+        let sectionNumber = null as string | null;
 
-      if (bookTitle) {
-        try {
-          console.log(`[Sefaria Proxy] Using complete text extractor for ${bookTitle}`);
-          const completeText = await extractCompleteBook(bookTitle, sectionNumber);
-          // Cache the successful result
-          cacheService.set(ref, completeText);
-          return res.json(completeText);
-        } catch (extractorError) {
-          console.error(`[Sefaria Proxy] Complete text extractor failed for ${bookTitle}:`, extractorError);
-          console.log(`[Sefaria Proxy] Falling back to standard Sefaria API`);
-          // Continue to fallback below
+        if (ref.includes('Likutei Moharan')) {
+          bookTitle = 'Likutei Moharan';
+          const m = ref.match(/(\d+)/);
+          if (m) sectionNumber = m[1];
+        } else if (ref.includes('Sichot HaRan')) {
+          bookTitle = 'Sichot HaRan';
+          const m = ref.match(/(\d+)/);
+          if (m) sectionNumber = m[1];
+        } else if (ref.includes('Sippurei Maasiyot')) {
+          bookTitle = 'Sippurei Maasiyot';
+          const m = ref.match(/(\d+)/);
+          if (m) sectionNumber = m[1];
+        }
+
+        if (bookTitle) {
+          try {
+            console.log(`[Sefaria Proxy] Using complete text extractor for ${bookTitle}`);
+            return await extractCompleteBook(bookTitle, sectionNumber);
+          } catch (extractorError) {
+            console.error(`[Sefaria Proxy] Complete text extractor failed for ${bookTitle}:`, extractorError);
+            console.log(`[Sefaria Proxy] Falling back to standard Sefaria API`);
+          }
         }
       }
-    }
 
-    // Regular Sefaria API call (fallback for failed Breslov extraction or non-Breslov texts)
-    const apiUrl = `https://www.sefaria.org/api/texts/${encodeURIComponent(ref)}`;
-    const response = await fetch(apiUrl);
+      const apiUrl = `https://www.sefaria.org/api/texts/${encodeURIComponent(ref)}`;
+      const response = await fetch(apiUrl);
 
-    if (!response.ok) {
-      return res.status(response.status).json({ error: 'Failed to fetch from Sefaria' });
-    }
+      if (!response.ok) {
+        throw new Error('Failed to fetch from Sefaria');
+      }
 
-    const data = await response.json();
-    // Cache the standard API response
-    cacheService.set(ref, data);
+      return await response.json();
+    });
+
     res.json(data);
   } catch (error) {
     console.error('[Sefaria Proxy] Error:', error);
