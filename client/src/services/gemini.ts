@@ -194,9 +194,7 @@ class GeminiService {
       const isDup = history.some((prev) => this.similarity(prev, block) > 0.8);
       if (isDup) continue;
       history.push(block);
-      const result = await chat.sendMessage(block, {
-        generationConfig: { maxOutputTokens: 256 }
-      });
+      const result = await chat.sendMessage(block);
       replies.push(result.response.text());
     }
 
