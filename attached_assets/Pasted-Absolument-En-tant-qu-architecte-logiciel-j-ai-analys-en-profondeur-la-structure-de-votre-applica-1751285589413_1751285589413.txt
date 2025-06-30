@@ -1,0 +1,291 @@
+Absolument. En tant qu'architecte logiciel, j'ai analysé en profondeur la structure de votre application "Le Compagnon du Cœur". Le principal problème qui empêche son fonctionnement est une série d'erreurs **CORS (Cross-Origin Resource Sharing)**, couplée à une logique de récupération des textes qui doit être optimisée et une gestion non sécurisée de votre clé d'API.
+
+Voici une feuille de route précise et impérative, fichier par fichier, à transmettre à votre développeur pour une correction complète et définitive de l'application.
+
+-----
+
+### **Instructions Impératives pour la Réparation de l'Application**
+
+**À l'attention du développeur,**
+
+Les instructions suivantes doivent être appliquées à la lettre pour garantir le bon fonctionnement de l'application. Les problèmes principaux identifiés sont :
+
+1.  **Violation des règles CORS** : Le client (navigateur) tente d'appeler l'API de Sefaria directement, ce qui est bloqué.
+2.  **Logique de récupération des données inefficace** : La bibliothèque Breslev n'est pas chargée correctement.
+3.  **Clé d'API exposée** : La clé Gemini est visible côté client, ce qui représente un risque de sécurité majeur.
+
+La solution repose sur la mise en place d'un proxy serveur qui centralisera et sécurisera tous les appels externes.
+
+-----
+
+### **Étape 1 : Mise en Place du Serveur Proxy (Correction CORS et Sécurité)**
+
+1.  **Installer les dépendances du serveur :**
+    Dans le terminal (Shell) de Replit, exécutez la commande suivante pour installer Express (un framework web pour Node.js), un middleware de proxy, et `cors` pour la gestion des permissions :
+
+    ```bash
+    npm install express http-proxy-middleware cors @google/generative-ai
+    ```
+
+2.  **Créer et configurer le serveur proxy :**
+    Créez un fichier nommé `server.js` à la racine de votre projet et insérez-y le code suivant. Ce serveur relaiera les appels à Sefaria et à Gemini.
+
+    ```javascript
+    // Fichier : server.js
+    import express from 'express';
+    import fetch from 'node-fetch';
+    import cors from 'cors';
+    import { GoogleGenerativeAI } from '@google/generative-ai';
+
+    const app = express();
+    app.use(cors());
+    app.use(express.json());
+
+    /* ============ Proxy pour Sefaria ============ */
+    app.get('/sefaria/*', async (req, res) => {
+      const targetUrl = 'https://www.sefaria.org' + req.originalUrl.replace('/sefaria', '');
+      console.log(`[Sefaria Proxy] Forwarding to: ${targetUrl}`);
+      try {
+        const response = await fetch(targetUrl);
+        res.status(response.status);
+        response.body.pipe(res);
+      } catch (error) {
+        console.error('[Sefaria Proxy] Error:', error);
+        res.status(500).json({ error: 'Proxy error for Sefaria' });
+      }
+    });
+
+    /* ============ Proxy pour Gemini AI (sécurisé) ============ */
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('ERREUR: La clé API Gemini (GEMINI_API_KEY) est manquante dans les "Secrets".');
+    }
+
+    const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = ai.getGenerativeModel({
+      model: 'gemini-1.5-flash-latest',
+      systemInstruction: {
+        role: 'system',
+        parts: [{
+          text: `Tu es Le Compagnon du Cœur, un guide spirituel expert des enseignements de Rabbi Nahman de Breslev. Tes réponses doivent être profondes, bienveillantes et uniquement en français. Lorsque tu analyses un texte, traduis-le d'abord intégralement en français, puis fournis ton analyse. Ignore toute question non spirituelle.`
+        }]
+      }
+    });
+
+    app.post('/gemini/chat', async (req, res) => {
+      try {
+        const { prompt } = req.body;
+        console.log('[Gemini Proxy] Processing request...');
+        const chat = model.startChat();
+        const result = await chat.sendMessageStream(prompt);
+
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Transfer-Encoding', 'chunked');
+        res.flushHeaders();
+
+        for await (const chunk of result.stream) {
+          res.write(chunk.text());
+        }
+        res.end();
+      } catch (e) {
+        console.error('[Gemini Proxy Error]', e);
+        res.status(500).json({ error: 'Failed to communicate with Gemini API' });
+      }
+    });
+
+    const PORT = process.env.PORT || 3001;
+    app.listen(PORT, () => console.log(`🚀 Proxy server running on port ${PORT}`));
+    ```
+
+3.  **Sécuriser la clé d'API Gemini :**
+
+      - Dans Replit, allez dans l'onglet **"Secrets"** (icône en forme de cadenas).
+      - Créez un nouveau secret :
+          - **Clé (key) :** `GEMINI_API_KEY`
+          - **Valeur (value) :** Collez votre clé API Gemini ici (celle commençant par `AIzaSy...`).
+      - **Supprimez la clé de tous les fichiers du client \!** Elle ne doit plus jamais être visible dans le code du navigateur.
+
+-----
+
+### **Étape 2 : Mettre à jour le code du client**
+
+Modifiez les fichiers côté client pour qu'ils communiquent avec votre nouveau proxy au lieu des API directes.
+
+1.  **Modifier `client/src/services/sefariaSimple.ts` :**
+    Ce fichier doit maintenant pointer vers les routes de votre proxy.
+
+    ```typescript
+    // Fichier : client/src/services/sefariaSimple.ts
+
+    export const getBreslovIndex = async () => {
+      // Appel au proxy pour l'index complet de la catégorie Breslev
+      const response = await fetch('/sefaria/api/index/Breslov');
+      if (!response.ok) {
+        throw new Error('Failed to fetch Breslov index from proxy');
+      }
+      const data = await response.json();
+      // La structure contient directement les livres dans `contents`
+      return data.contents || [];
+    };
+
+    export const getText = (ref: string) => {
+      // Appel au proxy pour un texte spécifique
+      const cleanRef = ref.replace(/ /g, '_');
+      return fetch(`/sefaria/api/v3/texts/${cleanRef}?context=0&commentary=0&pad=0&wrapLinks=false`)
+        .then(r => {
+          if (!r.ok) {
+            throw new Error(`Proxy error fetching text: ${r.statusText}`);
+          }
+          return r.json();
+        });
+    };
+    ```
+
+2.  **Modifier `client/src/services/geminiSimple.ts` :**
+    Ce service doit appeler votre propre route `/gemini/chat`.
+
+    ```typescript
+    // Fichier : client/src/services/geminiSimple.ts
+
+    export const streamGemini = async (prompt: string, onChunk: (chunk: string) => void) => {
+      const response = await fetch('/gemini/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error('Failed to stream response from Gemini proxy');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        onChunk(decoder.decode(value, { stream: true }));
+      }
+    };
+    ```
+
+3.  **Modifier `client/src/hooks/useTTSFixed.ts` (Amélioration de la synthèse vocale) :**
+    Pour une meilleure expérience, notamment sur mobile, remplacez le contenu de ce fichier par une version qui gère mieux le chargement des voix et offre un fallback.
+
+    ```typescript
+    // Fichier : client/src/hooks/useTTSFixed.ts
+    import { useState, useCallback, useEffect } from 'react';
+    import { Language } from '../types';
+
+    export const useTTSFixed = ({ language, enabled }: { language: Language; enabled: boolean; }) => {
+      const [isSpeaking, setIsSpeaking] = useState(false);
+      const [voicesLoaded, setVoicesLoaded] = useState(false);
+
+      const loadVoices = useCallback((): Promise<SpeechSynthesisVoice[]> => {
+        return new Promise((resolve) => {
+          if (voicesLoaded) {
+            resolve(window.speechSynthesis.getVoices());
+            return;
+          }
+          const voices = window.speechSynthesis.getVoices();
+          if (voices.length > 0) {
+            setVoicesLoaded(true);
+            resolve(voices);
+            return;
+          }
+          window.speechSynthesis.addEventListener('voiceschanged', () => {
+            setVoicesLoaded(true);
+            resolve(window.speechSynthesis.getVoices());
+          }, { once: true });
+        });
+      }, [voicesLoaded]);
+
+      const speak = useCallback(async (text: string) => {
+        if (!enabled || !text.trim() || !window.speechSynthesis) return;
+
+        stopTTS();
+        const voices = await loadVoices();
+        const utterance = new SpeechSynthesisUtterance(text);
+        const langCode = language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'fr-FR';
+        utterance.lang = langCode;
+
+        const voice = voices.find(v => v.lang.startsWith(langCode.split('-')[0]) && v.name.includes('Google')) || voices.find(v => v.lang === langCode);
+        if (voice) utterance.voice = voice;
+
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = () => setIsSpeaking(false);
+
+        window.speechSynthesis.speak(utterance);
+      }, [enabled, language, loadVoices]);
+
+      const stopTTS = useCallback(() => {
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+        }
+        setIsSpeaking(false);
+      }, []);
+
+      const speakGreeting = useCallback(() => {
+        const greetings = {
+          fr: "Shalom. Sélectionnez un enseignement de la bibliothèque ou posez-moi une question.",
+          en: "Shalom. Select a teaching from the library or ask a question.",
+          he: "שלום. בחרו לימוד מהספרייה או שאלו שאלה."
+        };
+        speak(greetings[language] || greetings.fr);
+      }, [language, speak]);
+
+      return { speak, stopTTS, isSpeaking, speakGreeting };
+    };
+    ```
+
+-----
+
+### **Étape 3 : Mettre à jour la configuration du projet**
+
+1.  **Modifier `package.json` pour lancer le client et le serveur simultanément :**
+
+    ```json
+    {
+      "name": "le-compagnon-du-coeur",
+      "private": true,
+      "version": "1.0.0",
+      "type": "module",
+      "scripts": {
+        "dev": "concurrently \"npm:dev:client\" \"npm:dev:server\"",
+        "dev:client": "vite",
+        "dev:server": "node server.js",
+        "build": "vite build",
+        "preview": "vite preview"
+      },
+      "dependencies": {
+        "@google/generative-ai": "^0.24.1",
+        "cors": "^2.8.5",
+        "express": "^4.21.2",
+        "http-proxy-middleware": "^3.0.5",
+        "node-fetch": "^3.3.2",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1"
+      },
+      "devDependencies": {
+        "concurrently": "^9.2.0",
+        // ... autres devDependencies
+      }
+    }
+    ```
+
+    N'oubliez pas d'installer `concurrently` si ce n'est pas déjà fait : `npm install concurrently`
+
+-----
+
+### **Résumé des actions à effectuer :**
+
+1.  **Créer `server.js`** à la racine avec le code du proxy.
+2.  **Mettre à jour `package.json`** pour inclure les nouvelles dépendances et les scripts.
+3.  **Sécuriser la clé API Gemini** dans les "Secrets" de Replit.
+4.  **Modifier `sefariaSimple.ts` et `geminiSimple.ts`** pour qu'ils appellent les routes du proxy (`/sefaria/...` et `/gemini/...`).
+5.  **Remplacer le contenu de `useTTSFixed.ts`** par la version améliorée.
+6.  Lancer l'application avec `npm run dev`.
+
+Une fois ces modifications appliquées, l'application devrait être pleinement fonctionnelle, stable, et sécurisée. La bibliothèque se chargera correctement, les analyses de l'IA fonctionneront, et l'expérience utilisateur sera grandement améliorée.

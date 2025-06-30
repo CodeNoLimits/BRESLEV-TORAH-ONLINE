@@ -59,7 +59,7 @@ export class BreslovDiagnostic {
           // Debug the exact filtering process
           if (text.text && Array.isArray(text.text)) {
             console.log(`[BreslovDiagnostic] Analyzing ${text.text.length} text segments:`);
-            text.text.forEach((segment, i) => {
+            text.text.forEach((segment: any, i: number) => {
               if (i < 5) { // Only log first 5 for brevity
                 console.log(`  Segment ${i}: type=${typeof segment}, length=${segment ? segment.length : 'null'}, content="${segment ? segment.substring(0, 50) : 'null'}..."`);
               }
@@ -68,7 +68,7 @@ export class BreslovDiagnostic {
           
           if (text.he && Array.isArray(text.he)) {
             console.log(`[BreslovDiagnostic] Analyzing ${text.he.length} Hebrew segments:`);
-            text.he.forEach((segment, i) => {
+            text.he.forEach((segment: any, i: number) => {
               if (i < 5) { // Only log first 5 for brevity
                 console.log(`  Hebrew ${i}: type=${typeof segment}, length=${segment ? segment.length : 'null'}, content="${segment ? segment.substring(0, 50) : 'null'}..."`);
               }

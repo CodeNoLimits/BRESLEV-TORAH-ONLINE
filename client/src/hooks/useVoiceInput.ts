@@ -10,7 +10,7 @@ interface VoiceInputOptions {
 export const useVoiceInput = ({ language, onResult, onError }: VoiceInputOptions) => {
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   const initializeRecognition = useCallback(() => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -40,14 +40,14 @@ export const useVoiceInput = ({ language, onResult, onError }: VoiceInputOptions
       console.log('[VoiceInput] Started listening');
     };
 
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       console.log('[VoiceInput] Transcript:', transcript);
       onResult(transcript);
       setIsListening(false);
     };
 
-    recognition.onerror = (event) => {
+    recognition.onerror = (event: any) => {
       console.error('[VoiceInput] Error:', event.error);
       setIsListening(false);
       if (onError) {
