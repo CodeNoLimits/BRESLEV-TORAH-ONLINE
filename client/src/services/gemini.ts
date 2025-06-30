@@ -1,19 +1,6 @@
-import { GoogleGenAI } from '@google/genai';
 
-// Use environment variable for API key
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-
+// Service Gemini utilisant le proxy serveur
 class GeminiService {
-  private ai: GoogleGenAI;
-  
-  constructor() {
-    if (!API_KEY) {
-      throw new Error('Clé API Gemini non configurée');
-    }
-    
-    this.ai = new GoogleGenAI({ apiKey: API_KEY });
-  }
-
   async generateContentStream({
     prompt,
     onChunk,
@@ -29,26 +16,33 @@ class GeminiService {
         throw new Error('Request aborted');
       }
 
-      const response = await this.ai.models.generateContentStream({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
-          temperature: 0.7,
-          maxOutputTokens: 4096,
-          topP: 0.9,
-          topK: 40
-        }
+      const response = await fetch('/gemini/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+        signal
       });
 
-      // Process streaming response
-      for await (const chunk of response) {
+      if (!response.ok || !response.body) {
+        throw new Error('Failed to stream response from Gemini proxy');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
         // Check for abort signal
         if (signal?.aborted) {
+          reader.cancel();
           throw new Error('Request aborted');
         }
 
-        if (chunk.text) {
-          onChunk(chunk.text);
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        if (chunk) {
+          onChunk(chunk);
         }
       }
     } catch (error: any) {
@@ -78,18 +72,27 @@ class GeminiService {
 
   async generateContent(prompt: string): Promise<string> {
     try {
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
-          temperature: 0.7,
-          maxOutputTokens: 4096,
-          topP: 0.9,
-          topK: 40
-        }
+      const response = await fetch('/gemini/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
       });
 
-      return response.text || 'Aucune réponse générée.';
+      if (!response.ok || !response.body) {
+        throw new Error('Failed to get response from Gemini proxy');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullResponse += decoder.decode(value, { stream: true });
+      }
+
+      return fullResponse || 'Aucune réponse générée.';
     } catch (error: any) {
       // Handle API errors
       if (error.message?.includes('API_KEY')) {
@@ -123,7 +126,7 @@ class GeminiService {
   // Method to get model information
   getModelInfo() {
     return {
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash-latest',
       provider: 'Google AI',
       capabilities: ['text-generation', 'streaming', 'multilingual']
     };
