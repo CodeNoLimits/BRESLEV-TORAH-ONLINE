@@ -98,7 +98,9 @@ function AppSimple() {
         handleAIRequest(contextualQuestion, 'general');
       } else {
         setCurrentInput(transcript);
-        handleSendMessage(transcript, 'chat');
+        // Guidance pour sélectionner un texte d'abord
+        const guidanceMessage = `QUESTION: ${transcript}\n\nPour une réponse contextuelle précise, sélectionnez d'abord un enseignement dans la bibliothèque Breslov ci-dessous, puis posez votre question. Ou dites "enseignement général" pour une réponse générale sur Rabbi Nahman.`;
+        handleAIRequest(guidanceMessage, 'guidance');
       }
     },
     onError: (error) => {
