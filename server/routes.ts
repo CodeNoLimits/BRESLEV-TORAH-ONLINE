@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -29,6 +30,33 @@ let ttsClient: v1beta1.TextToSpeechClient | null = null;
 console.log('[TTS-Cloud] Using Web Speech API fallback for TTS');
 
 export async function registerRoutes(app: Express): Promise<Server> {
+
+  // Static files for attached assets (videos, etc.)
+  const staticPath = path.join(process.cwd(), 'attached_assets');
+  app.use('/attached_assets', (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Content-Type', 'video/mp4');
+    next();
+  });
+  
+  // Direct route pour les vidéos spécifiques
+  app.get('/attached_assets/*', (req: Request, res: Response) => {
+    const videoFile = decodeURIComponent(req.params[0]);
+    const videoPath = path.join(process.cwd(), 'attached_assets', videoFile);
+    
+    console.log(`[Video] Serving: ${videoFile} from ${videoPath}`);
+    
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Content-Type', 'video/mp4');
+    res.sendFile(videoPath, (err) => {
+      if (err) {
+        console.error(`[Video] Error serving ${videoFile}:`, err);
+        res.status(404).json({ error: 'Video not found' });
+      } else {
+        console.log(`[Video] Successfully served: ${videoFile}`);
+      }
+    });
+  });
 
   // TTS Routes
   app.use('/api', ttsRouter);
