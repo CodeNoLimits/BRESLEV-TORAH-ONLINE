@@ -1,0 +1,93 @@
+{
+  "version": "2.0.0",
+  "generated": "2025-06-30T23:05:00.000Z",
+  "totalTexts": 1381,
+  "collections": {
+    "likutei-moharan": {
+      "title": "Likutei Moharan",
+      "hebrewTitle": "ליקוטי מוהר\"ן",
+      "description": "Principal collection of Rabbi Nahman's teachings",
+      "totalSections": 286,
+      "verified": true,
+      "baseRef": "Likutei Moharan"
+    },
+    "likutei-moharan-tinyana": {
+      "title": "Likutei Moharan Tinyana",
+      "hebrewTitle": "ליקוטי מוהר\"ן תניינא",
+      "description": "Second collection of Rabbi Nahman's teachings",
+      "totalSections": 125,
+      "verified": true,
+      "baseRef": "Likutei Moharan, Part II"
+    },
+    "sichot-haran": {
+      "title": "Sichot HaRan",
+      "hebrewTitle": "שיחות הר\"ן",
+      "description": "Conversations of Rabbi Nahman",
+      "totalSections": 307,
+      "verified": true,
+      "baseRef": "Sichot HaRan"
+    },
+    "sippurei-maasiyot": {
+      "title": "Sippurei Maasiyot",
+      "hebrewTitle": "סיפורי מעשיות",
+      "description": "Tales of Rabbi Nahman",
+      "totalSections": 14,
+      "verified": true,
+      "baseRef": "Sippurei Maasiyot"
+    },
+    "chayei-moharan": {
+      "title": "Chayei Moharan",
+      "hebrewTitle": "חיי מוהר\"ן",
+      "description": "Life of Rabbi Nahman",
+      "totalSections": 156,
+      "verified": true,
+      "baseRef": "Chayei Moharan"
+    },
+    "sefer-hamiddot": {
+      "title": "Sefer HaMiddot",
+      "hebrewTitle": "ספר המידות",
+      "description": "Book of Traits",
+      "totalSections": 50,
+      "verified": true,
+      "baseRef": "Sefer HaMiddot"
+    },
+    "likutei-tefilot": {
+      "title": "Likutei Tefilot",
+      "hebrewTitle": "ליקוטי תפילות",
+      "description": "Collection of Prayers based on Likutei Moharan",
+      "totalSections": 210,
+      "verified": true,
+      "baseRef": "Likutei Tefilot",
+      "notice": "Complete digital version not available on Sefaria. See physical editions for full content."
+    },
+    "likutei-halachot": {
+      "title": "Likutei Halakhot",
+      "hebrewTitle": "ליקוטי הלכות",
+      "description": "Collection of Laws based on Breslov teachings",
+      "totalSections": 95,
+      "verified": true,
+      "baseRef": "Likutei Halakhot"
+    },
+    "kitzur-likutei-moharan": {
+      "title": "Kitzur Likutei Moharan",
+      "hebrewTitle": "קיצור ליקוטי מוהר\"ן",
+      "description": "Abbreviated version of Likutei Moharan",
+      "totalSections": 45,
+      "verified": true,
+      "baseRef": "Kitzur Likutei Moharan"
+    },
+    "likutei-etzot": {
+      "title": "Likutei Etzot",
+      "hebrewTitle": "ליקוטי עצות",
+      "description": "Collection of Advice arranged by topics",
+      "totalSections": 89,
+      "verified": true,
+      "baseRef": "Likutei Etzot"
+    }
+  },
+  "searchIndex": {
+    "created": "2025-06-30T23:05:00.000Z",
+    "totalEntries": 1381,
+    "lastUpdated": "2025-06-30T23:05:00.000Z"
+  }
+}

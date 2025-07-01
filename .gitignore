@@ -1,0 +1,36 @@
+node_modules
+dist
+.DS_Store
+server/public
+vite.config.ts.*
+*.tar.gz.replit
+
+# Assets & secrets
+attached_assets/**
+.env*
+*.json.key
+google-credentials.json
+*-credentials.json
+
+# Database & cache
+cache.db
+*.sqlite
+*.db
+
+# Logs
+*.log
+logs/
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+google-credentials.json

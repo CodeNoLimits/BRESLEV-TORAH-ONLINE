@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Services</title>
+</head>
+<body>
+    <h1>Test Proxy Services</h1>
+    <button onclick="testSefaria()">Test Sefaria Proxy</button>
+    <button onclick="testGemini()">Test Gemini Proxy</button>
+    <button onclick="testBreslovIndex()">Test Breslov Index</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testSefaria() {
+            const log = document.getElementById('results');
+            log.innerHTML = 'Testing Sefaria proxy...';
+            try {
+                const res = await fetch('/sefaria/api/texts/Genesis.1.1');
+                const data = await res.json();
+                log.innerHTML = `✓ Sefaria proxy works: ${data.text ? data.text.slice(0, 50) + '...' : 'No text found'}`;
+            } catch (e) {
+                log.innerHTML = `✗ Sefaria proxy error: ${e.message}`;
+            }
+        }
+
+        async function testGemini() {
+            const log = document.getElementById('results');
+            log.innerHTML = 'Testing Gemini proxy...';
+            try {
+                const res = await fetch('/gemini/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: 'Bonjour, simple test' })
+                });
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let result = '';
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    result += decoder.decode(value, { stream: true });
+                }
+                log.innerHTML = `✓ Gemini proxy works: ${result.slice(0, 100)}...`;
+            } catch (e) {
+                log.innerHTML = `✗ Gemini proxy error: ${e.message}`;
+            }
+        }
+
+        async function testBreslovIndex() {
+            const log = document.getElementById('results');
+            log.innerHTML = 'Testing Breslov index...';
+            try {
+                const res = await fetch('/sefaria/api/index/');
+                const idx = await res.json();
+                const cha = idx.find(c => c.category === 'Chasidut')?.contents ?? [];
+                const bre = cha.find(c => c.category === 'Breslov')?.contents ?? [];
+                log.innerHTML = `✓ Breslov index found: ${bre.length} books`;
+                console.log('Breslov books:', bre);
+            } catch (e) {
+                log.innerHTML = `✗ Breslov index error: ${e.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

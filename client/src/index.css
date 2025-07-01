@@ -1,0 +1,220 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Mobile-first responsive design for Le Compagnon du Cœur */
+@layer base {
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  body {
+    overflow-x: hidden;
+    touch-action: manipulation;
+  }
+  
+  /* Ensure proper mobile viewport */
+  .mobile-viewport {
+    min-height: 100vh;
+    min-height: 100dvh; /* Modern dynamic viewport height */
+  }
+  
+  /* Touch-friendly interactive elements */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Text rendering optimization */
+  .text-render-optimize {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Floating TTS Control Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pulse-wave {
+  0%, 100% {
+    height: 0.5rem;
+  }
+  50% {
+    height: 1rem;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-pulse-wave {
+  animation: pulse-wave 1s ease-in-out infinite;
+}
+
+:root {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+  
+  /* Custom colors for the spiritual theme */
+  --slate-850: hsl(215, 25%, 12%);
+  --slate-950: hsl(222, 84%, 5%);
+  --amber-glow: hsl(43, 96%, 56%);
+  --sky-glow: hsl(199, 89%, 48%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-slate-950 text-slate-200;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .font-crimson {
+    font-family: 'Crimson Text', serif;
+  }
+  
+  .font-inter {
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  .glass-card {
+    backdrop-filter: blur(20px);
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+  
+  .chat-bubble {
+    max-width: 80%;
+    word-wrap: break-word;
+  }
+  
+  .text-glow {
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+  }
+  
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: rgba(30, 41, 59, 0.3);
+  }
+  
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 3px;
+  }
+  
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.5);
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes slideUp {
+  from { 
+    transform: translateY(100%); 
+  }
+  to { 
+    transform: translateY(0); 
+  }
+}
+
+/* Mobile touch optimizations */
+.mobile-touch-optimize {
+  -webkit-tap-highlight-color: rgba(251, 191, 36, 0.4) !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  touch-action: manipulation !important;
+  cursor: pointer !important;
+  position: relative;
+  z-index: 1;
+}
+
+.mobile-touch-optimize:active {
+  background-color: rgba(251, 191, 36, 0.2) !important;
+  transform: scale(0.98);
+  transition: all 0.1s ease;
+}
+
+.touch-target {
+  min-height: 60px !important;
+  min-width: 60px !important;
+  padding: 16px !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Force mobile button responsiveness */
+@media (max-width: 768px) {
+  .mobile-touch-optimize {
+    font-size: 16px !important;
+    line-height: 1.4;
+  }
+  
+  button {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+}
