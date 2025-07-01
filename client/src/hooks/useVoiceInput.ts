@@ -3,11 +3,11 @@ import { Language } from '../types';
 
 interface VoiceInputOptions {
   language: Language;
-  onResult: (transcript: string) => void;
+  setInputText: (transcript: string) => void;
   onError?: (error: string) => void;
 }
 
-export const useVoiceInput = ({ language, onResult, onError }: VoiceInputOptions) => {
+export const useVoiceInput = ({ language, setInputText, onError }: VoiceInputOptions) => {
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -43,7 +43,7 @@ export const useVoiceInput = ({ language, onResult, onError }: VoiceInputOptions
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       console.log('[VoiceInput] Transcript:', transcript);
-      onResult(transcript);
+      setInputText(transcript);
       setIsListening(false);
     };
 
@@ -62,7 +62,7 @@ export const useVoiceInput = ({ language, onResult, onError }: VoiceInputOptions
 
     recognitionRef.current = recognition;
     return true;
-  }, [language, onResult, onError]);
+  }, [language, setInputText, onError]);
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current && !initializeRecognition()) {

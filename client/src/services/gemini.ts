@@ -74,6 +74,10 @@ class GeminiService {
         signal
       });
 
+      if (response.status === 502) {
+        throw new Error('AI_ERR');
+      }
+
       if (!response.ok || !response.body) {
         throw new Error('Failed to stream response from Gemini proxy');
       }
@@ -97,6 +101,12 @@ class GeminiService {
         }
       }
     } catch (error: any) {
+      if (error.message === 'AI_ERR') {
+        throw error;
+      }
+      if (error.message === 'AI_ERR') {
+        throw error;
+      }
       // Handle abort gracefully
       if (signal?.aborted || error.message === 'Request aborted') {
         throw new Error('Request aborted');
@@ -128,6 +138,10 @@ class GeminiService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
       });
+
+      if (response.status === 502) {
+        throw new Error('AI_ERR');
+      }
 
       if (!response.ok || !response.body) {
         throw new Error('Failed to get response from Gemini proxy');

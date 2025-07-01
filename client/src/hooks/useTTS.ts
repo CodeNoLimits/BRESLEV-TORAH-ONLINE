@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useToast } from './use-toast';
 
 export function useTTS() {
@@ -97,6 +97,14 @@ export function useTTS() {
   const stop = useCallback(() => {
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => window.speechSynthesis.cancel();
+    window.addEventListener('videoPlaying', handler);
+    return () => {
+      window.removeEventListener('videoPlaying', handler);
+    };
   }, []);
 
   return { speak, stop, isSpeaking };

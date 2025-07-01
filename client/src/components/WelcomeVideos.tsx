@@ -22,6 +22,7 @@ export const WelcomeVideos: React.FC = () => {
               preload="metadata"
               onPlay={() => {
                 console.log('[WelcomeVideos] French video started - stopping TTS');
+                window.dispatchEvent(new Event('videoPlaying'));
                 if (window.speechSynthesis) {
                   window.speechSynthesis.cancel();
                 }
@@ -49,6 +50,7 @@ export const WelcomeVideos: React.FC = () => {
               preload="metadata"
               onPlay={() => {
                 console.log('[WelcomeVideos] Hebrew video started - stopping TTS');
+                window.dispatchEvent(new Event('videoPlaying'));
                 if (window.speechSynthesis) {
                   window.speechSynthesis.cancel();
                 }

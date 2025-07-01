@@ -18,6 +18,7 @@ import { getCurrentSelection, clearSelection } from './services/textSelection';
 import { breslovComplete } from './services/breslovComplete';
 import { backgroundLibraryLoader } from './services/backgroundLibraryLoader';
 import { Language, InteractionMode } from './types';
+import { toast } from './hooks/use-toast';
 
 interface Message {
   id: string;
@@ -86,23 +87,7 @@ function AppSimple() {
   // Voice input for questions
   const { isListening, startListening, stopListening } = useVoiceInput({
     language,
-    onResult: (transcript) => {
-      console.log('[AppSimple] Voice input result:', transcript);
-
-      // If we have a selected text, include it as context for the AI
-      if (selectedText) {
-        const contextText = selectedText.text.join('\n\n');
-        const contextualQuestion = `CONTEXTE:\n${selectedText.title}\n\n${contextText}\n\nQUESTION:\n${transcript}`;
-
-        console.log('[AppSimple] Voice question with context:', transcript);
-        handleAIRequest(contextualQuestion, 'general');
-      } else {
-        setCurrentInput(transcript);
-        // Guidance pour sélectionner un texte d'abord
-        const guidanceMessage = `QUESTION: ${transcript}\n\nPour une réponse contextuelle précise, sélectionnez d'abord un enseignement dans la bibliothèque Breslov ci-dessous, puis posez votre question. Ou dites "enseignement général" pour une réponse générale sur Rabbi Nahman.`;
-        handleAIRequest(guidanceMessage, 'guidance');
-      }
-    },
+    setInputText: setCurrentInput,
     onError: (error) => {
       console.error('[AppSimple] Voice input error:', error);
     }
@@ -292,16 +277,20 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
       // L'utilisateur doit cliquer explicitement sur le bouton TTS
       console.log(`[AppSimple] Response complete - TTS available via button click`);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('[AppSimple] AI error:', error);
-      const errorMessage: Message = {
-        id: generateId(),
-        type: 'ai',
-        content: 'Erreur de communication avec l\'IA spirituelle.',
-        timestamp: new Date(),
-        mode: 'error'
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      if (error.message === 'AI_ERR') {
+        toast({ title: 'Erreur AI', variant: 'destructive' });
+      } else {
+        const errorMessage: Message = {
+          id: generateId(),
+          type: 'ai',
+          content: 'Erreur de communication avec l\'IA spirituelle.',
+          timestamp: new Date(),
+          mode: 'error'
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
     } finally {
       setIsAILoading(false);
       setStreamingText('');

@@ -99,7 +99,7 @@ export const FloatingTTSControl: React.FC<FloatingTTSControlProps> = ({
   }, [recognition]);
 
   return (
-    <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50">
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
       <button
         onClick={onToggleTTS}
         className={`p-3 rounded-full shadow-xl transition-all duration-200 border-2 ${
