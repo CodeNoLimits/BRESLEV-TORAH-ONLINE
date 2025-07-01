@@ -9,10 +9,6 @@ const WelcomeVideos: React.FC = () => {
     {
       src: "/videos/intro_en.mp4", 
       title: "Introduction English"
-    },
-    {
-      src: "/videos/intro_he.mp4",
-      title: "הקדמה עברית"
     }
   ];
 
@@ -24,6 +20,10 @@ const WelcomeVideos: React.FC = () => {
           className="rounded-xl shadow-lg w-full"
           src={video.src}
           controls
+          preload="metadata"
+          onLoadStart={() => console.log(`[Video] Loading: ${video.src}`)}
+          onLoadedData={() => console.log(`[Video] Loaded: ${video.src}`)}
+          onError={(e) => console.error(`[Video] Error loading: ${video.src}`, e)}
           onPlay={() => window.dispatchEvent(new Event("videoPlaying"))}
         />
       ))}
