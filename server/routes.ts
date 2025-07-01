@@ -9,6 +9,7 @@ import path from 'path';
 import { validateSectionExists, getBookConfig } from './src/data/BRESLOV_BOOKS.js';
 import { registerMetaRoutes } from './routes/meta.js';
 import { ttsRouter } from './routes/tts.js';
+import { chatRouter } from './routes/chat.js';
 // Dynamic import for ES module compatibility
 let fullTextExtractor: any = null;
 
@@ -35,6 +36,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // TTS Routes
   app.use('/api', ttsRouter);
+  // Chat route
+  app.use('/api', chatRouter);
 
   // Docs API Endpoints
   app.get('/api/docs/index', async (req: Request, res: Response) => {
