@@ -60,10 +60,14 @@ function AppSimple() {
 
   // Message d'accueil automatique au chargement
   useEffect(() => {
-    if (!hasWelcomed && ttsEnabled) {
+    if (!hasWelcomed && ttsEnabled && speak) {
       const welcomeTimer = setTimeout(() => {
-        speak("Shalom et bienvenue dans Le Compagnon du Cœur. Cliquez sur un texte de la bibliothèque Breslov pour commencer votre étude spirituelle.");
-        setHasWelcomed(true);
+        try {
+          speak("Shalom et bienvenue dans Le Compagnon du Cœur. Cliquez sur un texte de la bibliothèque Breslov pour commencer votre étude spirituelle.");
+          setHasWelcomed(true);
+        } catch (error) {
+          console.error('[AppSimple] TTS Error:', error);
+        }
       }, 3000);
 
       return () => clearTimeout(welcomeTimer);
