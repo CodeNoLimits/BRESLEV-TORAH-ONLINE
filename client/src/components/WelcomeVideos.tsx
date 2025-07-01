@@ -3,7 +3,7 @@ import React from 'react';
 const WelcomeVideos: React.FC = () => {
   const videos = [
     {
-      src: "/videos/intro_fr.mp4",
+      src: "/videos/intro_fr_original.mp4",
       title: "Introduction Française"
     },
     {
