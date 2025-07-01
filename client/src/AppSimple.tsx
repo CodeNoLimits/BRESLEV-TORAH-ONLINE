@@ -80,10 +80,7 @@ function AppSimple() {
 
     const message = greetingMessages[language] || greetingMessages.fr;
 
-    const langCode = language === 'he' ? 'he-IL' : 
-                     language === 'en' ? 'en-US' : 'fr-FR';
-
-    await speak(message, langCode);
+    await speak(message); // TTS français uniquement
   }, [ttsEnabled, language, speak]);
 
   // Voice input for questions
@@ -552,9 +549,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
               <OptimizedTextDisplay
                 selectedText={selectedText}
                 onTTSSpeak={(text) => {
-                  const langCode = language === 'he' ? 'he-IL' : 
-                                   language === 'en' ? 'en-US' : 'fr-FR';
-                  speak(text, langCode);
+                  speak(text); // TTS français uniquement
                 }}
                 isTTSSpeaking={isSpeaking}
                 language={language}
@@ -592,10 +587,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                       (selectedText.text.length > 0 ? selectedText.text[0] : selectedText.title);
                     console.log('[AppSimple] Manual TTS trigger:', textToSpeak.substring(0, 50));
 
-                    const langCode = language === 'he' ? 'he-IL' : 
-                                     language === 'en' ? 'en-US' : 'fr-FR';
-
-                    speak(textToSpeak, langCode);
+                    speak(textToSpeak); // TTS français uniquement
                   }}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${
                     isSpeaking 
