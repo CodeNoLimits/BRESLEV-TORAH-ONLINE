@@ -171,17 +171,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Endpoint Gemini rapide pour assistant vocal
+  // Endpoint Gemini pour toutes les requêtes AI (vocal + écrit)
   app.post('/api/gemini/quick', async (req: Request, res: Response) => {
     try {
-      const { prompt, maxTokens = 50 } = req.body;
+      const { prompt, maxTokens = 1000 } = req.body;
 
       if (!prompt) {
         return res.status(400).json({ error: 'Prompt is required' });
       }
 
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+      console.log('[Gemini Proxy] Processing request:', prompt.substring(0, 100) + '...');
+
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error('GEMINI_API_KEY not configured');
+      }
+
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
       const model = genAI.getGenerativeModel({ 
         model: "gemini-1.5-flash",
         generationConfig: {
@@ -190,42 +195,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      console.log('[Gemini Quick] Processing voice prompt');
+      const enhancedPrompt = `Tu es un guide spirituel expert des enseignements de Rabbi Nahman de Breslov. Réponds TOUJOURS en français, de manière claire et personnelle.
 
-      const result = await model.generateContent(prompt);
+${prompt}
+
+Réponds en français uniquement, avec sagesse et bienveillance.`;
+
+      const result = await model.generateContent(enhancedPrompt);
       const response = result.response;
       const text = response.text();
 
-      // Nettoyer et raccourcir la réponse
+      // Nettoyer la réponse
       const cleanResponse = text
         .replace(/[*#]/g, '') // Supprimer markdown
-        .trim()
-        .split('.')[0] + '.'; // Prendre seulement la première phrase
+        .trim();
 
-      console.log('[Gemini Quick] Response:', cleanResponse);
+      console.log('[Gemini Proxy] ✅ Response sent (' + cleanResponse.length + ' chars)');
 
       res.json({ 
         response: cleanResponse,
-        usage: 'quick-voice-response'
+        usage: 'spiritual-guidance'
       });
 
     } catch (error) {
-      console.error('[Gemini Quick Error]', error);
+      console.error('[Gemini Proxy] Error:', error);
 
-      // Réponses de fallback basées sur des mots-clés
+      // Réponse de fallback intelligente
       const prompt = req.body.prompt?.toLowerCase() || '';
       let fallbackResponse;
 
-      if (prompt.includes('prière') || prompt.includes('prier')) {
-        fallbackResponse = "Récite le Tikkun HaKlali maintenant.";
-      } else if (prompt.includes('méditation') || prompt.includes('méditer')) {
-        fallbackResponse = "Ferme les yeux, respire profondément.";
-      } else if (prompt.includes('étude') || prompt.includes('étudier')) {
-        fallbackResponse = "Ouvre Likutei Moharan section 1.";
-      } else if (prompt.includes('conseil') || prompt.includes('aide')) {
-        fallbackResponse = "Fais techouva avec un cœur pur.";
+      if (prompt.includes('résumé') || prompt.includes('10 points')) {
+        fallbackResponse = "Pour comprendre cet enseignement en profondeur, méditez sur chaque mot avec votre cœur. Rabbi Nahman nous enseigne que la vraie compréhension vient de l'âme, pas seulement de l'intellect.";
+      } else if (prompt.includes('contexte') || prompt.includes('enseignement')) {
+        fallbackResponse = "Cet enseignement de Rabbi Nahman invite à une réflexion profonde. Lisez-le lentement, laissez chaque phrase résonner en vous, et cherchez comment l'appliquer dans votre vie quotidienne.";
       } else {
-        fallbackResponse = "Pose ta question autrement, mon frère.";
+        fallbackResponse = "Je vous encourage à méditer sur les enseignements de Rabbi Nahman. Chaque mot contient une sagesse profonde qui peut éclairer votre chemin spirituel.";
       }
 
       res.json({ 

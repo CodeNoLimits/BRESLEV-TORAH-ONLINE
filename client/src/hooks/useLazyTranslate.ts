@@ -76,10 +76,18 @@ export function useLazyTranslate(englishText: string, chunkSize: number = 1000):
     setIsTranslating(false);
   }, [chunkSize]);
 
-  // Auto-translate first 1000 characters when text changes
+  // Reset and auto-translate first 1000 characters when text changes
   useEffect(() => {
-    if (!englishText || translatedLength > 0) return;
+    if (!englishText) return;
     
+    // RESET tout quand le texte change
+    console.log(`[LazyTranslate] NEW TEXT DETECTED - Resetting translation cache`);
+    setCurrentLength(chunkSize);
+    setFrenchText('');
+    setTranslatedLength(0);
+    setIsTranslating(false);
+    
+    // Puis traduire le premier chunk du NOUVEAU texte
     const initialChunk = englishText.slice(0, Math.min(chunkSize, englishText.length));
     
     if (initialChunk) {
@@ -91,7 +99,7 @@ export function useLazyTranslate(englishText: string, chunkSize: number = 1000):
         console.log(`[LazyTranslate] ✅ Auto-loaded first ${chunkSize} characters`);
       });
     }
-  }, [englishText, chunkSize, translateChunk, translatedLength]);
+  }, [englishText, chunkSize, translateChunk]); // SUPPRIMÉ translatedLength de la dépendance
 
   const progress = englishText.length > 0 ? Math.round((translatedLength / englishText.length) * 100) : 0;
 
