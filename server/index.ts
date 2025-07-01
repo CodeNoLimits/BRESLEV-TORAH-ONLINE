@@ -227,6 +227,13 @@ app.get("/api/sefaria/texts/:ref", async (req, res) => {
   }
 });
 
+// Static file serving for attached assets
+app.use('/attached_assets', express.static(path.join(process.cwd(), 'attached_assets'), {
+  setHeaders: (res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+}));
+
 // ---------------------------------------------------------
 // Bootstrap
 (async () => {
