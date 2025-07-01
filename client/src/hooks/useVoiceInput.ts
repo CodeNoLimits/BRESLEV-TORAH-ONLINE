@@ -1,99 +1,56 @@
-import { useState, useCallback, useRef } from 'react';
-import { Language } from '../types';
+import { useState, useRef } from 'react';
+import { useToast } from './use-toast';
 
-interface VoiceInputOptions {
-  language: Language;
-  onResult: (transcript: string) => void;
-  onError?: (error: string) => void;
-}
-
-export const useVoiceInput = ({ language, onResult, onError }: VoiceInputOptions) => {
+export function useVoiceInput(activeRef: string | null, addMessage: (m: any) => void, speak: (t: string, l?: string) => void) {
+  const { toast } = useToast();
   const [isListening, setIsListening] = useState(false);
-  const [isSupported, setIsSupported] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recRef = useRef<any>(null);
 
-  const initializeRecognition = useCallback(() => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      setIsSupported(false);
-      return false;
-    }
-
-    setIsSupported(true);
-    
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    
-    // Language mapping
-    const langMap = {
-      fr: 'fr-FR',
-      en: 'en-US', 
-      he: 'he-IL'
+  function ensureRec() {
+    if (recRef.current) return recRef.current;
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) return null;
+    const R: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const r = new R();
+    r.lang = 'fr-FR';
+    r.onresult = (e: any) => {
+      const t = Array.from(e.results).map((r: any) => r[0].transcript).join(' ');
+      const area = document.getElementById('questionBox') as HTMLTextAreaElement | null;
+      if (area) area.value = t;
+      setTimeout(() => askAI(t), 200);
     };
-    
-    recognition.lang = langMap[language] || 'fr-FR';
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    r.onend = () => setIsListening(false);
+    recRef.current = r;
+    return r;
+  }
 
-    recognition.onstart = () => {
-      setIsListening(true);
-      console.log('[VoiceInput] Started listening');
-    };
+  function startListening() {
+    const r = ensureRec();
+    if (!r) return;
+    setIsListening(true);
+    r.start();
+  }
 
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      console.log('[VoiceInput] Transcript:', transcript);
-      onResult(transcript);
-      setIsListening(false);
-    };
-
-    recognition.onerror = (event: any) => {
-      console.error('[VoiceInput] Error:', event.error);
-      setIsListening(false);
-      if (onError) {
-        onError(event.error);
-      }
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      console.log('[VoiceInput] Stopped listening');
-    };
-
-    recognitionRef.current = recognition;
-    return true;
-  }, [language, onResult, onError]);
-
-  const startListening = useCallback(() => {
-    if (!recognitionRef.current && !initializeRecognition()) {
-      console.warn('[VoiceInput] Speech recognition not supported');
-      return;
-    }
-
-    if (isListening) {
-      stopListening();
-      return;
-    }
-
-    try {
-      recognitionRef.current?.start();
-    } catch (error) {
-      console.error('[VoiceInput] Failed to start:', error);
-      setIsListening(false);
-    }
-  }, [isListening, initializeRecognition]);
-
-  const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
+  function stopListening() {
+    recRef.current?.stop();
     setIsListening(false);
-  }, []);
+  }
 
-  return {
-    isListening,
-    isSupported,
-    startListening,
-    stopListening
-  };
-};
+  async function askAI(q: string) {
+    try {
+      const payload = activeRef ? { text: q, ref: activeRef } : { text: q };
+      const r = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const j = await r.json();
+      if (j.error) return toast({ title: 'Erreur AI' });
+      addMessage({ role: 'ai', text: j.answer });
+      speak(j.answer, 'fr-FR');
+    } catch (e) {
+      toast({ title: 'Erreur AI' });
+    }
+  }
+
+  return { startListening, stopListening, isListening };
+}

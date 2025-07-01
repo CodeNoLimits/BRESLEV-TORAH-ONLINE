@@ -51,7 +51,7 @@ export const BRESLOV_BOOKS: BreslovBookConfig[] = [
   {
     title: "Chayei Moharan",
     baseRef: "Chayei Moharan",
-    maxSections: 14, // Fixed: was incorrectly higher, causing 404s
+    maxSections: 23,
     verified: true,
     hebrewTitle: "חיי מוהר\"ן",
     category: "Chayei Moharan"

@@ -15,7 +15,7 @@ export const ReaderText: React.FC<ReaderTextProps> = ({
   onTextSelect 
 }) => {
   const fullText = text.join('\n\n');
-  const { shown, hasMore, more, reset, progress } = useLazyTranslate(fullText, 500);
+  const { frenchText, hasMore, translateChunk, reset, currentLength, progress } = useLazyTranslate(fullText, 500);
   
   const handleMouseUp = () => {
     const selection = window.getSelection();
@@ -44,7 +44,7 @@ export const ReaderText: React.FC<ReaderTextProps> = ({
         
         {fullText.length > 500 && (
           <div className="text-xs text-slate-500">
-            {progress}% affiché ({shown.length}/{fullText.length} caractères)
+            {progress}% affiché ({currentLength}/{fullText.length} caractères)
           </div>
         )}
       </div>
@@ -56,7 +56,7 @@ export const ReaderText: React.FC<ReaderTextProps> = ({
         dir={getTextDirection()}
       >
         <div className="text-slate-200 leading-relaxed whitespace-pre-wrap select-text cursor-text">
-          {language === 'fr' ? shown : fullText}
+          {language === 'fr' ? frenchText : fullText}
         </div>
 
         {/* Fade bottom indicator for scrollable content */}
@@ -68,14 +68,14 @@ export const ReaderText: React.FC<ReaderTextProps> = ({
         <div className="flex items-center justify-between mt-4">
           {hasMore && (
             <button
-              onClick={more}
+              onClick={translateChunk}
               className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-black rounded-lg font-medium transition-colors"
             >
               Suite (+500 caractères)
             </button>
           )}
           
-          {shown.length > 500 && (
+          {currentLength > 500 && (
             <button
               onClick={reset}
               className="px-3 py-1 text-xs text-sky-400 hover:text-sky-300 transition-colors"
