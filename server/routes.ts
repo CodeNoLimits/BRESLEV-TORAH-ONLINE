@@ -8,7 +8,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import { validateSectionExists, getBookConfig } from './src/data/BRESLOV_BOOKS.js';
 import { registerMetaRoutes } from './routes/meta.js';
-import ttsRouter from './routes/tts.js';
+import { ttsRouter } from './routes/tts.js';
+import { chatRouter } from './routes/chat.js';
 // Dynamic import for ES module compatibility
 let fullTextExtractor: any = null;
 
@@ -35,6 +36,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // TTS Routes
   app.use('/api', ttsRouter);
+  app.use('/api', chatRouter);
 
   // Docs API Endpoints
   app.get('/api/docs/index', async (req: Request, res: Response) => {
@@ -206,7 +208,7 @@ Réponds en français uniquement, avec sagesse et bienveillance.`;
       if (!result || !result.response) {
         throw new Error('Invalid response from Gemini API');
       }
-      
+
       const response = result.response;
       const text = response.text();
 
@@ -224,7 +226,7 @@ Réponds en français uniquement, avec sagesse et bienveillance.`;
 
     } catch (error) {
       console.error('[Gemini Proxy] Error:', error);
-      
+
       // Return proper error for AI_ERR handling
       return res.status(502).json({ error: 'AI_ERR' });
     }
