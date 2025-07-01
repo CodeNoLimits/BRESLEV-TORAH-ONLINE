@@ -212,9 +212,11 @@ Réponds en français uniquement, avec sagesse et bienveillance.`;
       const response = result.response;
       const text = response.text();
 
-      // Nettoyer la réponse
+      // Nettoyer la réponse de façon sécurisée
       const cleanResponse = text
-        .replace(/[*#]/g, '') // Supprimer markdown
+        .replace(/\*+/g, '') // Supprimer les astérisques multiples
+        .replace(/#+ /g, '') // Supprimer les titres markdown
+        .replace(/\n{3,}/g, '\n\n') // Réduire les sauts de ligne excessifs
         .trim();
 
       console.log('[Gemini Proxy] ✅ Response sent (' + cleanResponse.length + ' chars)');

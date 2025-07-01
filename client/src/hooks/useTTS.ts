@@ -31,33 +31,45 @@ export function useTTS() {
       // Arrêter toute lecture en cours
       window.speechSynthesis.cancel();
       
-      console.log('[TTS] Creating utterance...');
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = lang;
-      utterance.rate = 0.9;
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
-      
-      console.log('[TTS] Utterance created with lang:', utterance.lang);
-      
-      utterance.onstart = () => {
-        setIsSpeaking(true);
-        console.log('[TTS] Lecture démarrée:', text.substring(0, 50) + '...');
-      };
-      
-      utterance.onend = () => {
-        setIsSpeaking(false);
-        console.log('[TTS] Lecture terminée');
-      };
-      
-      utterance.onerror = (event) => {
-        setIsSpeaking(false);
-        console.error('[TTS] Erreur de lecture:', event.error);
-      };
+      // Attendre un peu pour que la cancellation prenne effet
+      setTimeout(() => {
+        console.log('[TTS] Creating utterance...');
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = lang;
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        
+        console.log('[TTS] Utterance created with lang:', utterance.lang);
+        console.log('[TTS] Available voices:', window.speechSynthesis.getVoices().length);
+        
+        utterance.onstart = () => {
+          setIsSpeaking(true);
+          console.log('[TTS] ✅ AUDIO STARTED - You should hear sound now!');
+        };
+        
+        utterance.onend = () => {
+          setIsSpeaking(false);
+          console.log('[TTS] ✅ AUDIO ENDED - Sound finished');
+        };
+        
+        utterance.onerror = (event) => {
+          setIsSpeaking(false);
+          console.error('[TTS] ❌ AUDIO ERROR:', event.error, event);
+        };
 
-      console.log('[TTS] Calling speechSynthesis.speak()...');
-      window.speechSynthesis.speak(utterance);
-      console.log('[TTS] speechSynthesis.speak() called successfully');
+        // Force trigger voice loading
+        if (window.speechSynthesis.getVoices().length === 0) {
+          console.log('[TTS] Loading voices...');
+          window.speechSynthesis.addEventListener('voiceschanged', () => {
+            console.log('[TTS] Voices loaded, retrying...');
+            window.speechSynthesis.speak(utterance);
+          }, { once: true });
+        } else {
+          console.log('[TTS] Speaking with', window.speechSynthesis.getVoices().length, 'voices available');
+          window.speechSynthesis.speak(utterance);
+        }
+      }, 100);
     } catch (error) {
       console.error('[TTS] Erreur lors de la création de la lecture:', error);
       setIsSpeaking(false);
