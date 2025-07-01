@@ -1,109 +1,135 @@
-import { useState, useCallback, useRef } from 'react';
-import { Language } from '../types';
+
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { toast } from './use-toast';
 
 interface VoiceInputOptions {
-  language: Language;
-  onResult: (transcript: string) => void;
+  lang?: string;
+  continuous?: boolean;
+  onResult?: (text: string) => void;
   onError?: (error: string) => void;
 }
 
-export const useVoiceInput = ({ language, onResult, onError }: VoiceInputOptions) => {
+export const useVoiceInput = (options: VoiceInputOptions = {}) => {
   const [isListening, setIsListening] = useState(false);
+  const [inputText, setInputText] = useState('');
   const [isSupported, setIsSupported] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const { lang = 'fr-FR', continuous = false, onResult, onError } = options;
 
-  const initializeRecognition = useCallback(() => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      setIsSupported(false);
-      return false;
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setIsSupported(!!SpeechRecognition);
+
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.lang = lang;
+      recognition.continuous = continuous;
+      recognition.interimResults = true;
+
+      recognition.onresult = (event) => {
+        const transcript = [...event.results].map(result => result[0].transcript).join(" ");
+        setInputText(transcript);
+        
+        if (event.results[event.results.length - 1].isFinal) {
+          onResult?.(transcript);
+          setTimeout(() => askAI(transcript), 200);
+        }
+      };
+
+      recognition.onstart = () => {
+        console.log('[VoiceInput] Recognition started');
+        setIsListening(true);
+      };
+
+      recognition.onend = () => {
+        console.log('[VoiceInput] Recognition ended');
+        setIsListening(false);
+      };
+
+      recognition.onerror = (event) => {
+        console.error('[VoiceInput] Recognition error:', event.error);
+        setIsListening(false);
+        onError?.(event.error);
+      };
+
+      recognitionRef.current = recognition;
     }
 
-    setIsSupported(true);
-    
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    
-    // Language mapping
-    const langMap = {
-      fr: 'fr-FR',
-      en: 'en-US', 
-      he: 'he-IL'
-    };
-    
-    recognition.lang = langMap[language] || 'fr-FR';
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-      console.log('[VoiceInput] Started listening');
-    };
-
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      console.log('[VoiceInput] Transcript:', transcript);
-      
-      // Insérer le transcript dans textarea/input pour questions
-      const questionBox = document.querySelector('#questionBox') as HTMLInputElement | HTMLTextAreaElement;
-      if (questionBox) {
-        questionBox.value = transcript;
-        questionBox.dispatchEvent(new Event('input', { bubbles: true }));
-        console.log('[VoiceInput] Transcript inserted into questionBox');
-      }
-      
-      // Également utiliser la fonction onResult pour AppState
-      onResult(transcript);
-      setIsListening(false);
-    };
-
-    recognition.onerror = (event: any) => {
-      console.error('[VoiceInput] Error:', event.error);
-      setIsListening(false);
-      if (onError) {
-        onError(event.error);
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
       }
     };
+  }, [lang, continuous, onResult, onError]);
 
-    recognition.onend = () => {
-      setIsListening(false);
-      console.log('[VoiceInput] Stopped listening');
-    };
+  const askAI = useCallback(async (question: string) => {
+    try {
+      const activeRef = (window as any).currentTextRef || null;
+      const payload = activeRef ? { text: question, ref: activeRef } : { text: question };
+      
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-    recognitionRef.current = recognition;
-    return true;
-  }, [language, onResult, onError]);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Add message to chat and speak response
+      if (window.addAIMessage) {
+        window.addAIMessage(data.answer);
+      }
+      
+      if (window.speak) {
+        window.speak(data.answer, 'fr-FR');
+      }
+
+    } catch (error) {
+      console.error('[VoiceInput] AI request failed:', error);
+      toast({
+        title: "Erreur de communication avec l'IA spirituelle",
+        description: "Veuillez réessayer votre question",
+        variant: "destructive"
+      });
+    }
+  }, []);
 
   const startListening = useCallback(() => {
-    if (!recognitionRef.current && !initializeRecognition()) {
-      console.warn('[VoiceInput] Speech recognition not supported');
-      return;
+    if (recognitionRef.current && !isListening) {
+      setInputText('');
+      recognitionRef.current.start();
     }
-
-    if (isListening) {
-      stopListening();
-      return;
-    }
-
-    try {
-      recognitionRef.current?.start();
-    } catch (error) {
-      console.error('[VoiceInput] Failed to start:', error);
-      setIsListening(false);
-    }
-  }, [isListening, initializeRecognition]);
+  }, [isListening]);
 
   const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
+    if (recognitionRef.current && isListening) {
       recognitionRef.current.stop();
     }
-    setIsListening(false);
-  }, []);
+  }, [isListening]);
+
+  const toggle = useCallback(() => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  }, [isListening, startListening, stopListening]);
 
   return {
     isListening,
+    inputText,
     isSupported,
     startListening,
-    stopListening
+    stopListening,
+    toggle,
+    setInputText
   };
 };

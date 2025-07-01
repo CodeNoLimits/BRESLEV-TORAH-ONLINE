@@ -22,7 +22,7 @@ export function useLazyTranslate(englishText: string, chunkSize: number = 1000):
   const translateChunk = useCallback(async (textToTranslate: string) => {
     try {
       console.log(`[LazyTranslate] Translating ${textToTranslate.length} characters...`);
-      
+
       const response = await fetch('/api/gemini/translate', {
         method: 'POST',
         headers: {
@@ -51,17 +51,17 @@ export function useLazyTranslate(englishText: string, chunkSize: number = 1000):
     if (isTranslating || !hasMore) return;
 
     setIsTranslating(true);
-    
+
     try {
       const nextChunk = englishText.slice(translatedLength, currentLength + chunkSize);
       const translated = await translateChunk(nextChunk);
-      
+
       setFrenchText(prev => prev + (prev ? ' ' : '') + translated);
       setTranslatedLength(currentLength + chunkSize);
       setCurrentLength(prev => prev + chunkSize);
-      
+
       console.log(`[LazyTranslate] ✅ Loaded chunk, total length: ${currentLength + chunkSize}`);
-      
+
     } catch (error) {
       console.error('[LazyTranslate] Load next error:', error);
     } finally {
@@ -88,9 +88,9 @@ export function useLazyTranslate(englishText: string, chunkSize: number = 1000):
   // Auto-traduction du premier chunk
   useEffect(() => {
     if (!englishText || frenchText || isTranslating) return;
-    
+
     const initialChunk = englishText.slice(0, Math.min(chunkSize, englishText.length));
-    
+
     if (initialChunk) {
       setIsTranslating(true);
       translateChunk(initialChunk).then(translated => {

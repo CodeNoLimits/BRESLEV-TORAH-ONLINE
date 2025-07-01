@@ -1,113 +1,107 @@
-import { useState, useCallback } from 'react';
-import { useToast } from './use-toast';
+import { useState, useCallback, useEffect } from 'react';
 
-export function useTTS() {
+export const useTTS = () => {
+  const [isEnabled, setIsEnabled] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const { toast } = useToast();
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
-  const speak = useCallback(async (txt: string) => {
-    const lang = "fr-FR"; // TTS en français UNIQUEMENT 
-    const fr = txt || ""; // segment.fr
-    if (!fr.trim()) return;
-    
-    // Listen for video events to stop TTS
-    const stopTTS = () => {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        setIsSpeaking(false);
-      }
+  // Load voices
+  useEffect(() => {
+    const loadVoices = () => {
+      const availableVoices = speechSynthesis.getVoices();
+      setVoices(availableVoices);
+      console.log('[TTS] Available voices:', availableVoices.length);
     };
-    
-    window.addEventListener('videoPlaying', stopTTS, { once: true });
 
-    console.log(`[TTS] Speaking: "${txt.substring(0, 50)}..." in ${lang}`);
-    setIsSpeaking(true);
+    loadVoices();
+    speechSynthesis.addEventListener('voiceschanged', loadVoices);
 
-    try {
-      // Ensure voices are loaded
-      if ('speechSynthesis' in window) {
-        const loadVoices = () => {
-          return new Promise<SpeechSynthesisVoice[]>((resolve) => {
-            const voices = window.speechSynthesis.getVoices();
-            if (voices.length > 0) {
-              resolve(voices);
-            } else {
-              const onVoicesChanged = () => {
-                const newVoices = window.speechSynthesis.getVoices();
-                if (newVoices.length > 0) {
-                  window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
-                  resolve(newVoices);
-                }
-              };
-              window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
-              
-              // Fallback timeout
-              setTimeout(() => {
-                window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
-                resolve(window.speechSynthesis.getVoices());
-              }, 2000);
-            }
-          });
-        };
-
-        const voices = await loadVoices();
-        if (voices.length > 0) {
-          const utterance = new SpeechSynthesisUtterance(txt);
-          const preferredVoice = voices.find(v => v.lang.startsWith(lang.split('-')[0])) || voices[0];
-          utterance.voice = preferredVoice;
-          utterance.rate = 0.9;
-          utterance.pitch = 1.0;
-          utterance.volume = 0.8;
-
-          utterance.onstart = () => console.log('[TTS] Speech started');
-          utterance.onend = () => setIsSpeaking(false);
-          utterance.onerror = (e) => {
-            console.error('[TTS] Speech error:', e);
-            setIsSpeaking(false);
-          };
-
-          window.speechSynthesis.speak(utterance);
-          return;
-        }
-      }
-
-      // Fallback to Premium TTS
-      const response = await fetch("/api/tts", {
-        method: "POST",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: txt, lang })
-      });
-
-      if (response.ok && response.headers.get('content-type')?.includes('audio/')) {
-        const blob = await response.blob();
-        const audio = new Audio(URL.createObjectURL(blob));
-        audio.onended = () => setIsSpeaking(false);
-        audio.onerror = () => setIsSpeaking(false);
-        await audio.play();
-      } else {
-        // Server fallback - use Web Speech API
-        const utterance = new SpeechSynthesisUtterance(txt);
-        utterance.lang = lang;
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
-        window.speechSynthesis.speak(utterance);
-      }
-
-    } catch (error) {
-      console.error('[TTS] Error:', error);
-      setIsSpeaking(false);
-      toast({
-        title: "Erreur TTS",
-        description: "Impossible de lire le texte",
-        variant: "destructive",
-      });
-    }
-  }, [toast]);
-
-  const stop = useCallback(() => {
-    window.speechSynthesis?.cancel();
-    setIsSpeaking(false);
+    return () => {
+      speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+    };
   }, []);
 
-  return { speak, stop, isSpeaking };
-}
+  // Monitor speech state
+  useEffect(() => {
+    const checkSpeaking = () => {
+      setIsSpeaking(speechSynthesis.speaking);
+    };
+
+    const interval = setInterval(checkSpeaking, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Stop speech when video plays
+  useEffect(() => {
+    const handleVideoPlaying = () => {
+      console.log('[TTS] Video playing - stopping speech');
+      speechSynthesis.cancel();
+      setIsSpeaking(false);
+    };
+
+    window.addEventListener('videoPlaying', handleVideoPlaying);
+    return () => window.removeEventListener('videoPlaying', handleVideoPlaying);
+  }, []);
+
+  const speak = useCallback((text: string, lang: string = 'fr-FR') => {
+    if (!isEnabled || !text?.trim()) {
+      console.log('[TTS] Skipping - disabled or empty text');
+      return;
+    }
+
+    // Cancel any ongoing speech
+    speechSynthesis.cancel();
+
+    // Find appropriate voice
+    let voice = voices.find(v => v.lang === lang);
+    if (!voice && lang === 'fr-FR') {
+      voice = voices.find(v => v.lang.startsWith('fr'));
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
+    if (voice) utterance.voice = voice;
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+
+    utterance.onstart = () => {
+      console.log('[TTS] Speech started');
+      setIsSpeaking(true);
+    };
+
+    utterance.onend = () => {
+      console.log('[TTS] Speech ended');
+      setIsSpeaking(false);
+    };
+
+    utterance.onerror = (error) => {
+      console.error('[TTS] Speech error:', error);
+      setIsSpeaking(false);
+    };
+
+    console.log(`[TTS] Speaking: "${text.substring(0, 50)}..." in ${lang}`);
+    speechSynthesis.speak(utterance);
+  }, [isEnabled, voices]);
+
+  const stop = useCallback(() => {
+    speechSynthesis.cancel();
+    setIsSpeaking(false);
+    console.log('[TTS] Speech stopped');
+  }, []);
+
+  const toggle = useCallback(() => {
+    setIsEnabled(prev => !prev);
+    if (isEnabled) {
+      stop();
+    }
+  }, [isEnabled, stop]);
+
+  return {
+    speak,
+    stop,
+    toggle,
+    isEnabled,
+    isSpeaking,
+    setIsEnabled
+  };
+};

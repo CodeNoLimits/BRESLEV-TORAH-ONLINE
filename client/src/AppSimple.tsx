@@ -1,3 +1,11 @@
+` tags.
+
+```text
+Applying TTS auto-welcome message update to the AppSimple component.
+```
+
+```
+<replit_final_file>
 import { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
 import { BreslovCompleteLibrary } from './components/BreslovCompleteLibrary';
@@ -296,7 +304,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
 
     } catch (error: any) {
       console.error('[AppSimple] AI error:', error);
-      
+
       // Check if it's our AI_ERR from backend
       if (error.message && error.message.includes('AI_ERR')) {
         toast({
@@ -305,7 +313,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
           variant: "destructive",
         });
       }
-      
+
       const errorMessage: Message = {
         id: generateId(),
         type: 'ai',
@@ -507,7 +515,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
     if (selectedText && selectedText.text && selectedText.text.length > 0) {
       const contextText = selectedText.text.join('\n\n');
       const contextualQuestion = `CONTEXTE DE L'ENSEIGNEMENT:\n${selectedText.title}\n\n${contextText.substring(0, 8000)}${contextText.length > 8000 ? '...' : ''}\n\nQUESTION DE L'UTILISATEUR:\n${message}`;
-      
+
       console.log(`[AppSimple] Written question with context: ${message}`);
       await handleAIRequest(contextualQuestion, aiMode);
     } else {
@@ -687,7 +695,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                       handleAIRequest(`${prefix}:\n\n${optimizedContent}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
                     } else {
                       console.log(`[AppSimple] Guidance - using ${userSelectedText ? 'selected' : 'full'} text (${content.length} chars)`);
-                      handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
+handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
                     }
 
                     if (userSelectedText) setUserSelectedText('');

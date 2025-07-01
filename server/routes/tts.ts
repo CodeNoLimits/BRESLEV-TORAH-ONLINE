@@ -1,62 +1,50 @@
-import { Router } from 'express';
+import express from "express";
+import { TextToSpeechClient } from "@google-cloud/text-to-speech";
 
-const router = Router();
+const router = express.Router();
 
-const voices = { 
-  "he-IL": "he-IL-Studio-B", 
-  "en-US": "en-US-Studio-O", 
-  "fr-FR": "fr-FR-Studio-D" 
-};
+// Initialize Google Cloud TTS client
+let client: TextToSpeechClient | null = null;
+
+try {
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+    client = new TextToSpeechClient({
+      credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON)
+    });
+  }
+} catch (error) {
+  console.error("[TTS] Failed to initialize Google Cloud TTS:", error);
+}
 
 router.post("/tts", async (req, res) => {
   try {
-    const { text, lang = "he-IL" } = req.body;
-    
-    if (!text) {
-      return res.status(400).json({ error: 'Text is required' });
+    const text = (req.body.text || "").slice(0, 5000);
+
+    if (!text.trim()) {
+      return res.status(400).json({ error: "Text is required" });
     }
 
-    const voice = voices[lang as keyof typeof voices] || voices["he-IL"];
-    console.log(`[TTS Premium] Using voice: ${voice} for ${lang}`);
+    if (!client) {
+      return res.status(500).json({ error: "TTS service not configured" });
+    }
 
-    // Try Gemini TTS API
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/tts-latest-long:generateSpeech?key=${process.env.GEMINI_API_KEY}`;
-    
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        input: { text },
-        audioConfig: { 
-          voice: { name: voice, languageCode: lang },
-          format: "mp3" 
-        },
-        projectId: process.env.GEMINI_TTS_PROJECT_ID
-      })
+    const [response] = await client.synthesizeSpeech({
+      input: { text },
+      voice: {
+        languageCode: "fr-FR",
+        name: "fr-FR-Studio-D",
+        ssmlGender: "MALE"
+      },
+      audioConfig: {
+        audioEncoding: "MP3"
+      }
     });
 
-    if (!response.ok) {
-      console.log('[TTS Premium] Gemini API failed, using fallback');
-      return res.status(502).json({ 
-        error: 'Gemini TTS unavailable',
-        fallback: true,
-        text,
-        lang 
-      });
-    }
-
-    const { audio } = await response.json();
-    res.type("audio/mpeg").send(Buffer.from(audio.data, "base64"));
-
+    res.type("audio/mpeg").send(response.audioContent);
   } catch (error) {
-    console.error('[TTS Premium] Error:', error);
-    res.status(500).json({ 
-      error: 'TTS service temporarily unavailable',
-      fallback: true,
-      text: req.body.text,
-      lang: req.body.lang
-    });
+    console.error("[TTS] Error:", error);
+    res.status(500).json({ error: "TTS synthesis failed" });
   }
 });
 
-export { router as ttsRouter };
+export default router;
