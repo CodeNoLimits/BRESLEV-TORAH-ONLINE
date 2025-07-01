@@ -6,8 +6,9 @@ export function useTTS() {
   const { toast } = useToast();
 
   const speak = useCallback(async (txt: string) => {
-    const lang = "fr-FR"; // Force français uniquement
-    if (!txt.trim()) return;
+    const lang = "fr-FR"; // TTS en français UNIQUEMENT 
+    const fr = txt || ""; // Force le texte français uniquement
+    if (!fr.trim()) return;
 
     console.log(`[TTS] Speaking: "${txt.substring(0, 50)}..." in ${lang}`);
     setIsSpeaking(true);

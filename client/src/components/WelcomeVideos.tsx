@@ -21,12 +21,13 @@ export const WelcomeVideos: React.FC = () => {
               style={{ maxHeight: '300px' }}
               preload="metadata"
               onPlay={() => {
-                // Arrêter le TTS quand la vidéo démarre
-                window.speechSynthesis.cancel();
-                window.dispatchEvent(new CustomEvent('videoPlaying', { detail: { videoId: 'french-intro' } }));
+                console.log('[WelcomeVideos] French video started - stopping TTS');
+                if (window.speechSynthesis) {
+                  window.speechSynthesis.cancel();
+                }
               }}
             >
-              <source src="/attached_assets/téléchargement (9)_1751391792966.mp4" type="video/mp4" />
+              <source src="/videos/intro_fr.mp4" type="video/mp4" />
               Votre navigateur ne supporte pas la lecture vidéo.
             </video>
           </div>
@@ -47,12 +48,13 @@ export const WelcomeVideos: React.FC = () => {
               style={{ maxHeight: '300px' }}
               preload="metadata"
               onPlay={() => {
-                // Arrêter le TTS quand la vidéo démarre
-                window.speechSynthesis.cancel();
-                window.dispatchEvent(new CustomEvent('videoPlaying', { detail: { videoId: 'hebrew-teaching' } }));
+                console.log('[WelcomeVideos] Hebrew video started - stopping TTS');
+                if (window.speechSynthesis) {
+                  window.speechSynthesis.cancel();
+                }
               }}
             >
-              <source src="/attached_assets/הלב של רבנו_1751382442951.mp4" type="video/mp4" />
+              <source src="/videos/intro_en.mp4" type="video/mp4" />
               Votre navigateur ne supporte pas la lecture vidéo.
             </video>
           </div>

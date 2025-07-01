@@ -51,6 +51,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // Servir les fichiers statiques
 app.use('/attached_assets', express.static('attached_assets'));
+app.use("/videos", express.static(path.join(__dirname, "../public/videos")));
 
 // Basic health-check
 app.get("/health", (_req, res) => res.send("ok"));
