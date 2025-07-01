@@ -7,7 +7,7 @@ import { VoiceAssistant } from './components/VoiceAssistant';
 import { OptimizedTextDisplay } from './components/OptimizedTextDisplay';
 import { WelcomeVideos } from './components/WelcomeVideos';
 import { useTTSSimple } from './hooks/useTTSSimple';
-import { useLazyTranslate } from './hooks/useLazyTranslate';
+
 import { MobileTTS, isMobile, MobileUtils } from './services/mobileOptimized';
 import { useVoiceInput } from './hooks/useVoiceInput';
 import { TextSegmenter } from './services/textSegmenter';

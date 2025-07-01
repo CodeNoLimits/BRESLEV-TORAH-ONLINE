@@ -83,13 +83,13 @@ function App() {
         
         // Auto-trigger deep study analysis with French translation
         const textContent = sefariaService.getTextInLanguage(text, 'en');
-        const frenchPrompt = `TEXTE ANGLAIS À TRADUIRE ET ANALYSER: "${textContent}"
+        const frenchPrompt = `TEXTE ANGLAIS À ANALYSER: "${textContent}"
 
 INSTRUCTIONS STRICTES:
-1. Commencer par "**Traduction française complète:**" puis traduire tout le texte en français
-2. Ensuite "**Analyse spirituelle selon Rabbi Nahman:**" et analyser uniquement ce texte
-3. Rester concentré sur ce passage spécifique
-4. Donner des conseils pratiques basés sur cet enseignement précis`;
+1. Analyser uniquement ce texte selon les enseignements de Rabbi Nahman
+2. Rester concentré sur ce passage spécifique  
+3. Donner des conseils pratiques basés sur cet enseignement précis
+4. NE PAS traduire - la traduction française est gérée séparément`;
         
         await handleSendAIMessage(frenchPrompt, 'study', `Texte sélectionné: ${title}`);
       }

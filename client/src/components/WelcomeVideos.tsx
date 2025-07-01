@@ -14,13 +14,18 @@ export const WelcomeVideos: React.FC = () => {
             className="w-full h-48 object-cover cursor-pointer"
             controls
             preload="metadata"
-            poster="/attached_assets/image_1751382791973.png"
+            poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23334155'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='18' fill='%23f59e0b' text-anchor='middle' dy='.3em'%3EVidéo 1%3C/text%3E%3C/svg%3E"
             onClick={(e) => {
               const video = e.target as HTMLVideoElement;
-              if (video.paused) video.play(); else video.pause();
+              console.log('[WelcomeVideos] Video clicked - play/pause');
+              if (video.paused) {
+                video.play().catch(err => console.log('[WelcomeVideos] Video play error:', err));
+              } else {
+                video.pause();
+              }
             }}
           >
-            <source src="/attached_assets/téléchargement (2)_1751382168037.mp4" type="video/mp4" />
+            <source src="data:video/mp4;base64," type="video/mp4" />
             Votre navigateur ne supporte pas les vidéos HTML5.
           </video>
           
@@ -40,13 +45,18 @@ export const WelcomeVideos: React.FC = () => {
             className="w-full h-48 object-cover cursor-pointer"
             controls
             preload="metadata"
-            poster="/attached_assets/image_1751382815271.png"
+            poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23334155'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='18' fill='%23f59e0b' text-anchor='middle' dy='.3em'%3Eהלב של רבנו%3C/text%3E%3C/svg%3E"
             onClick={(e) => {
               const video = e.target as HTMLVideoElement;
-              if (video.paused) video.play(); else video.pause();
+              console.log('[WelcomeVideos] Hebrew video clicked - play/pause');
+              if (video.paused) {
+                video.play().catch(err => console.log('[WelcomeVideos] Video play error:', err));
+              } else {
+                video.pause();
+              }
             }}
           >
-            <source src="/attached_assets/הלב של רבנו_1751382442951.mp4" type="video/mp4" />
+            <source src="data:video/mp4;base64," type="video/mp4" />
             Votre navigateur ne supporte pas les vidéos HTML5.
           </video>
           
