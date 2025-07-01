@@ -11,10 +11,14 @@ export const WelcomeVideos: React.FC = () => {
         {/* Première vidéo */}
         <div className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 hover:border-amber-500 transition-all duration-300">
           <video
-            className="w-full h-48 object-cover"
+            className="w-full h-48 object-cover cursor-pointer"
             controls
             preload="metadata"
             poster="/attached_assets/image_1751382791973.png"
+            onClick={(e) => {
+              const video = e.target as HTMLVideoElement;
+              if (video.paused) video.play(); else video.pause();
+            }}
           >
             <source src="/attached_assets/téléchargement (2)_1751382168037.mp4" type="video/mp4" />
             Votre navigateur ne supporte pas les vidéos HTML5.
@@ -33,10 +37,14 @@ export const WelcomeVideos: React.FC = () => {
         {/* Deuxième vidéo */}
         <div className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 hover:border-amber-500 transition-all duration-300">
           <video
-            className="w-full h-48 object-cover"
+            className="w-full h-48 object-cover cursor-pointer"
             controls
             preload="metadata"
             poster="/attached_assets/image_1751382815271.png"
+            onClick={(e) => {
+              const video = e.target as HTMLVideoElement;
+              if (video.paused) video.play(); else video.pause();
+            }}
           >
             <source src="/attached_assets/הלב של רבנו_1751382442951.mp4" type="video/mp4" />
             Votre navigateur ne supporte pas les vidéos HTML5.

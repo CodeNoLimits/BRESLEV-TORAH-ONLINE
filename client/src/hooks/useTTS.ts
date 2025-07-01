@@ -15,8 +15,20 @@ export const useTTS = ({ language, enabled }: TTSOptions) => {
 
   useEffect(() => {
     setTtsEnabled(true);
-    console.debug('[TTS] Force enabled', true);
-  }, []);
+    console.log('[TTS] Force enabled - TTS is now active');
+  }, [enabled]);
+
+  // Force TTS to work on user interaction
+  useEffect(() => {
+    const enableTTSOnClick = () => {
+      if (!ttsEnabled) {
+        setTtsEnabled(true);
+        console.log('[TTS] Enabled via user interaction');
+      }
+    };
+    document.addEventListener('click', enableTTSOnClick, { once: true });
+    return () => document.removeEventListener('click', enableTTSOnClick);
+  }, [ttsEnabled]);
 
   useEffect(() => {
     setIsSupported('speechSynthesis' in window);

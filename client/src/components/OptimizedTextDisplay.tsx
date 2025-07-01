@@ -132,37 +132,7 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
         </div>
       </div>
 
-      {/* Rectangle contextuel FR avec lazy-loading */}
-      <div className="border-t border-slate-700 pt-4">
-        <h4 className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
-          Traduction française
-          {frenchProgress > 0 && (
-            <span className="text-xs bg-slate-700 px-2 py-1 rounded">
-              {Math.round(frenchProgress * 100)}%
-            </span>
-          )}
-        </h4>
-        
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl shadow-xl max-h-[60vh] overflow-y-auto">
-          <div className="p-4 font-crimson leading-relaxed text-slate-200">
-            {frenchShown ? (
-              <>
-                {frenchShown.split('\n\n').map((paragraph: string, idx: number) => (
-                  <p key={idx} className="mb-3 last:mb-0">
-                    {paragraph}
-                  </p>
-                ))}
-                
-                {/* Bouton "Suite" avec animation discrète */}
-                {frenchHasMore && (
-                  <div className="mt-4 flex justify-center">
-                    <button
-                      onClick={handleLoadMore}
-                      disabled={isTranslatingFrench}
-                      className={`
-                        flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 
-                        text-white rounded-lg transition-all duration-200
-                        disabled:opacity-50 disabled:cursor-not-allowed
+      -not-allowed
                         ${isTranslatingFrench ? 'animate-pulse' : 'hover:scale-105'}
                       `}
                     >
