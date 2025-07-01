@@ -27,4 +27,4 @@ const WelcomeVideos: React.FC = () => {
   );
 };
 
-export default WelcomeVideos;
+export { WelcomeVideos };

@@ -1,11 +1,3 @@
-` tags.
-
-```text
-Applying TTS auto-welcome message update to the AppSimple component.
-```
-
-```
-<replit_final_file>
 import { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
 import { BreslovCompleteLibrary } from './components/BreslovCompleteLibrary';
