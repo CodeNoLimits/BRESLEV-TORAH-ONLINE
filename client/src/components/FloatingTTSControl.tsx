@@ -4,6 +4,7 @@ import { Volume2, VolumeX, Mic, MicOff } from 'lucide-react';
 interface FloatingTTSControlProps {
   isSpeaking: boolean;
   isListening: boolean;
+  isRecording: boolean;
   onToggleTTS: () => void;
   onStartListening: () => void;
   onSpeak?: (text: string) => void;

@@ -168,7 +168,7 @@ app.post("/gemini/chat", async (req, res) => {
     if (!res.headersSent) {
       res.status(500).json({ 
         error: "Le guide spirituel est temporairement indisponible. Veuillez patienter un moment et réessayer.",
-        details: process.env.NODE_ENV === 'development' ? e.message : undefined
+        details: process.env.NODE_ENV === 'development' ? (e as Error).message : undefined
       });
     } else {
       // If streaming has started, write error to stream

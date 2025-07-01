@@ -853,6 +853,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
       <FloatingTTSControl 
         isSpeaking={isSpeaking}
         isListening={isListening}
+        isRecording={isListening}
         onToggleTTS={() => {
           if (isSpeaking) {
             stopTTS();

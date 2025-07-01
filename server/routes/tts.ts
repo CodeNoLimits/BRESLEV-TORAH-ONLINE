@@ -16,7 +16,7 @@ router.post("/tts", async (req, res) => {
       return res.status(400).json({ error: 'Text is required' });
     }
 
-    const voice = voices[lang] || voices["he-IL"];
+    const voice = voices[lang as keyof typeof voices] || voices["he-IL"];
     console.log(`[TTS Premium] Using voice: ${voice} for ${lang}`);
 
     // Try Gemini TTS API
