@@ -26,7 +26,7 @@ export const WelcomeVideos: React.FC = () => {
                 window.dispatchEvent(new CustomEvent('videoPlaying', { detail: { videoId: 'french-intro' } }));
               }}
             >
-              <source src="/attached_assets/téléchargement (2)_1751382168037.mp4" type="video/mp4" />
+              <source src="/attached_assets/téléchargement (9)_1751391792966.mp4" type="video/mp4" />
               Votre navigateur ne supporte pas la lecture vidéo.
             </video>
           </div>

@@ -49,10 +49,7 @@ app.use(express.urlencoded({ extended: false }));
 
 
 
-// Servir les fichiers statiques simplement
-app.use('/attached_assets', express.static('attached_assets'));
-
-// Servir les autres fichiers statiques
+// Servir les fichiers statiques
 app.use('/attached_assets', express.static('attached_assets'));
 
 // Basic health-check
