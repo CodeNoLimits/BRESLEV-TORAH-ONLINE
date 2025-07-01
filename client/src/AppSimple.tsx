@@ -10,6 +10,7 @@ import { useTTS } from './hooks/useTTS';
 
 import { MobileTTS, isMobile, MobileUtils } from './services/mobileOptimized';
 import { useVoiceInput } from './hooks/useVoiceInput';
+import { useToast } from './hooks/use-toast';
 import { TextSegmenter } from './services/textSegmenter';
 import { sefariaClient, SefariaText } from './services/sefariaDirectClient';
 import { streamGemini } from './services/geminiSimple';
@@ -55,6 +56,7 @@ function AppSimple() {
 
   // TTS Premium avec fallback Web Speech API
   const { speak, stop: stopTTS, isSpeaking } = useTTS();
+  const { toast } = useToast();
 
   // Message d'accueil automatique au chargement
   useEffect(() => {
@@ -296,9 +298,9 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
       console.error('[AppSimple] AI error:', error);
       
       // Check if it's our AI_ERR from backend
-      if (error.message && error.message.includes('502')) {
+      if (error.message && error.message.includes('AI_ERR')) {
         toast({
-          title: "Erreur AI",
+          title: "Erreur AI", 
           description: "Erreur de communication avec l'IA spirituelle",
           variant: "destructive",
         });
@@ -307,7 +309,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
       const errorMessage: Message = {
         id: generateId(),
         type: 'ai',
-        content: 'Erreur de communication avec l\'IA spirituelle.',
+        content: `Erreur de communication avec l'IA spirituelle. ${error.message || 'Veuillez réessayer.'}`,
         timestamp: new Date(),
         mode: 'error'
       };
