@@ -188,7 +188,9 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
           let score = 0;
 
           queryWords.forEach(word => {
-            const matches = (segmentLower.match(new RegExp(word, 'g')) || []).length;
+            // Escape special regex characters to prevent regex errors
+            const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const matches = (segmentLower.match(new RegExp(escapedWord, 'g')) || []).length;
             score += matches;
           });
 
