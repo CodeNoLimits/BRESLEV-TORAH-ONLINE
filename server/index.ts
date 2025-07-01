@@ -47,7 +47,61 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '50mb' })); // Fix PayloadTooLargeError
 app.use(express.urlencoded({ extended: false }));
 
-// Servir les fichiers vidéo depuis attached_assets
+// Route spécifique pour les vidéos
+app.get('/attached_assets/*', (req, res, next) => {
+  const path = require('path');
+  const fs = require('fs');
+  
+  // Décodage de l'URL pour gérer les caractères spéciaux
+  const decodedPath = decodeURIComponent(req.path);
+  const fileName = path.basename(decodedPath);
+  const videoPath = path.join(process.cwd(), 'attached_assets', fileName);
+  
+  console.log(`[Video Server] Request for: ${fileName}`);
+  console.log(`[Video Server] Looking for: ${videoPath}`);
+  
+  if (!fs.existsSync(videoPath)) {
+    console.log(`[Video Server] File not found: ${videoPath}`);
+    return next(); // Passer au middleware suivant
+  }
+  
+  if (fileName.endsWith('.mp4')) {
+    const stat = fs.statSync(videoPath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+    
+    console.log(`[Video Server] Serving MP4: ${fileName} (${fileSize} bytes)`);
+    
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    if (range) {
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const chunksize = (end - start) + 1;
+      const file = fs.createReadStream(videoPath, { start, end });
+      
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Content-Length': chunksize,
+        'Content-Type': 'video/mp4',
+      });
+      file.pipe(res);
+    } else {
+      res.writeHead(200, {
+        'Content-Length': fileSize,
+        'Content-Type': 'video/mp4',
+      });
+      fs.createReadStream(videoPath).pipe(res);
+    }
+  } else {
+    next(); // Passer au middleware suivant pour les autres fichiers
+  }
+});
+
+// Servir les autres fichiers statiques normalement
 app.use('/attached_assets', express.static('attached_assets'));
 
 // Basic health-check
