@@ -862,7 +862,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
           }
         }}
         onStartListening={startListening}
-        onSpeak={(text: string) => speak(text, "fr-FR")}
+        onSpeak={(text: string) => speak(text)}
       />
 
       {/* Background Download Toast */}
