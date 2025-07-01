@@ -242,11 +242,13 @@ Réponds en français uniquement, avec sagesse et bienveillance.`;
   // Endpoint Gemini pour traduction française
   app.post('/api/gemini/translate', async (req: Request, res: Response) => {
     try {
-      const { text, targetLanguage = 'français', context = '' } = req.body;
+      const { text, targetLang = 'french', context = '' } = req.body;
 
       if (!text) {
         return res.status(400).json({ error: 'Text is required' });
       }
+
+      console.log(`[Gemini Translate] Request: ${text.substring(0, 50)}... -> ${targetLang}`);
 
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');

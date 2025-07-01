@@ -108,7 +108,7 @@ export async function extractCompleteBook(bookTitle: string, sectionNumber: stri
           if (response.ok) {
             const data = await response.json() as any;
             
-            // Extract all text recursively
+            // Extract all text recursively with better Hebrew handling
             const extractText = (textData: any): string[] => {
               if (!textData) return [];
               if (typeof textData === 'string') return [textData.trim()].filter(t => t);
@@ -120,6 +120,18 @@ export async function extractCompleteBook(bookTitle: string, sectionNumber: stri
             
             const english = extractText(data.text);
             const hebrew = extractText(data.he);
+            
+            console.log(`[FullTextExtractor] Extracted for ${approach}: EN=${english.length}, HE=${hebrew.length}`);
+            
+            // Debug: Show sample content
+            if (english.length > 0) {
+              console.log(`[FullTextExtractor] Sample English: ${english[0].substring(0, 100)}...`);
+            }
+            if (hebrew.length > 0) {
+              console.log(`[FullTextExtractor] Sample Hebrew: ${hebrew[0].substring(0, 50)}...`);
+            } else {
+              console.log(`[FullTextExtractor] WARNING: No Hebrew content found for ${approach}`);
+            }
             
             if (english.length > completeEnglishText.length) {
               completeEnglishText = english;

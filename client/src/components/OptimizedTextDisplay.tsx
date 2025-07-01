@@ -22,15 +22,26 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
   language, 
   onTextSelection 
 }) => {
-  // Traduction paresseuse en français
+  // Traduction paresseuse en français avec clé unique pour forcer reset
   const englishText = selectedText.text.join('\n\n');
+  const textKey = `${selectedText.ref}-${englishText.length}`; // Clé unique pour chaque texte
+  
+  console.log(`[OptimizedTextDisplay] NEW TEXT: ${selectedText.ref} (${englishText.length} chars)`);
+  
   const {
     frenchText,
     isTranslating: isTranslatingFrench,
     translateChunk,
     hasMore,
-    progress
+    progress,
+    reset
   } = useLazyTranslate(englishText, 1000);
+
+  // Force reset quand le texte change
+  React.useEffect(() => {
+    console.log(`[OptimizedTextDisplay] Text changed, forcing translation reset`);
+    reset();
+  }, [textKey, reset]);
 
   const handleTextSelection = () => {
     const selection = window.getSelection();
