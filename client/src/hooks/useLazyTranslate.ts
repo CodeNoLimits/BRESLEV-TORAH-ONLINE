@@ -76,18 +76,19 @@ export function useLazyTranslate(englishText: string, chunkSize: number = 1000):
     setIsTranslating(false);
   }, [chunkSize]);
 
-  // Reset and auto-translate first 1000 characters when text changes
+  // Reset et auto-traduction quand hebrewRef change
   useEffect(() => {
-    if (!englishText) return;
-    
-    // RESET tout quand le texte change
-    console.log(`[LazyTranslate] NEW TEXT DETECTED - Resetting translation cache`);
+    console.log(`[LazyTranslate] TEXT CHANGE DETECTED - Full reset`);
     setCurrentLength(chunkSize);
     setFrenchText('');
     setTranslatedLength(0);
     setIsTranslating(false);
+  }, [englishText]); // Reset à chaque nouveau texte
+
+  // Auto-traduction du premier chunk
+  useEffect(() => {
+    if (!englishText || frenchText || isTranslating) return;
     
-    // Puis traduire le premier chunk du NOUVEAU texte
     const initialChunk = englishText.slice(0, Math.min(chunkSize, englishText.length));
     
     if (initialChunk) {
@@ -99,7 +100,7 @@ export function useLazyTranslate(englishText: string, chunkSize: number = 1000):
         console.log(`[LazyTranslate] ✅ Auto-loaded first ${chunkSize} characters`);
       });
     }
-  }, [englishText, chunkSize, translateChunk]); // SUPPRIMÉ translatedLength de la dépendance
+  }, [englishText, frenchText, isTranslating, chunkSize, translateChunk]);
 
   const progress = englishText.length > 0 ? Math.round((translatedLength / englishText.length) * 100) : 0;
 

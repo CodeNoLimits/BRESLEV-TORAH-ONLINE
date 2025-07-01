@@ -7,8 +7,18 @@ export function useTTS() {
 
   const speak = useCallback(async (txt: string) => {
     const lang = "fr-FR"; // TTS en français UNIQUEMENT 
-    const fr = txt || ""; // Force le texte français uniquement
+    const fr = txt || ""; // segment.fr
     if (!fr.trim()) return;
+    
+    // Listen for video events to stop TTS
+    const stopTTS = () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+      }
+    };
+    
+    window.addEventListener('videoPlaying', stopTTS, { once: true });
 
     console.log(`[TTS] Speaking: "${txt.substring(0, 50)}..." in ${lang}`);
     setIsSpeaking(true);

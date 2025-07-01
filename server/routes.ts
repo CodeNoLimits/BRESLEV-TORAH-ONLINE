@@ -186,6 +186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error('GEMINI_API_KEY not configured');
       }
 
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
       const model = genAI.getGenerativeModel({ 
         model: "gemini-1.5-flash",
@@ -202,6 +203,10 @@ ${prompt}
 Réponds en français uniquement, avec sagesse et bienveillance.`;
 
       const result = await model.generateContent(enhancedPrompt);
+      if (!result || !result.response) {
+        throw new Error('Invalid response from Gemini API');
+      }
+      
       const response = result.response;
       const text = response.text();
 
@@ -219,23 +224,9 @@ Réponds en français uniquement, avec sagesse et bienveillance.`;
 
     } catch (error) {
       console.error('[Gemini Proxy] Error:', error);
-
-      // Réponse de fallback intelligente
-      const prompt = req.body.prompt?.toLowerCase() || '';
-      let fallbackResponse;
-
-      if (prompt.includes('résumé') || prompt.includes('10 points')) {
-        fallbackResponse = "Pour comprendre cet enseignement en profondeur, méditez sur chaque mot avec votre cœur. Rabbi Nahman nous enseigne que la vraie compréhension vient de l'âme, pas seulement de l'intellect.";
-      } else if (prompt.includes('contexte') || prompt.includes('enseignement')) {
-        fallbackResponse = "Cet enseignement de Rabbi Nahman invite à une réflexion profonde. Lisez-le lentement, laissez chaque phrase résonner en vous, et cherchez comment l'appliquer dans votre vie quotidienne.";
-      } else {
-        fallbackResponse = "Je vous encourage à méditer sur les enseignements de Rabbi Nahman. Chaque mot contient une sagesse profonde qui peut éclairer votre chemin spirituel.";
-      }
-
-      res.json({ 
-        response: fallbackResponse,
-        usage: 'fallback-response'
-      });
+      
+      // Return proper error for AI_ERR handling
+      return res.status(502).json({ error: 'AI_ERR' });
     }
   });
 
