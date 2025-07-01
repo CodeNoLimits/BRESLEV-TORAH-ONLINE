@@ -17,6 +17,10 @@ export function useLazyTranslate(englishText: string, chunkSize: number = 1000):
   const [isTranslating, setIsTranslating] = useState(false);
   const [translatedLength, setTranslatedLength] = useState(0);
 
+  useEffect(() => {
+    setCurrentLength(chunkSize);
+  }, [englishText]);
+
   const hasMore = currentLength < englishText.length;
 
   const translateChunk = useCallback(async (textToTranslate: string) => {
