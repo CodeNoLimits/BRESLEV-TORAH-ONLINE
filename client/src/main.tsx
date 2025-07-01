@@ -7,23 +7,36 @@ import { Toaster } from "@/components/ui/toaster";
 import { toast } from "@/hooks/use-toast";
 import AppSimple from "./AppSimple";
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
 // Global error handling for unhandled rejections
 window.addEventListener('unhandledrejection', (event) => {
   console.error('[Global] Unhandled promise rejection:', event.reason);
   toast({
-    title: "Erreur système",
-    description: "Une erreur inattendue s'est produite. Rechargez la page si nécessaire.",
+    title: "Erreur technique",
+    description: "Une erreur inattendue s'est produite. Veuillez réessayer.",
     variant: "destructive",
   });
   event.preventDefault();
 });
 
-// Gestion globale des erreurs JavaScript non gérées  
-window.addEventListener("unhandledrejection", (e) => {
-  console.error("[UNHANDLED]", e.reason);
-  toast({
-    title: "Erreur technique",
-    description: "Une erreur inattendue s'est produite. Veuillez réessayer.",
-    variant: "destructive"
-  });
-});
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Switch>
+        <Route path="/" component={AppSimple} />
+        <Route component={AppSimple} />
+      </Switch>
+      <Toaster />
+    </QueryClientProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")!).render(<App />);
