@@ -6,7 +6,7 @@ import { DownloadToast } from './components/DownloadToast';
 import { VoiceAssistant } from './components/VoiceAssistant';
 import { OptimizedTextDisplay } from './components/OptimizedTextDisplay';
 import { WelcomeVideos } from './components/WelcomeVideos';
-import { useTTSPremium } from './hooks/useTTSPremium';
+import { useTTSSimple } from './hooks/useTTSSimple';
 import { useLazyTranslate } from './hooks/useLazyTranslate';
 import { MobileTTS, isMobile, MobileUtils } from './services/mobileOptimized';
 import { useVoiceInput } from './hooks/useVoiceInput';
@@ -48,8 +48,8 @@ function AppSimple() {
   const [showDownloadToast, setShowDownloadToast] = useState(false);
   const [bulkLoadStarted, setBulkLoadStarted] = useState(false);
 
-  // Premium TTS avec voix Studio Gemini
-  const { speak, stop: stopTTS, isSpeaking } = useTTSPremium();
+  // TTS simplifié pour fonctionnalité immédiate
+  const { speak, stop: stopTTS, isSpeaking } = useTTSSimple();
 
   // Fonction speakGreeting pour compatibilité avec Header
   const speakGreeting = useCallback(async () => {
