@@ -8,7 +8,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { validateSectionExists, getBookConfig } from './src/data/BRESLOV_BOOKS.js';
 import { registerMetaRoutes } from './routes/meta.js';
-import { ttsRouter } from './routes/tts.js';
+import ttsRouter from './routes/tts.js';
 // Dynamic import for ES module compatibility
 let fullTextExtractor: any = null;
 
