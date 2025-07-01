@@ -27,8 +27,10 @@ export function useTTS() {
       return;
     }
 
-    try {
-      // Simple et direct: arrêter et parler immédiatement
+    // Force user interaction by creating a simple click trigger
+    const userInteractionNeeded = () => {
+      console.log('[TTS] 📢 ACTIVATION MANUELLE REQUISE - Interaction utilisateur détectée');
+      
       window.speechSynthesis.cancel();
       
       const utterance = new SpeechSynthesisUtterance(text);
@@ -43,30 +45,39 @@ export function useTTS() {
         const voice = voices.find(v => v.lang.startsWith(lang.split('-')[0])) || voices[0];
         utterance.voice = voice;
         console.log('[TTS] 🎯 Using voice:', voice.name, voice.lang);
+      } else {
+        console.log('[TTS] ⚠️ No voices found, using default');
       }
       
       utterance.onstart = () => {
         setIsSpeaking(true);
-        console.log('[TTS] 🔊 SON DÉMARRÉ - VOUS DEVRIEZ ENTENDRE LE SON MAINTENANT!');
+        console.log('[TTS] 🔊 SON RÉELLEMENT DÉMARRÉ - AUDIO ACTIF!');
       };
       
       utterance.onend = () => {
         setIsSpeaking(false);
-        console.log('[TTS] 🔊 SON TERMINÉ');
+        console.log('[TTS] 🔊 SON RÉELLEMENT TERMINÉ');
       };
       
       utterance.onerror = (event) => {
         setIsSpeaking(false);
-        console.error('[TTS] ❌ ERREUR AUDIO:', event.error, event);
+        console.error('[TTS] ❌ ERREUR AUDIO COMPLÈTE:', event.error, event);
       };
 
-      console.log('[TTS] 🚀 LANCEMENT IMMÉDIAT DU SON...');
+      console.log('[TTS] 🚀 FORCE SPEECH NOW...');
       window.speechSynthesis.speak(utterance);
       
-    } catch (error) {
-      console.error('[TTS] ❌ Erreur lors de la création de la lecture:', error);
-      setIsSpeaking(false);
-    }
+      // Backup attempt if first fails
+      setTimeout(() => {
+        if (!window.speechSynthesis.speaking) {
+          console.log('[TTS] 🔄 Retry speaking...');
+          window.speechSynthesis.speak(utterance);
+        }
+      }, 500);
+    };
+
+    // Execute immediately since we're in a user interaction context
+    userInteractionNeeded();
   }, [isSupported]);
 
   const stop = useCallback(() => {

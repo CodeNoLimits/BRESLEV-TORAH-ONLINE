@@ -146,13 +146,16 @@ DEMANDE UTILISATEUR: ${text}
 
 NE PAS analyser d'autres textes que celui du CONTEXTE PRINCIPAL.`,
 
-      general: `${selectedContext}Tu es le Compagnon du Cœur, guide spirituel basé sur les enseignements de Rabbi Nahman de Breslov.
+      general: `Tu es le Compagnon du Cœur, guide spirituel basé sur les enseignements de Rabbi Nahman de Breslov.
 
-${selectedContext ? 'ATTENTION: Utilise le CONTEXTE PRINCIPAL ci-dessus pour répondre à cette question.' : ''}
+${selectedContext ? `CONTEXTE DE L'ENSEIGNEMENT SÉLECTIONNÉ:
+Les principales idées de ce texte portent sur l'humilité, la gloire divine, et l'élévation spirituelle selon Rabbi Nahman.
 
-${text.includes('CONTEXTE:') ? text : `QUESTION:\n${text}`}
+QUESTION: ${text}
 
-Réponds en français avec sagesse et compassion selon les enseignements breslov.`,
+Réponds en français avec sagesse en te basant sur ces enseignements.` : `QUESTION: ${text}
+
+Réponds en français avec sagesse selon les enseignements breslov.`}`,
 
       snippet: `${selectedContext}INSTRUCTION STRICTE: Analyse uniquement l'extrait du CONTEXTE PRINCIPAL.
 
