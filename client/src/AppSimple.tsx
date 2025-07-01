@@ -6,7 +6,7 @@ import { DownloadToast } from './components/DownloadToast';
 import { VoiceAssistant } from './components/VoiceAssistant';
 import { OptimizedTextDisplay } from './components/OptimizedTextDisplay';
 import { WelcomeVideos } from './components/WelcomeVideos';
-import { useTTSSimple } from './hooks/useTTSSimple';
+import { useTTS } from './hooks/useTTS';
 
 import { MobileTTS, isMobile, MobileUtils } from './services/mobileOptimized';
 import { useVoiceInput } from './hooks/useVoiceInput';
@@ -48,8 +48,8 @@ function AppSimple() {
   const [showDownloadToast, setShowDownloadToast] = useState(false);
   const [bulkLoadStarted, setBulkLoadStarted] = useState(false);
 
-  // TTS simplifié pour fonctionnalité immédiate
-  const { speak, stop: stopTTS, isSpeaking } = useTTSSimple();
+  // TTS Premium avec fallback Web Speech API
+  const { speak, stop: stopTTS, isSpeaking } = useTTS();
 
   // Fonction speakGreeting pour compatibilité avec Header
   const speakGreeting = useCallback(async () => {
@@ -133,7 +133,8 @@ ${selectedText.text?.join('\n\n') || 'Non disponible'}
 
     const prompts = {
       study: `${selectedContext}INSTRUCTION STRICTE: Analyse uniquement le texte dans le CONTEXTE PRINCIPAL ci-dessus.
-Traduis d'abord ce texte en français complet, puis fournis une analyse spirituelle détaillée selon Rabbi Nahman de Breslov.
+NE PAS traduire en français - la traduction est gérée séparément.
+Fournis UNIQUEMENT une analyse spirituelle détaillée selon Rabbi Nahman de Breslov.
 
 DEMANDE UTILISATEUR: ${text}
 
@@ -536,7 +537,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                 onTTSSpeak={(text) => {
                   const langCode = language === 'he' ? 'he-IL' : 
                                    language === 'en' ? 'en-US' : 'fr-FR';
-                  speak(text, { lang: langCode });
+                  speak(text, langCode);
                 }}
                 isTTSSpeaking={isSpeaking}
                 language={language}
