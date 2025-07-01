@@ -27,7 +27,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   // Custom hooks
-  const { speak, stop: stopTTS, isSpeaking } = useTTS({ language, enabled: ttsEnabled });
+  const { speak, stop: stopTTS, isSpeaking } = useTTS();
   const {
     sendMessage,
     isLoading: isAILoading,
