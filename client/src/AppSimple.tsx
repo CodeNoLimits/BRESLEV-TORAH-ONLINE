@@ -68,10 +68,7 @@ function AppSimple() {
   const { speak, stop: stopTTS, isSpeaking } = useTTS();
   const { toast } = useToast();
 
-  // Message d'accueil automatique
-  useEffect(() => {
-    speak('Bienvenue !', 'fr-FR');
-  }, []);
+  // Pas de message d'accueil automatique - utiliser les boutons TTS manuels uniquement
 
   // Fonction speakGreeting pour compatibilité avec Header
   const speakGreeting = useCallback(async () => {

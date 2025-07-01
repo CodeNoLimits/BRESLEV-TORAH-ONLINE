@@ -73,31 +73,68 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
         </p>
       </div>
 
-      {/* Texte hébreu */}
-      {selectedText.he && selectedText.he.length > 0 && (
-        <div>
-          <h4 className="text-sm font-medium text-blue-400 mb-2 flex items-center">
-            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 715 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"></path>
-            </svg>
-            טקסט מקורי (עברית)
-            <button
-              onClick={() => onTTSSpeak(frenchText || "Traduction française en cours...")}
-              className="ml-2 text-blue-500 hover:text-blue-400 transition-colors"
+      {/* Affichage multilingue avec onglets */}
+      <div className="space-y-4">
+        {/* Texte hébreu */}
+        {selectedText.he && selectedText.he.length > 0 && (
+          <div className="bg-slate-800/50 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-blue-400 mb-3 flex items-center justify-between">
+              <span className="flex items-center">
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 715 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"></path>
+                </svg>
+                טקסט מקורי (עברית)
+              </span>
+              <button
+                onClick={() => onTTSSpeak(selectedText.he.join(' '))}
+                className="text-blue-500 hover:text-blue-400 transition-colors flex items-center gap-1"
+                title="Lire en hébreu"
+              >
+                <Volume2 className="w-4 h-4" />
+                <span className="text-xs">HE</span>
+              </button>
+            </h4>
+            <div 
+              className="max-h-[60vh] overflow-y-auto cursor-text"
+              onMouseUp={handleTextSelection}
             >
-              <Volume2 className="w-4 h-4" />
-            </button>
-          </h4>
-          <div 
-            className="max-h-[60vh] overflow-y-auto cursor-text"
-            onMouseUp={handleTextSelection}
-          >
-            <div className="font-hebrew leading-relaxed text-slate-200 whitespace-pre-wrap text-right" dir="rtl">
-              {selectedText.he.join('\n\n')}
+              <div className="font-hebrew leading-relaxed text-slate-200 whitespace-pre-wrap text-right text-lg" dir="rtl">
+                {selectedText.he.join('\n\n')}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Texte anglais */}
+        {selectedText.text && selectedText.text.length > 0 && (
+          <div className="bg-slate-800/50 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-green-400 mb-3 flex items-center justify-between">
+              <span className="flex items-center">
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"></path>
+                </svg>
+                English Translation
+              </span>
+              <button
+                onClick={() => onTTSSpeak(selectedText.text.join(' '))}
+                className="text-green-500 hover:text-green-400 transition-colors flex items-center gap-1"
+                title="Lire en anglais"
+              >
+                <Volume2 className="w-4 h-4" />
+                <span className="text-xs">EN</span>
+              </button>
+            </h4>
+            <div 
+              className="max-h-[60vh] overflow-y-auto cursor-text"
+              onMouseUp={handleTextSelection}
+            >
+              <div className="leading-relaxed text-slate-200 whitespace-pre-wrap">
+                {selectedText.text.join('\n\n')}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Texte original (English) */}
       {language === 'en' && (

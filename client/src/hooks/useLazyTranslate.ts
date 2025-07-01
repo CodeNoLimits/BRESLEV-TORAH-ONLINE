@@ -47,7 +47,8 @@ export function useLazyTranslate(englishText: string, chunkSize: number = 1000):
 
     } catch (error) {
       console.error('[LazyTranslate] Translation error:', error);
-      return `[Traduction indisponible: ${textToTranslate}]`;
+      // Retourner le texte original sans traduction au lieu d'un message d'erreur
+      return textToTranslate;
     }
   }, []);
 
