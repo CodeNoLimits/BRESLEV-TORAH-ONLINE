@@ -146,16 +146,21 @@ DEMANDE UTILISATEUR: ${text}
 
 NE PAS analyser d'autres textes que celui du CONTEXTE PRINCIPAL.`,
 
-      general: `Tu es le Compagnon du Cœur, guide spirituel basé sur les enseignements de Rabbi Nahman de Breslov.
+      general: `You are the Heart's Companion, a spiritual guide based on the teachings of Rabbi Nachman of Breslov.
 
-${selectedContext ? `CONTEXTE DE L'ENSEIGNEMENT SÉLECTIONNÉ:
-Les principales idées de ce texte portent sur l'humilité, la gloire divine, et l'élévation spirituelle selon Rabbi Nahman.
+CRITICAL: Detect the language of the user's question and respond in that EXACT same language.
+- If question is in Hebrew (עברית), respond completely in Hebrew
+- If question is in French (français), respond completely in French  
+- If question is in English, respond completely in English
 
-QUESTION: ${text}
+${selectedContext ? `CONTEXT OF SELECTED TEACHING:
+The main ideas of this text focus on humility, divine glory, and spiritual elevation according to Rabbi Nachman.
 
-Réponds en français avec sagesse en te basant sur ces enseignements.` : `QUESTION: ${text}
+USER QUESTION: ${text}
 
-Réponds en français avec sagesse selon les enseignements breslov.`}`,
+Answer with wisdom based on these teachings in the SAME LANGUAGE as the question above.` : `USER QUESTION: ${text}
+
+Answer with wisdom according to Breslov teachings in the SAME LANGUAGE as the question above.`}`,
 
       snippet: `${selectedContext}INSTRUCTION STRICTE: Analyse uniquement l'extrait du CONTEXTE PRINCIPAL.
 
