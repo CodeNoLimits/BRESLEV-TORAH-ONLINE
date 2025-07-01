@@ -39,7 +39,23 @@ function AppSimple() {
   const [ttsEnabled, setTtsEnabled] = useState(true); // TTS activé par défaut
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedText, setSelectedText] = useState<SefariaText | null>(null);
-  const [userSelectedText, setUserSelectedText] = useState('');
+  // État pour gérer le texte sélectionné par l'utilisateur
+  const [userSelectedText, setUserSelectedText] = useState<string>('');
+  const [hasWelcomed, setHasWelcomed] = useState<boolean>(false);
+
+  console.log('[AppSimple] Initializing lazy-load system');
+
+  // Message d'accueil automatique au chargement
+  useEffect(() => {
+    if (!hasWelcomed) {
+      const welcomeTimer = setTimeout(() => {
+        speak("Shalom et bienvenue dans Le Compagnon du Cœur. Cliquez sur un texte de la bibliothèque Breslov pour commencer votre étude spirituelle.", "fr-FR");
+        setHasWelcomed(true);
+      }, 2000);
+
+      return () => clearTimeout(welcomeTimer);
+    }
+  }, [hasWelcomed, speak]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [streamingText, setStreamingText] = useState('');
   const [isAILoading, setIsAILoading] = useState(false);

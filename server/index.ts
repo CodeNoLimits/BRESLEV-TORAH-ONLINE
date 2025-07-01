@@ -123,6 +123,11 @@ app.post("/gemini/chat", async (req, res) => {
   try {
     const { prompt } = req.body;
     console.log("[Gemini Proxy] Processing request");
+    
+    if (!prompt || prompt.trim().length === 0) {
+      return res.status(400).json({ error: "Prompt vide" });
+    }
+    
     const chat = model.startChat();
     const result = await chat.sendMessageStream(prompt);
 
@@ -130,11 +135,50 @@ app.post("/gemini/chat", async (req, res) => {
     res.setHeader("Transfer-Encoding", "chunked");
     res.flushHeaders();
 
-    for await (const chunk of result.stream) res.write(chunk.text());
+    let hasContent = false;
+    for await (const chunk of result.stream) {
+      const text = chunk.text();
+      if (text) {
+        res.write(text);
+        hasContent = true;
+      }
+    }
+    
+    if (!hasContent) {
+      res.write("Guide spirituel prêt à vous accompagner.");
+    }
+    
     res.end();
   } catch (e) {
     console.error("[Gemini Error]", e);
-    res.status(500).json({ error: "Gemini fail" });
+    res.status(500).json({ 
+      error: "Service spirituel temporairement indisponible. Veuillez réessayer." 
+    });
+  }
+});
+
+/* ---------- Gemini quick responses ---------- */
+app.post("/api/gemini/quick", async (req, res) => {
+  try {
+    const { prompt, maxTokens = 50 } = req.body;
+    
+    const quickPrompt = `Réponds en français en maximum 15 mots. Sois direct et pratique comme un guide breslov.
+
+Question: "${prompt}"
+
+Exemples de réponses courtes:
+- "Méditez 5 minutes sur la gratitude"
+- "Récitez le Tikkun HaKlali maintenant"
+- "Cherchez dans Likutei Moharan 1"`;
+
+    const chat = model.startChat();
+    const result = await chat.sendMessage(quickPrompt);
+    const response = result.response.text().trim();
+    
+    res.json({ response: response || "Reformulez votre question" });
+  } catch (e) {
+    console.error("[Gemini Quick Error]", e);
+    res.json({ response: "Guide spirituel à votre écoute" });
   }
 });
 

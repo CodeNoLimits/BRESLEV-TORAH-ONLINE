@@ -133,16 +133,7 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
         </div>
       </div>
 
-      {/* Section traduction française avec lazy loading */}
-      {frenchText && (
-        <div className="bg-slate-800 rounded-lg p-4 mt-4">
-          <h4 className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
-            <span>Traduction française</span>
-            {progress > 0 && progress < 100 && (
-              <span className="text-xs bg-amber-600 px-2 py-0.5 rounded-full">
-                {progress}%
-              </span>
-            )}
+      
           </h4>
 
           <div className="max-h-[60vh] overflow-y-auto">
