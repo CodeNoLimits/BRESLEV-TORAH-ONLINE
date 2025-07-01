@@ -49,53 +49,8 @@ app.use(express.urlencoded({ extended: false }));
 
 
 
-// Route spécifique pour les vidéos MP4
-app.get('/attached_assets/*.mp4', (req, res) => {
-  const path = require('path');
-  const fs = require('fs');
-  
-  try {
-    const fileName = decodeURIComponent(path.basename(req.path));
-    const videoPath = path.join(process.cwd(), 'attached_assets', fileName);
-    
-    console.log(`[Video] Serving: ${fileName}`);
-    
-    if (!fs.existsSync(videoPath)) {
-      return res.status(404).send('Video not found');
-    }
-    
-    const stat = fs.statSync(videoPath);
-    const fileSize = stat.size;
-    const range = req.headers.range;
-    
-    res.setHeader('Content-Type', 'video/mp4');
-    res.setHeader('Accept-Ranges', 'bytes');
-    
-    if (range) {
-      const parts = range.replace(/bytes=/, "").split("-");
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-      const chunksize = (end - start) + 1;
-      const file = fs.createReadStream(videoPath, { start, end });
-      
-      res.writeHead(206, {
-        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-        'Content-Length': chunksize,
-        'Content-Type': 'video/mp4',
-      });
-      file.pipe(res);
-    } else {
-      res.writeHead(200, {
-        'Content-Length': fileSize,
-        'Content-Type': 'video/mp4',
-      });
-      fs.createReadStream(videoPath).pipe(res);
-    }
-  } catch (error) {
-    console.error('[Video] Error:', error);
-    res.status(500).send('Video error');
-  }
-});
+// Servir les fichiers statiques simplement
+app.use('/attached_assets', express.static('attached_assets'));
 
 // Servir les autres fichiers statiques
 app.use('/attached_assets', express.static('attached_assets'));
