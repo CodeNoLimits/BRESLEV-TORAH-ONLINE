@@ -24,7 +24,7 @@ export const WelcomeVideos: React.FC = () => {
               style={{ maxHeight: '300px' }}
               preload="metadata"
             >
-              <source src="https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4" type="video/mp4" />
+              <source src="/attached_assets/téléchargement (2)_1751382168037.mp4" type="video/mp4" />
               Votre navigateur ne supporte pas la lecture vidéo.
             </video>
           </div>
@@ -45,7 +45,7 @@ export const WelcomeVideos: React.FC = () => {
               style={{ maxHeight: '300px' }}
               preload="metadata"
             >
-              <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4" />
+              <source src="/attached_assets/הלב של רבנו_1751382442951.mp4" type="video/mp4" />
               Votre navigateur ne supporte pas la lecture vidéo.
             </video>
           </div>

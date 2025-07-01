@@ -47,6 +47,9 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '50mb' })); // Fix PayloadTooLargeError
 app.use(express.urlencoded({ extended: false }));
 
+// Servir les fichiers vidéo depuis attached_assets
+app.use('/attached_assets', express.static('attached_assets'));
+
 // Basic health-check
 app.get("/health", (_req, res) => res.send("ok"));
 
