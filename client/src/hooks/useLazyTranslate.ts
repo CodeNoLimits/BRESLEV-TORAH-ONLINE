@@ -5,8 +5,10 @@ interface LazyTranslateResult {
   isTranslating: boolean;
   hasMore: boolean;
   loadNext: () => Promise<void>;
+  translateChunk: () => Promise<void>;
   reset: () => void;
   currentLength: number;
+  progress: number;
 }
 
 export function useLazyTranslate(englishText: string, chunkSize: number = 1000): LazyTranslateResult {
@@ -91,12 +93,16 @@ export function useLazyTranslate(englishText: string, chunkSize: number = 1000):
     }
   }, [englishText, chunkSize, translateChunk, translatedLength]);
 
+  const progress = englishText.length > 0 ? Math.round((translatedLength / englishText.length) * 100) : 0;
+
   return {
     frenchText,
     isTranslating,
     hasMore,
     loadNext,
+    translateChunk: loadNext, // Alias pour compatibilité
     reset,
-    currentLength: Math.min(currentLength, englishText.length)
+    currentLength: Math.min(currentLength, englishText.length),
+    progress
   };
 }

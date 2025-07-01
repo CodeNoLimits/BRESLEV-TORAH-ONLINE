@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { Volume2, Loader2, ChevronRight } from 'lucide-react';
-import { useFrenchTranslation } from '../hooks/useFrenchTranslation';
+import React, { useCallback, useMemo } from 'react';
+import { Volume2, ChevronRight, Loader2 } from 'lucide-react';
+import { useLazyTranslate } from '../hooks/useLazyTranslate';
 
 interface OptimizedTextDisplayProps {
   selectedText: {
@@ -16,48 +16,47 @@ interface OptimizedTextDisplayProps {
 }
 
 export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({ 
-  selectedText, 
-  onTTSSpeak, 
+  selectedText,
+  onTTSSpeak,
   isTTSSpeaking,
   language,
   onTextSelection
 }) => {
-  
-  // Préparer le texte complet pour la traduction française
-  const fullEnglishText = selectedText.text.join('\n\n');
-  const fullHebrewText = selectedText.he.join('\n\n');
-  
-  // Hook de vraie traduction française avec chunks de 1000 caractères
-  const { 
-    frenchText: frenchShown, 
-    isTranslating: isTranslatingFrench, 
-    progress: frenchProgress, 
-    translateChunk: loadMoreFrench, 
-    hasMore: frenchHasMore 
-  } = useFrenchTranslation(fullEnglishText, 1000);
+  // Concaténer le texte anglais pour la traduction française
+  const fullEnglishText = useMemo(() => {
+    return selectedText.text.join('\n\n');
+  }, [selectedText.text]);
 
-  // Animation de chargement pour les nouveaux chunks
-  const handleLoadMore = useCallback(async () => {
-    await loadMoreFrench();
-  }, [loadMoreFrench]);
+  const fullHebrewText = useMemo(() => {
+    return selectedText.he.join('\n\n');
+  }, [selectedText.he]);
 
-  // Fonction TTS qui fonctionne avec le texte affiché
+  // Hook de traduction lazy (1000 caractères + bouton "Suite")
+  const {
+    frenchText,
+    isTranslating: isTranslatingFrench,
+    progress,
+    translateChunk,
+    hasMore,
+    reset
+  } = useLazyTranslate(fullEnglishText, 1000);
+
+  // Fonction TTS intelligente selon la langue
   const handleTTSClick = useCallback(() => {
-    const textToSpeak = (() => {
-      switch (language) {
-        case 'he':
-          return fullHebrewText;
-        case 'fr':
-          return frenchShown || fullEnglishText;
-        case 'en':
-        default:
-          return fullEnglishText;
-      }
-    })();
+    let textToSpeak = '';
     
-    console.log(`[OptimizedTextDisplay] TTS - Speaking ${language} text (${textToSpeak.length} chars)`);
-    onTTSSpeak(textToSpeak);
-  }, [language, fullHebrewText, frenchShown, fullEnglishText, onTTSSpeak]);
+    if (language === 'he' && fullHebrewText) {
+      textToSpeak = fullHebrewText;
+    } else if (language === 'fr' && frenchText) {
+      textToSpeak = frenchText;
+    } else {
+      textToSpeak = fullEnglishText;
+    }
+    
+    if (textToSpeak) {
+      onTTSSpeak(textToSpeak);
+    }
+  }, [language, fullHebrewText, frenchText, fullEnglishText, onTTSSpeak]);
 
   return (
     <div className="bg-slate-900 border border-slate-700 rounded-lg p-6 mb-6">
@@ -89,14 +88,15 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
               dir="rtl"
               onMouseUp={() => {
                 const selection = window.getSelection();
-                const selectedContent = selection?.toString().trim() || '';
-                if (selectedContent && onTextSelection) {
-                  console.log('[OptimizedTextDisplay] Hebrew text selected:', selectedContent.substring(0, 100));
-                  onTextSelection(selectedContent);
+                if (selection && onTextSelection) {
+                  const selectedContent = selection.toString().trim();
+                  if (selectedContent) {
+                    onTextSelection(selectedContent);
+                  }
                 }
               }}
             >
-              <div className="font-hebrew text-right leading-relaxed text-slate-200">
+              <div className="font-crimson leading-relaxed text-slate-200">
                 {selectedText.he.map((segment, idx) => (
                   <p key={idx} className="mb-3 last:mb-0">
                     {segment}
@@ -107,17 +107,18 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
           </div>
         )}
 
-        {/* Colonne Anglais courte (traduction side-by-side) */}
+        {/* Colonne Anglais */}
         <div>
-          <h4 className="text-sm font-medium text-slate-400 mb-2">Traduction (Anglais)</h4>
+          <h4 className="text-sm font-medium text-slate-400 mb-2">English Translation</h4>
           <div 
             className="bg-slate-800 p-4 rounded-lg max-h-[60vh] overflow-y-auto cursor-text select-text"
             onMouseUp={() => {
               const selection = window.getSelection();
-              const selectedContent = selection?.toString().trim() || '';
-              if (selectedContent && onTextSelection) {
-                console.log('[OptimizedTextDisplay] English text selected:', selectedContent.substring(0, 100));
-                onTextSelection(selectedContent);
+              if (selection && onTextSelection) {
+                const selectedContent = selection.toString().trim();
+                if (selectedContent) {
+                  onTextSelection(selectedContent);
+                }
               }
             }}
           >
@@ -132,50 +133,51 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
         </div>
       </div>
 
-      -not-allowed
-                        ${isTranslatingFrench ? 'animate-pulse' : 'hover:scale-105'}
-                      `}
-                    >
-                      {isTranslatingFrench ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" />
-                          <span>Traduction...</span>
-                        </>
-                      ) : (
-                        <>
-                          <ChevronRight size={16} />
-                          <span>▶ Suite des 1 000 suivants</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-center">
-                <p className="text-slate-400 italic mb-2">
-                  Cliquez ci-dessous pour commencer la traduction française
-                </p>
-                <button
-                  onClick={handleLoadMore}
-                  disabled={isTranslatingFrench}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors"
-                >
-                  {isTranslatingFrench ? 'Traduction...' : 'Traduire les 1000 premiers caractères'}
-                </button>
-              </div>
+      {/* Section traduction française avec lazy loading */}
+      {frenchText && (
+        <div className="bg-slate-800 rounded-lg p-4 mt-4">
+          <h4 className="text-sm font-medium text-slate-400 mb-2 flex items-center gap-2">
+            <span>Traduction française</span>
+            {progress > 0 && progress < 100 && (
+              <span className="text-xs bg-amber-600 px-2 py-0.5 rounded-full">
+                {progress}%
+              </span>
             )}
+          </h4>
+          
+          <div className="max-h-[60vh] overflow-y-auto">
+            <div className="font-crimson leading-relaxed text-slate-200 whitespace-pre-wrap">
+              {frenchText}
+            </div>
           </div>
+          
+          {hasMore && (
+            <div className="mt-3 flex justify-center">
+              <button
+                onClick={translateChunk}
+                disabled={isTranslatingFrench}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all
+                  ${isTranslatingFrench 
+                    ? 'bg-slate-700 text-slate-400 cursor-not-allowed' 
+                    : 'bg-amber-600 hover:bg-amber-500 text-white hover:scale-105'
+                  }`}
+              >
+                {isTranslatingFrench ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Traduction...</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronRight size={16} />
+                    <span>Suite des 1 000 suivants</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
-      </div>
-
-      {/* Information discrète sur l'état */}
-      <div className="mt-2 text-xs text-slate-500 text-center">
-        {selectedText.he.length > 0 && `${selectedText.he.length} segments hébreux`}
-        {selectedText.he.length > 0 && selectedText.text.length > 0 && ' • '}
-        {selectedText.text.length > 0 && `${selectedText.text.length} segments anglais`}
-        {frenchShown && ` • ${frenchShown.length} caractères français affichés`}
-      </div>
+      )}
     </div>
   );
 };
