@@ -1,34 +1,54 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 
 export const WelcomeVideos: React.FC = () => {
+  const [activeVideo, setActiveVideo] = useState<string | null>(null);
+
+  const closeVideo = () => {
+    setActiveVideo(null);
+  };
+
+  const openVideo = (videoSrc: string) => {
+    setActiveVideo(videoSrc);
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h3 className="text-2xl font-bold text-slate-200 mb-8 text-center">
         Vidéos de présentation
       </h3>
       
+      {/* Video Player Modal */}
+      {activeVideo && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+          <div className="relative max-w-4xl w-full">
+            <button
+              onClick={closeVideo}
+              className="absolute -top-12 right-0 text-white hover:text-red-400 transition-colors text-2xl"
+            >
+              ✕ Fermer
+            </button>
+            <video
+              src={activeVideo}
+              controls
+              autoPlay
+              className="w-full h-auto max-h-[80vh] rounded-lg"
+              onError={() => {
+                console.error('Erreur de lecture vidéo:', activeVideo);
+                alert('Erreur de lecture de la vidéo. Vérifiez que le fichier existe.');
+              }}
+            >
+              Votre navigateur ne supporte pas la lecture vidéo.
+            </video>
+          </div>
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Première vidéo - Introduction */}
         <div 
           className="block group cursor-pointer"
-          onClick={() => {
-            const videoElement = document.createElement('video');
-            videoElement.src = '/attached_assets/téléchargement (2)_1751382168037.mp4';
-            videoElement.controls = true;
-            videoElement.autoplay = true;
-            videoElement.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;background:black;object-fit:contain;';
-            
-            const closeBtn = document.createElement('button');
-            closeBtn.innerHTML = '✕';
-            closeBtn.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;background:rgba(0,0,0,0.7);color:white;border:none;padding:10px;border-radius:50%;font-size:20px;';
-            closeBtn.onclick = () => {
-              document.body.removeChild(videoElement);
-              document.body.removeChild(closeBtn);
-            };
-            
-            document.body.appendChild(videoElement);
-            document.body.appendChild(closeBtn);
-          }}
+          onClick={() => openVideo('/attached_assets/téléchargement (2)_1751382168037.mp4')}
         >
           <div className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 hover:border-amber-500 transition-all duration-300">
             <div className="w-full h-48 bg-slate-700 flex items-center justify-center cursor-pointer group-hover:bg-slate-600 transition-colors">
@@ -57,24 +77,7 @@ export const WelcomeVideos: React.FC = () => {
         {/* Deuxième vidéo - Hébreu */}
         <div 
           className="block group cursor-pointer"
-          onClick={() => {
-            const videoElement = document.createElement('video');
-            videoElement.src = '/attached_assets/הלב של רבנו_1751382442951.mp4';
-            videoElement.controls = true;
-            videoElement.autoplay = true;
-            videoElement.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;background:black;object-fit:contain;';
-            
-            const closeBtn = document.createElement('button');
-            closeBtn.innerHTML = '✕';
-            closeBtn.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;background:rgba(0,0,0,0.7);color:white;border:none;padding:10px;border-radius:50%;font-size:20px;';
-            closeBtn.onclick = () => {
-              document.body.removeChild(videoElement);
-              document.body.removeChild(closeBtn);
-            };
-            
-            document.body.appendChild(videoElement);
-            document.body.appendChild(closeBtn);
-          }}
+          onClick={() => openVideo('/attached_assets/הלב של רבנו_1751382442951.mp4')}
         >
           <div className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 hover:border-amber-500 transition-all duration-300">
             <div className="w-full h-48 bg-slate-700 flex items-center justify-center cursor-pointer group-hover:bg-slate-600 transition-colors">
@@ -103,7 +106,7 @@ export const WelcomeVideos: React.FC = () => {
 
       <div className="mt-8 text-center">
         <p className="text-slate-400 text-sm">
-          Les vidéos s'ouvrent dans un nouvel onglet. Assurez-vous d'avoir autorisé les pop-ups.
+          Cliquez sur une vidéo pour la regarder directement dans l'interface.
         </p>
       </div>
     </div>

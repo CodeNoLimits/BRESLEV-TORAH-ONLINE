@@ -133,13 +133,29 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
         </div>
       </div>
 
-      
-          </h4>
+      {/* Traduction française */}
+      <div className="mt-6">
+        <h4 className="text-sm font-medium text-amber-400 mb-2 flex items-center">
+          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"></path>
+          </svg>
+          Traduction française
+          {onTTSSpeak && (
+            <button
+              onClick={() => onTTSSpeak(frenchText)}
+              className="ml-2 text-amber-500 hover:text-amber-400 transition-colors"
+            >
+              <Volume2 className="w-4 h-4" />
+            </button>
+          )}
+        </h4>
 
-          <div className="max-h-[60vh] overflow-y-auto">
-            <div className="font-crimson leading-relaxed text-slate-200 whitespace-pre-wrap">
-              {frenchText}
-            </div>
+        <div className="max-h-[60vh] overflow-y-auto">
+          <div className="font-crimson leading-relaxed text-slate-200 whitespace-pre-wrap">
+            {frenchText}
+          </div>
+        </div>
+      </div>
           </div>
 
           {hasMore && (

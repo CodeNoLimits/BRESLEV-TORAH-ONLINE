@@ -122,38 +122,59 @@ MODES DE RÉPONSE :
 app.post("/gemini/chat", async (req, res) => {
   try {
     const { prompt } = req.body;
-    console.log("[Gemini Proxy] Processing request");
+    console.log("[Gemini Proxy] Processing request:", prompt?.substring(0, 100) + "...");
     
     if (!prompt || prompt.trim().length === 0) {
       return res.status(400).json({ error: "Prompt vide" });
     }
     
+    if (!process.env.GEMINI_API_KEY) {
+      console.error("[Gemini Error] API Key missing");
+      return res.status(500).json({ error: "Configuration manquante. Vérifiez la clé API." });
+    }
+
     const chat = model.startChat();
     const result = await chat.sendMessageStream(prompt);
 
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Transfer-Encoding", "chunked");
+    res.setHeader("Access-Control-Allow-Origin", "*");
     res.flushHeaders();
 
     let hasContent = false;
+    let contentLength = 0;
+    
     for await (const chunk of result.stream) {
       const text = chunk.text();
       if (text) {
         res.write(text);
         hasContent = true;
+        contentLength += text.length;
       }
     }
     
     if (!hasContent) {
-      res.write("Guide spirituel prêt à vous accompagner.");
+      const fallbackMessage = "נ נח נחמ נחמן מאומן\n\nGuide spirituel à votre service. Comment puis-je vous accompagner dans votre étude spirituelle ?";
+      res.write(fallbackMessage);
     }
     
+    console.log(`[Gemini Proxy] ✅ Response sent (${contentLength} chars)`);
     res.end();
+    
   } catch (e) {
-    console.error("[Gemini Error]", e);
-    res.status(500).json({ 
-      error: "Service spirituel temporairement indisponible. Veuillez réessayer." 
-    });
+    console.error("[Gemini Error] Full error:", e);
+    
+    // Check if response headers have been sent
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        error: "Le guide spirituel est temporairement indisponible. Veuillez patienter un moment et réessayer.",
+        details: process.env.NODE_ENV === 'development' ? e.message : undefined
+      });
+    } else {
+      // If streaming has started, write error to stream
+      res.write("\n\n[Connexion interrompue - veuillez réessayer]");
+      res.end();
+    }
   }
 });
 
