@@ -3,12 +3,12 @@ import React from 'react';
 const WelcomeVideos: React.FC = () => {
   const videos = [
     {
-      src: "/videos/intro_fr_original.mp4",
+      src: "/videos/téléchargement (2)_1751382168037.mp4",
       title: "Introduction Française"
     },
     {
-      src: "/videos/intro_en.mp4", 
-      title: "Introduction English"
+      src: "/videos/הלב של רבנו_1751382442951.mp4", 
+      title: "הקדמה עברית"
     }
   ];
 
