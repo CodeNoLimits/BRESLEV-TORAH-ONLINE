@@ -1,19 +1,6 @@
 import React from 'react';
 
 export const WelcomeVideos: React.FC = () => {
-  
-  const handleVideoClick = (type: 'intro' | 'hebrew') => {
-    if (type === 'intro') {
-      // Ouvrir l'image de démonstration pour l'instant
-      window.open('/attached_assets/image_1751382791973.png', '_blank');
-      console.log('[WelcomeVideos] Intro video clicked - opening demo image');
-    } else {
-      // Ouvrir l'image en hébreu pour l'instant
-      window.open('/attached_assets/image_1751382815271.png', '_blank');
-      console.log('[WelcomeVideos] Hebrew video clicked - opening demo image');
-    }
-  };
-
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h3 className="text-2xl font-bold text-slate-200 mb-8 text-center">
@@ -23,8 +10,25 @@ export const WelcomeVideos: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Première vidéo - Introduction */}
         <div 
-          className="block group cursor-pointer" 
-          onClick={() => handleVideoClick('intro')}
+          className="block group cursor-pointer"
+          onClick={() => {
+            const videoElement = document.createElement('video');
+            videoElement.src = '/attached_assets/téléchargement (2)_1751382168037.mp4';
+            videoElement.controls = true;
+            videoElement.autoplay = true;
+            videoElement.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;background:black;object-fit:contain;';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '✕';
+            closeBtn.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;background:rgba(0,0,0,0.7);color:white;border:none;padding:10px;border-radius:50%;font-size:20px;';
+            closeBtn.onclick = () => {
+              document.body.removeChild(videoElement);
+              document.body.removeChild(closeBtn);
+            };
+            
+            document.body.appendChild(videoElement);
+            document.body.appendChild(closeBtn);
+          }}
         >
           <div className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 hover:border-amber-500 transition-all duration-300">
             <div className="w-full h-48 bg-slate-700 flex items-center justify-center cursor-pointer group-hover:bg-slate-600 transition-colors">
@@ -52,8 +56,25 @@ export const WelcomeVideos: React.FC = () => {
 
         {/* Deuxième vidéo - Hébreu */}
         <div 
-          className="block group cursor-pointer" 
-          onClick={() => handleVideoClick('hebrew')}
+          className="block group cursor-pointer"
+          onClick={() => {
+            const videoElement = document.createElement('video');
+            videoElement.src = '/attached_assets/הלב של רבנו_1751382442951.mp4';
+            videoElement.controls = true;
+            videoElement.autoplay = true;
+            videoElement.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;background:black;object-fit:contain;';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '✕';
+            closeBtn.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;background:rgba(0,0,0,0.7);color:white;border:none;padding:10px;border-radius:50%;font-size:20px;';
+            closeBtn.onclick = () => {
+              document.body.removeChild(videoElement);
+              document.body.removeChild(closeBtn);
+            };
+            
+            document.body.appendChild(videoElement);
+            document.body.appendChild(closeBtn);
+          }}
         >
           <div className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 hover:border-amber-500 transition-all duration-300">
             <div className="w-full h-48 bg-slate-700 flex items-center justify-center cursor-pointer group-hover:bg-slate-600 transition-colors">
@@ -82,7 +103,7 @@ export const WelcomeVideos: React.FC = () => {
 
       <div className="mt-8 text-center">
         <p className="text-slate-400 text-sm">
-          Les vidéos s'ouvrent dans un nouvel onglet pour le moment. Configuration en cours.
+          Les vidéos s'ouvrent dans un nouvel onglet. Assurez-vous d'avoir autorisé les pop-ups.
         </p>
       </div>
     </div>

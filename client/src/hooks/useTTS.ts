@@ -7,7 +7,7 @@ export function useTTS() {
 
   const speak = useCallback(async (txt: string, lang = "fr-FR") => {
     if (!txt.trim()) return;
-    
+
     console.log(`[TTS] Speaking: "${txt.substring(0, 50)}..." in ${lang}`);
     setIsSpeaking(true);
 
@@ -19,10 +19,10 @@ export function useTTS() {
         utterance.voice = localVoices.find(v => v.lang.startsWith(lang)) || localVoices[0];
         utterance.rate = 0.9;
         utterance.pitch = 1.0;
-        
+
         utterance.onend = () => setIsSpeaking(false);
         utterance.onerror = () => setIsSpeaking(false);
-        
+
         window.speechSynthesis.speak(utterance);
         return;
       }

@@ -1,37 +1,126 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
+import { Volume2, VolumeX, Mic, MicOff } from 'lucide-react';
 
 interface FloatingTTSControlProps {
   isSpeaking: boolean;
-  onStop: () => void;
+  isListening: boolean;
+  onToggleTTS: () => void;
+  onStartListening: () => void;
+  onSpeak?: (text: string) => void;
 }
 
-export const FloatingTTSControl = ({ isSpeaking, onStop }: FloatingTTSControlProps) => {
-  const [isVisible, setIsVisible] = useState(false);
+export const FloatingTTSControl: React.FC<FloatingTTSControlProps> = ({
+  isSpeaking,
+  isListening,
+  onToggleTTS,
+  onStartListening,
+  onSpeak,
+}) => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
 
-  useEffect(() => {
-    setIsVisible(isSpeaking);
-  }, [isSpeaking]);
+  const startVoiceInput = useCallback(async () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Reconnaissance vocale non supportée sur ce navigateur');
+      return;
+    }
 
-  if (!isVisible) return null;
+    const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+    const recognitionInstance = new SpeechRecognition();
+
+    recognitionInstance.lang = 'fr-FR';
+    recognitionInstance.continuous = false;
+    recognitionInstance.interimResults = false;
+
+    recognitionInstance.onstart = () => {
+      setIsRecording(true);
+      console.log('[Voice] Recording started');
+    };
+
+    recognitionInstance.onresult = async (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      console.log('[Voice] Transcript:', transcript);
+
+      // Send to AI for response
+      try {
+        const response = await fetch('/gemini/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            prompt: `Question en français: "${transcript}". Réponds en français selon les enseignements de Rabbi Nahman de Breslov.`
+          })
+        });
+
+        if (response.ok) {
+          const reader = response.body?.getReader();
+          let aiResponse = '';
+
+          if (reader) {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              aiResponse += new TextDecoder().decode(value);
+            }
+          }
+
+          // Speak the AI response in French
+          if (onSpeak && aiResponse) {
+            onSpeak(aiResponse);
+          }
+        }
+      } catch (error) {
+        console.error('[Voice] AI response error:', error);
+        if (onSpeak) {
+          onSpeak('Désolé, je n\'ai pas pu traiter votre question. Veuillez réessayer.');
+        }
+      }
+    };
+
+    recognitionInstance.onend = () => {
+      setIsRecording(false);
+      console.log('[Voice] Recording ended');
+    };
+
+    recognitionInstance.onerror = (event: any) => {
+      setIsRecording(false);
+      console.error('[Voice] Recognition error:', event.error);
+    };
+
+    setRecognition(recognitionInstance);
+    recognitionInstance.start();
+  }, [onSpeak]);
+
+  const stopRecording = useCallback(() => {
+    if (recognition) {
+      recognition.stop();
+      setIsRecording(false);
+    }
+  }, [recognition]);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-fade-in">
+    <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50">
       <button
-        onClick={onStop}
-        className="flex items-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-105"
-        title="Arrêter la lecture"
+        onClick={onToggleTTS}
+        className={`p-3 rounded-full shadow-xl transition-all duration-200 border-2 ${
+          isSpeaking
+            ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse border-red-300'
+            : 'bg-blue-500 hover:bg-blue-600 text-white border-blue-300'
+        }`}
+        title={isSpeaking ? 'Arrêter la lecture' : 'Activer la lecture audio'}
       >
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd"></path>
-        </svg>
-        <span className="text-sm font-medium">Arrêter</span>
-        
-        {/* Audio wave animation */}
-        <div className="flex items-center gap-1">
-          <div className="w-1 bg-white rounded animate-pulse-wave"></div>
-          <div className="w-1 bg-white rounded animate-pulse-wave" style={{ animationDelay: '0.2s' }}></div>
-          <div className="w-1 bg-white rounded animate-pulse-wave" style={{ animationDelay: '0.4s' }}></div>
-        </div>
+        {isSpeaking ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+      </button>
+
+      <button
+        onClick={isRecording ? stopRecording : startVoiceInput}
+        className={`p-3 rounded-full shadow-xl transition-all duration-200 border-2 ${
+          isRecording
+            ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse border-red-300'
+            : 'bg-green-500 hover:bg-green-600 text-white border-green-300'
+        }`}
+        title={isRecording ? 'Arrêter l\'enregistrement' : 'Poser une question vocale'}
+      >
+        {isRecording ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
       </button>
     </div>
   );

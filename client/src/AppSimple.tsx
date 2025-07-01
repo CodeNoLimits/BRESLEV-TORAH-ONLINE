@@ -54,18 +54,18 @@ function AppSimple() {
   // Fonction speakGreeting pour compatibilité avec Header
   const speakGreeting = useCallback(async () => {
     if (!ttsEnabled) return;
-    
+
     const greetingMessages = {
       fr: "Sélectionnez un texte puis cliquez sur les boutons d'analyse pour entendre la lecture.",
       en: "Select a text then click the analysis buttons to hear the reading.",
       he: "בחרו טקסט ואז לחצו על כפתורי הניתוח כדי לשמוע את הקריאה."
     };
-    
+
     const message = greetingMessages[language] || greetingMessages.fr;
-    
+
     const langCode = language === 'he' ? 'he-IL' : 
                      language === 'en' ? 'en-US' : 'fr-FR';
-    
+
     await speak(message, langCode);
   }, [ttsEnabled, language, speak]);
 
@@ -74,12 +74,12 @@ function AppSimple() {
     language,
     onResult: (transcript) => {
       console.log('[AppSimple] Voice input result:', transcript);
-      
+
       // If we have a selected text, include it as context for the AI
       if (selectedText) {
         const contextText = selectedText.text.join('\n\n');
         const contextualQuestion = `CONTEXTE:\n${selectedText.title}\n\n${contextText}\n\nQUESTION:\n${transcript}`;
-        
+
         console.log('[AppSimple] Voice question with context:', transcript);
         handleAIRequest(contextualQuestion, 'general');
       } else {
@@ -96,10 +96,10 @@ function AppSimple() {
   useEffect(() => {
     console.log('[AppSimple] Initializing lazy-load system');
     breslovCrawler.loadCache();
-    
+
     // Initialize with empty messages - no auto-welcome to avoid TTS loop  
     setMessages([]);
-    
+
     // Log ready state
     console.log('[AppSimple] Ready for lazy loading - no heavy pre-cache');
   }, [language]);
@@ -107,7 +107,7 @@ function AppSimple() {
   // Start background downloading after user interaction
   const startBackgroundDownload = useCallback(() => {
     if (bulkLoadStarted) return;
-    
+
     setBulkLoadStarted(true);
     setShowDownloadToast(true);
     console.log('[AppSimple] Starting background library download');
@@ -139,7 +139,7 @@ Fournis UNIQUEMENT une analyse spirituelle détaillée selon Rabbi Nahman de Bre
 DEMANDE UTILISATEUR: ${text}
 
 NE PAS analyser d'autres textes que celui du CONTEXTE PRINCIPAL.`,
-      
+
       general: `${selectedContext}Tu es le Compagnon du Cœur, guide spirituel basé sur les enseignements de Rabbi Nahman de Breslov.
 
 ${selectedContext ? 'ATTENTION: Utilise le CONTEXTE PRINCIPAL ci-dessus pour répondre à cette question.' : ''}
@@ -147,18 +147,18 @@ ${selectedContext ? 'ATTENTION: Utilise le CONTEXTE PRINCIPAL ci-dessus pour ré
 ${text.includes('CONTEXTE:') ? text : `QUESTION:\n${text}`}
 
 Réponds en français avec sagesse et compassion selon les enseignements breslov.`,
-      
+
       snippet: `${selectedContext}INSTRUCTION STRICTE: Analyse uniquement l'extrait du CONTEXTE PRINCIPAL.
 
 DEMANDE UTILISATEUR: ${text}
 
 Concentre-toi uniquement sur le texte sélectionné dans le CONTEXTE PRINCIPAL.`,
-      
+
       advice: `${selectedContext}Conseil personnel basé sur les enseignements breslov.
 ${selectedContext ? 'Utilise le texte dans le CONTEXTE PRINCIPAL pour donner des conseils pertinents.' : ''}
 
 SITUATION: ${text}`,
-      
+
       summary: `${selectedContext}INSTRUCTION STRICTE: Résume uniquement le texte du CONTEXTE PRINCIPAL.
 
 DEMANDE: ${text}
@@ -173,21 +173,21 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
     const queryLower = query.toLowerCase();
     const queryWords = queryLower.split(/\s+/).filter(word => word.length > 2);
     const results: Array<{book: string, content: string, score: number}> = [];
-    
+
     const cache = breslovCrawler.getCache();
     for (const [ref, data] of Object.entries(cache)) {
       if (data?.text && Array.isArray(data.text)) {
         data.text.forEach((segment: string, index: number) => {
           const segmentLower = segment.toLowerCase();
           let score = 0;
-          
+
           queryWords.forEach(word => {
             const matches = (segmentLower.match(new RegExp(word, 'g')) || []).length;
             score += matches;
           });
-          
+
           if (segmentLower.includes(queryLower)) score += 10;
-          
+
           if (score > 0) {
             results.push({
               book: ref.replace(/_/g, ' '),
@@ -198,7 +198,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
         });
       }
     }
-    
+
     return results.sort((a, b) => b.score - a.score).slice(0, 3);
   }, []);
 
@@ -211,7 +211,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
       // First check for specific Sefaria requests
       const sefariaRequest = detectSefariaRequest(text);
       let enhancedText = text;
-      
+
       if (sefariaRequest) {
         console.log(`[AppSimple] Detected Sefaria request: ${sefariaRequest.ref}`);
         try {
@@ -230,11 +230,11 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
         if (searchResults.length > 0) {
           console.log(`[AppSimple] Found ${searchResults.length} relevant texts for question`);
           let contextualText = `QUESTION: ${text}\n\nCONTEXTE - Textes pertinents de Rabbi Nahman:\n\n`;
-          
+
           searchResults.forEach((result, index) => {
             contextualText += `${index + 1}. ${result.book}:\n"${result.content}"\n\n`;
           });
-          
+
           contextualText += `Réponds à la question en te basant sur ces textes authentiques de Rabbi Nahman de Breslov.`;
           enhancedText = contextualText;
         }
@@ -324,24 +324,24 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
   const handleTextSelect = useCallback(async (ref: string, title: string) => {
     try {
       console.log(`[AppSimple] Loading complete text: ${title} (${ref})`);
-      
+
       // Réinitialiser l'état d'affichage lors de la sélection d'un nouveau texte
       setUserSelectedText('');
-      
+
       // Use crawler to get complete authentic content
       const completeText = await breslovCrawler.getTextByRef(ref);
-      
+
       // Vérifier si BreslovCrawler a réussi (format principal)
       if (completeText && completeText.text && completeText.text.length > 0) {
         console.log(`[AppSimple] ✅ BreslovCrawler success: ${completeText.text.length} English, ${completeText.he?.length || 0} Hebrew segments`);
-        
+
         const sefariaText: SefariaText = {
           ref: ref,
           title: title,
           text: Array.isArray(completeText.text) ? completeText.text : [completeText.text],
           he: Array.isArray(completeText.he) ? completeText.he : (completeText.he ? [completeText.he] : [])
         };
-        
+
         setSelectedText(sefariaText);
         setSidebarOpen(false);
 
@@ -350,7 +350,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
         await handleAIRequest(`TEXTE COMPLET DE ${title}:\n\n${completeTextContent}`, 'study');
         return;
       }
-      
+
       // Vérifier le format versions de BreslovCrawler
       if (completeText && completeText.versions && completeText.versions.length > 0) {
         console.log(`[AppSimple] ✅ BreslovCrawler versions format success`);
@@ -358,7 +358,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
         const rawText = Array.isArray(version.text) ? version.text : [version.text || ""];
         const hebrew: string[] = [];
         const english: string[] = [];
-        
+
         rawText.forEach((segment: string) => {
           const hebrewRegex = /[\u0590-\u05FF]/;
           if (hebrewRegex.test(segment)) {
@@ -367,14 +367,14 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
             english.push(segment);
           }
         });
-        
+
         const sefariaText: SefariaText = {
           ref: ref,
           title: title,
           text: english,
           he: hebrew
         };
-        
+
         console.log(`[AppSimple] Complete text loaded: ${sefariaText.text.length} segments (English), ${sefariaText.he.length} segments (Hebrew)`);
         setSelectedText(sefariaText);
         setSidebarOpen(false);
@@ -390,17 +390,17 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
       // Deuxième tentative: BreslovCompleteLoader
       console.log(`[AppSimple] Trying BreslovCompleteLoader for: ${ref}`);
       const completeLoaderText = await breslovComplete.getAuthenticText(ref);
-      
+
       if (completeLoaderText && completeLoaderText.english && completeLoaderText.english.length > 0) {
         console.log(`[AppSimple] ✅ CompleteLoader success: ${completeLoaderText.english.length} English, ${completeLoaderText.hebrew?.length || 0} Hebrew segments`);
-        
+
         const sefariaText: SefariaText = {
           ref: ref,
           title: title,
           text: completeLoaderText.english,
           he: completeLoaderText.hebrew || []
         };
-        
+
         setSelectedText(sefariaText);
         setSidebarOpen(false);
 
@@ -413,7 +413,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
       // Troisième tentative: SefariaClient direct
       console.log(`[AppSimple] Trying SefariaClient for: ${ref}`);
       const directText = await sefariaClient.fetchSection(ref);
-      
+
       if (directText && directText.text && directText.text.length > 0) {
         console.log(`[AppSimple] ✅ SefariaClient success: ${directText.text.length} segments`);
         setSelectedText(directText);
@@ -429,11 +429,11 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
 
     } catch (error) {
       console.error('[AppSimple] Complete text loading error:', error);
-      
+
       // UNIQUEMENT si le selectedText n'a pas été défini, afficher une erreur
       if (!selectedText || selectedText.text.length === 0) {
         console.log('[AppSimple] No text loaded, showing error message');
-        
+
         // Suggestions spécifiques basées sur le texte demandé
         const getSuggestions = (failedTitle: string) => {
           if (failedTitle.includes('Likutei Tefilot') || failedTitle.includes('Likutei_Tefilot')) {
@@ -449,9 +449,9 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
         };
 
         const suggestions = getSuggestions(title);
-        
+
         await handleAIRequest(`${suggestions.message} Je peux aussi répondre à des questions générales sur les enseignements de Rabbi Nahman.`, 'general');
-        
+
         // Afficher un message d'erreur informatif avec boutons d'alternatives
         const errorText: SefariaText = {
           ref: ref,
@@ -469,10 +469,10 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
   // Handle input submission
   const handleSendMessage = useCallback(async (message: string, mode: InteractionMode) => {
     if (!message.trim()) return;
-    
+
     const aiMode = mode === 'analysis' ? 'snippet' : 
                    mode === 'guidance' ? 'advice' : 'general';
-    
+
     await handleAIRequest(message, aiMode);
     setCurrentInput('');
   }, [handleAIRequest]);
@@ -484,9 +484,9 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
       console.log(`[AppSimple] Received analysis request: ${mode}, text length: ${text.length}`);
       handleAIRequest(text, mode);
     };
-    
+
     window.addEventListener('analyzeText', handleAnalyzeText as EventListener);
-    
+
     return () => {
       window.removeEventListener('analyzeText', handleAnalyzeText as EventListener);
     };
@@ -517,7 +517,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
 
         {/* Chat Area */}
         <div className="flex-1 flex flex-col p-4 max-w-4xl mx-auto">
-          
+
           {/* Selected Text Display - Optimisé */}
           {selectedText && (
             <div className="mb-4">
@@ -531,7 +531,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                   </svg>
                 </button>
               </div>
-              
+
               <OptimizedTextDisplay
                 selectedText={selectedText}
                 onTTSSpeak={(text) => {
@@ -543,7 +543,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                 language={language}
                 onTextSelection={setUserSelectedText}
               />
-              
+
               {/* Selection Indicator */}
               {userSelectedText && (
                 <div className="mb-4 p-3 bg-amber-900/30 border border-amber-600/50 rounded-lg">
@@ -574,10 +574,10 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                     const textToSpeak = userSelectedText || 
                       (selectedText.text.length > 0 ? selectedText.text[0] : selectedText.title);
                     console.log('[AppSimple] Manual TTS trigger:', textToSpeak.substring(0, 50));
-                    
+
                     const langCode = language === 'he' ? 'he-IL' : 
                                      language === 'en' ? 'en-US' : 'fr-FR';
-                    
+
                     speak(textToSpeak, langCode);
                   }}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${
@@ -594,7 +594,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                   onClick={() => {
                     const content = userSelectedText || selectedText.text.join('\n\n');
                     const prefix = userSelectedText ? 'ANALYSE DU TEXTE SÉLECTIONNÉ' : `ANALYSE SPIRITUELLE COMPLÈTE DE ${selectedText.title}`;
-                    
+
                     // Use intelligent segmentation for long texts
                     if (!userSelectedText && content.length > 8000) {
                       const segmentResult = TextSegmenter.segmentText(content, selectedText.title);
@@ -605,7 +605,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                       console.log(`[AppSimple] Analysis - using ${userSelectedText ? 'selected' : 'full'} text (${content.length} chars)`);
                       handleAIRequest(`${prefix}:\n\n${content}`, 'study');
                     }
-                    
+
                     if (userSelectedText) setUserSelectedText('');
                   }}
                   className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-black rounded font-medium transition-colors"
@@ -617,7 +617,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                   onClick={() => {
                     const content = userSelectedText || selectedText.text.join('\n\n');
                     const prefix = userSelectedText ? 'POINTS CLÉS DU TEXTE SÉLECTIONNÉ' : `POINTS CLÉS DU TEXTE COMPLET ${selectedText.title}`;
-                    
+
                     // Use intelligent segmentation for long texts
                     if (!userSelectedText && content.length > 8000) {
                       const segmentResult = TextSegmenter.segmentText(content, selectedText.title);
@@ -628,7 +628,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                       console.log(`[AppSimple] Summary - using ${userSelectedText ? 'selected' : 'full'} text (${content.length} chars)`);
                       handleAIRequest(`${prefix}:\n\n${content}`, 'summary');
                     }
-                    
+
                     if (userSelectedText) setUserSelectedText('');
                   }}
                   className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded transition-colors"
@@ -640,7 +640,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                   onClick={() => {
                     const content = userSelectedText || selectedText.text.join('\n\n');
                     const prefix = userSelectedText ? 'GUIDANCE SPIRITUELLE BASÉE SUR LE TEXTE SÉLECTIONNÉ' : `GUIDANCE SPIRITUELLE BASÉE SUR ${selectedText.title}`;
-                    
+
                     // Use intelligent segmentation for long texts
                     if (!userSelectedText && content.length > 8000) {
                       const segmentResult = TextSegmenter.segmentText(content, selectedText.title);
@@ -651,7 +651,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                       console.log(`[AppSimple] Guidance - using ${userSelectedText ? 'selected' : 'full'} text (${content.length} chars)`);
                       handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
                     }
-                    
+
                     if (userSelectedText) setUserSelectedText('');
                   }}
                   className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded transition-colors"
@@ -670,17 +670,17 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                 <h2 className="text-xl font-crimson mb-4">נ נח נחמ נחמן מאומן</h2>
                 <p>Bienvenue dans votre espace d'étude spirituelle.</p>
                 <p>Sélectionnez un enseignement dans la bibliothèque ou posez une question.</p>
-                
+
                 {/* Assistant vocal intégré */}
                 <div className="mt-8">
                   <VoiceAssistant className="inline-block" />
                 </div>
-                
+
                 {/* Vidéos de bienvenue */}
                 <WelcomeVideos />
               </div>
             )}
-            
+
             {messages.map((message) => (
               <div key={message.id} className={`p-4 rounded-lg ${
                 message.type === 'user' 
@@ -726,14 +726,14 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                 onClick={() => {
                   const selectedText = getCurrentSelection();
                   const content = selectedText || currentInput.trim();
-                  
+
                   if (!content) {
                     console.warn('[AppSimple] No text for guidance - need selection or input');
                     return;
                   }
-                  
+
                   console.log(`[AppSimple] Guidance request - ${selectedText ? 'selection' : 'input'} (${content.length} chars)`);
-                  
+
                   // Use intelligent segmentation for long texts
                   if (content.length > 8000) {
                     const segmentResult = TextSegmenter.segmentText(content, 'Demande de guidance');
@@ -743,7 +743,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                   } else {
                     handleAIRequest(`GUIDANCE SPIRITUELLE:\n\n${content}\n\nComment puis-je appliquer ces enseignements dans ma vie quotidienne?`, 'counsel');
                   }
-                  
+
                   if (selectedText) {
                     clearSelection();
                   } else {
@@ -759,14 +759,14 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                 onClick={() => {
                   const selectedText = getCurrentSelection();
                   const content = selectedText || currentInput.trim();
-                  
+
                   if (!content) {
                     console.warn('[AppSimple] No text for analysis - need selection or input');
                     return;
                   }
-                  
+
                   console.log(`[AppSimple] Analysis request - ${selectedText ? 'selection' : 'input'} (${content.length} chars)`);
-                  
+
                   // Use intelligent segmentation for long texts
                   if (content.length > 8000) {
                     const segmentResult = TextSegmenter.segmentText(content, 'Extrait à analyser');
@@ -776,7 +776,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                   } else {
                     handleAIRequest(`ANALYSE SPIRITUELLE APPROFONDIE:\n\n${content}`, 'analyze');
                   }
-                  
+
                   if (selectedText) {
                     clearSelection();
                   } else {
@@ -789,7 +789,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                 Analyser 🔍
               </button>
             </div>
-            
+
             <div className="flex gap-2">
               <textarea
                 value={currentInput}

@@ -44,7 +44,7 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
   // Fonction TTS intelligente selon la langue
   const handleTTSClick = useCallback(() => {
     let textToSpeak = '';
-    
+
     if (language === 'he' && fullHebrewText) {
       textToSpeak = fullHebrewText;
     } else if (language === 'fr' && frenchText) {
@@ -52,7 +52,7 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
     } else {
       textToSpeak = fullEnglishText;
     }
-    
+
     if (textToSpeak) {
       onTTSSpeak(textToSpeak);
     }
@@ -62,7 +62,7 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
     <div className="bg-slate-900 border border-slate-700 rounded-lg p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-amber-400">{selectedText.title}</h3>
-        
+
         {/* Bouton TTS toujours visible */}
         <button
           onClick={handleTTSClick}
@@ -144,13 +144,13 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
               </span>
             )}
           </h4>
-          
+
           <div className="max-h-[60vh] overflow-y-auto">
             <div className="font-crimson leading-relaxed text-slate-200 whitespace-pre-wrap">
               {frenchText}
             </div>
           </div>
-          
+
           {hasMore && (
             <div className="mt-3 flex justify-center">
               <button
