@@ -68,22 +68,28 @@ function AppSimple() {
   const { speak, stop: stopTTS, isSpeaking } = useTTS();
   const { toast } = useToast();
 
-  // Pas de message d'accueil automatique - utiliser les boutons TTS manuels uniquement
+  // Fonction TTS multilingue
+  const speakWithLanguage = useCallback((text: string, langCode?: string) => {
+    if (!ttsEnabled || !text) return;
+    const finalLangCode = langCode || 'fr-FR';
+    speak(text, finalLangCode);
+  }, [ttsEnabled, speak]);
 
   // Fonction speakGreeting pour compatibilité avec Header
   const speakGreeting = useCallback(async () => {
     if (!ttsEnabled) return;
 
     const greetingMessages = {
-      fr: "Sélectionnez un texte puis cliquez sur les boutons d'analyse pour entendre la lecture.",
-      en: "Select a text then click the analysis buttons to hear the reading.",
-      he: "בחרו טקסט ואז לחצו על כפתורי הניתוח כדי לשמוע את הקריאה."
+      fr: "Bienvenue dans Le Compagnon du Cœur. Vous pouvez maintenant sélectionner un texte et utiliser les boutons de lecture vocale.",
+      en: "Welcome to The Heart's Companion. You can now select a text and use the voice reading buttons.",
+      he: "ברוכים הבאים לחבר הלב. אתם יכולים כעת לבחור טקסט ולהשתמש בכפתורי הקריאה הקולית."
     };
 
     const message = greetingMessages[language] || greetingMessages.fr;
+    const langCode = language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'fr-FR';
 
-    await speak(message); // TTS français uniquement
-  }, [ttsEnabled, language, speak]);
+    speakWithLanguage(message, langCode);
+  }, [ttsEnabled, language, speakWithLanguage]);
 
   // Voice input for questions
   const { startListening, stopListening, isListening } = useVoiceInput(
@@ -559,9 +565,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
 
               <OptimizedTextDisplay
                 selectedText={selectedText}
-                onTTSSpeak={(text) => {
-                  speak(text); // TTS français uniquement
-                }}
+                onTTSSpeak={speakWithLanguage}
                 isTTSSpeaking={isSpeaking}
                 language={language}
                 onTextSelection={setUserSelectedText}
@@ -598,7 +602,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                       (selectedText.text.length > 0 ? selectedText.text[0] : selectedText.title);
                     console.log('[AppSimple] Manual TTS trigger:', textToSpeak.substring(0, 50));
 
-                    speak(textToSpeak); // TTS français uniquement
+                    speak(textToSpeak, 'fr-FR'); // TTS français
                   }}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${
                     isSpeaking 

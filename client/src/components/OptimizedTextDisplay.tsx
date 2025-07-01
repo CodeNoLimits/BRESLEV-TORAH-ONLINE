@@ -86,7 +86,7 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
                 טקסט מקורי (עברית)
               </span>
               <button
-                onClick={() => onTTSSpeak(selectedText.he.join(' '))}
+                onClick={() => onTTSSpeak(selectedText.he.join(' '), 'he-IL')}
                 className="text-blue-500 hover:text-blue-400 transition-colors flex items-center gap-1"
                 title="Lire en hébreu"
               >
@@ -116,7 +116,7 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
                 English Translation
               </span>
               <button
-                onClick={() => onTTSSpeak(selectedText.text.join(' '))}
+                onClick={() => onTTSSpeak(selectedText.text.join(' '), 'en-US')}
                 className="text-green-500 hover:text-green-400 transition-colors flex items-center gap-1"
                 title="Lire en anglais"
               >
