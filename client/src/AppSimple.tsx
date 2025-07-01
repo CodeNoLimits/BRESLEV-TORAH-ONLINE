@@ -66,7 +66,7 @@ function AppSimple() {
     const langCode = language === 'he' ? 'he-IL' : 
                      language === 'en' ? 'en-US' : 'fr-FR';
     
-    await speak(message, { lang: langCode });
+    await speak(message, langCode);
   }, [ttsEnabled, language, speak]);
 
   // Voice input for questions
@@ -578,7 +578,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                     const langCode = language === 'he' ? 'he-IL' : 
                                      language === 'en' ? 'en-US' : 'fr-FR';
                     
-                    speak(textToSpeak, { lang: langCode });
+                    speak(textToSpeak, langCode);
                   }}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${
                     isSpeaking 

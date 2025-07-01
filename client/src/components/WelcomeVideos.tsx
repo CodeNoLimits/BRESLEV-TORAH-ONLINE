@@ -2,79 +2,68 @@ import React from 'react';
 
 export const WelcomeVideos: React.FC = () => {
   return (
-    <div className="mt-8 max-w-4xl mx-auto">
-      <h3 className="text-lg font-crimson text-amber-400 text-center mb-6">
-        Découvrez les enseignements de Rabbi Nahman
+    <div className="max-w-6xl mx-auto p-6">
+      <h3 className="text-2xl font-bold text-slate-200 mb-8 text-center">
+        Vidéos de présentation
       </h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Première vidéo */}
-        <div className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 hover:border-amber-500 transition-all duration-300">
-          <video
-            className="w-full h-48 object-cover cursor-pointer"
-            controls
-            preload="metadata"
-            poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23334155'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='18' fill='%23f59e0b' text-anchor='middle' dy='.3em'%3EVidéo 1%3C/text%3E%3C/svg%3E"
-            onClick={(e) => {
-              const video = e.target as HTMLVideoElement;
-              console.log('[WelcomeVideos] Video clicked - play/pause');
-              if (video.paused) {
-                video.play().catch(err => console.log('[WelcomeVideos] Video play error:', err));
-              } else {
-                video.pause();
-              }
-            }}
-          >
-            <source src="data:video/mp4;base64," type="video/mp4" />
-            Votre navigateur ne supporte pas les vidéos HTML5.
-          </video>
-          
-          <div className="p-4">
-            <h4 className="font-semibold text-slate-200 mb-2">
-              Introduction aux enseignements
-            </h4>
-            <p className="text-sm text-slate-400">
-              Découvrez la sagesse spirituelle de Rabbi Nahman de Breslov
-            </p>
+        {/* Première vidéo - Introduction */}
+        <a href="/attached_assets/téléchargement (2)_1751382168037.mp4" target="_blank" rel="noopener noreferrer" className="block group">
+          <div className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 hover:border-amber-500 transition-all duration-300">
+            <div className="w-full h-48 bg-slate-700 flex items-center justify-center cursor-pointer group-hover:bg-slate-600 transition-colors">
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-2 bg-amber-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-amber-400 font-medium">Vidéo Introduction</p>
+                <p className="text-slate-400 text-sm">Cliquez pour voir</p>
+              </div>
+            </div>
+            
+            <div className="p-4">
+              <h4 className="font-semibold text-slate-200 mb-2">
+                Introduction aux enseignements
+              </h4>
+              <p className="text-sm text-slate-400">
+                Découvrez les bases du Compagnon du Cœur et comment utiliser cette application pour votre étude spirituelle.
+              </p>
+            </div>
           </div>
-        </div>
+        </a>
 
-        {/* Deuxième vidéo */}
-        <div className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 hover:border-amber-500 transition-all duration-300">
-          <video
-            className="w-full h-48 object-cover cursor-pointer"
-            controls
-            preload="metadata"
-            poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23334155'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='18' fill='%23f59e0b' text-anchor='middle' dy='.3em'%3Eהלב של רבנו%3C/text%3E%3C/svg%3E"
-            onClick={(e) => {
-              const video = e.target as HTMLVideoElement;
-              console.log('[WelcomeVideos] Hebrew video clicked - play/pause');
-              if (video.paused) {
-                video.play().catch(err => console.log('[WelcomeVideos] Video play error:', err));
-              } else {
-                video.pause();
-              }
-            }}
-          >
-            <source src="data:video/mp4;base64," type="video/mp4" />
-            Votre navigateur ne supporte pas les vidéos HTML5.
-          </video>
-          
-          <div className="p-4">
-            <h4 className="font-semibold text-slate-200 mb-2" dir="rtl">
-              הלב של רבנו
-            </h4>
-            <p className="text-sm text-slate-400">
-              Le cœur de notre Rabbi - Enseignements en hébreu
-            </p>
+        {/* Deuxième vidéo - Hébreu */}
+        <a href="/attached_assets/הלב של רבנו_1751382442951.mp4" target="_blank" className="block group">
+          <div className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 hover:border-amber-500 transition-all duration-300">
+            <div className="w-full h-48 bg-slate-700 flex items-center justify-center cursor-pointer group-hover:bg-slate-600 transition-colors">
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-2 bg-amber-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-amber-400 font-medium" dir="rtl">הלב של רבנו</p>
+                <p className="text-slate-400 text-sm">Cliquez pour voir</p>
+              </div>
+            </div>
+            
+            <div className="p-4">
+              <h4 className="font-semibold text-slate-200 mb-2" dir="rtl">
+                הלב של רבנו
+              </h4>
+              <p className="text-sm text-slate-400">
+                Le cœur de notre Rabbi - Enseignements en hébreu avec sous-titres français disponibles.
+              </p>
+            </div>
           </div>
-        </div>
+        </a>
       </div>
 
-      {/* Description discrète */}
-      <div className="mt-4 text-center">
-        <p className="text-xs text-slate-500">
-          Cliquez sur les vidéos pour les regarder • Compatible mobile et desktop
+      <div className="mt-8 text-center">
+        <p className="text-slate-400 text-sm">
+          Les vidéos s'ouvrent dans un nouvel onglet. Assurez-vous d'avoir autorisé les pop-ups.
         </p>
       </div>
     </div>
