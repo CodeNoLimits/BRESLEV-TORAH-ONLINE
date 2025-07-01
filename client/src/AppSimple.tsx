@@ -5,7 +5,7 @@ import { FloatingTTSControl } from './components/FloatingTTSControl';
 import { DownloadToast } from './components/DownloadToast';
 import { VoiceAssistant } from './components/VoiceAssistant';
 import { OptimizedTextDisplay } from './components/OptimizedTextDisplay';
-import { WelcomeVideos } from './components/WelcomeVideos';
+
 import { useTTS } from './hooks/useTTS';
 
 import { MobileTTS, isMobile, MobileUtils } from './services/mobileOptimized';
@@ -699,9 +699,6 @@ handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider da
                 <div className="mt-8">
                   <VoiceAssistant className="inline-block" />
                 </div>
-
-                {/* Vidéos de bienvenue */}
-                <WelcomeVideos />
               </div>
             )}
 
