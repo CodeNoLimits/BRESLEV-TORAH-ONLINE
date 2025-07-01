@@ -9,7 +9,7 @@ interface OptimizedTextDisplayProps {
     text: string[]; // Anglais
     he: string[];   // Hébreu
   };
-  onTTSSpeak: (text: string) => void;
+  onTTSSpeak: (text: string, langCode?: string) => void;
   isTTSSpeaking: boolean;
   language: 'en' | 'fr' | 'he';
   onTextSelection?: (selectedText: string) => void;
