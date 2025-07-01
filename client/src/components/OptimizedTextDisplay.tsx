@@ -62,6 +62,32 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
         </p>
       </div>
 
+      {/* Texte hébreu */}
+      {selectedText.he && selectedText.he.length > 0 && (
+        <div>
+          <h4 className="text-sm font-medium text-blue-400 mb-2 flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 715 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"></path>
+            </svg>
+            טקסט מקורי (עברית)
+            <button
+              onClick={() => onTTSSpeak(frenchText || "Traduction française en cours...")}
+              className="ml-2 text-blue-500 hover:text-blue-400 transition-colors"
+            >
+              <Volume2 className="w-4 h-4" />
+            </button>
+          </h4>
+          <div 
+            className="max-h-[60vh] overflow-y-auto cursor-text"
+            onMouseUp={handleTextSelection}
+          >
+            <div className="font-hebrew leading-relaxed text-slate-200 whitespace-pre-wrap text-right" dir="rtl">
+              {selectedText.he.join('\n\n')}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Texte original (English) */}
       {language === 'en' && (
         <div>
@@ -71,7 +97,7 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
             </svg>
             Original Text (English)
             <button
-              onClick={() => onTTSSpeak(englishText)}
+              onClick={() => onTTSSpeak(frenchText || "Traduction française en cours...")}
               className="ml-2 text-blue-500 hover:text-blue-400 transition-colors"
             >
               <Volume2 className="w-4 h-4" />
@@ -97,7 +123,7 @@ export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({
             </svg>
             טקסט מקורי (עברית)
             <button
-              onClick={() => onTTSSpeak(selectedText.he.join('\n\n'))}
+              onClick={() => onTTSSpeak(frenchText || "Traduction française en cours...")}
               className="ml-2 text-blue-500 hover:text-blue-400 transition-colors"
             >
               <Volume2 className="w-4 h-4" />

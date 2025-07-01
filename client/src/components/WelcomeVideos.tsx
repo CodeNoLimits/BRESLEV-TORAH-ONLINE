@@ -77,7 +77,7 @@ export const WelcomeVideos: React.FC = () => {
         {/* Deuxième vidéo - Hébreu */}
         <div 
           className="block group cursor-pointer"
-          onClick={() => openVideo('/attached_assets/הלב של רבנו_1751382442951.mp4')}
+          onClick={() => window.open('/videos/intro2.mp4', '_blank', 'noopener,noreferrer')}
         >
           <div className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 hover:border-amber-500 transition-all duration-300">
             <div className="w-full h-48 bg-slate-700 flex items-center justify-center cursor-pointer group-hover:bg-slate-600 transition-colors">

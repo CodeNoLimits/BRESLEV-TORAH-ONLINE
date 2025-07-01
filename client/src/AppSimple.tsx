@@ -60,7 +60,7 @@ function AppSimple() {
   useEffect(() => {
     if (!hasWelcomed && ttsEnabled) {
       const welcomeTimer = setTimeout(() => {
-        speak("Shalom et bienvenue dans Le Compagnon du Cœur. Cliquez sur un texte de la bibliothèque Breslov pour commencer votre étude spirituelle.", "fr-FR");
+        speak("Shalom et bienvenue dans Le Compagnon du Cœur. Cliquez sur un texte de la bibliothèque Breslov pour commencer votre étude spirituelle.");
         setHasWelcomed(true);
       }, 3000);
 
@@ -858,7 +858,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
           if (isSpeaking) {
             stopTTS();
           } else {
-            speak("Mode TTS activé", "fr-FR");
+            speak("Mode TTS activé");
           }
         }}
         onStartListening={startListening}

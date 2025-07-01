@@ -5,7 +5,8 @@ export function useTTS() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const { toast } = useToast();
 
-  const speak = useCallback(async (txt: string, lang = "fr-FR") => {
+  const speak = useCallback(async (txt: string) => {
+    const lang = "fr-FR"; // Force français uniquement
     if (!txt.trim()) return;
 
     console.log(`[TTS] Speaking: "${txt.substring(0, 50)}..." in ${lang}`);
