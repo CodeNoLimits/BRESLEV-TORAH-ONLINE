@@ -45,17 +45,6 @@ function AppSimple() {
 
   console.log('[AppSimple] Initializing lazy-load system');
 
-  // Message d'accueil automatique au chargement
-  useEffect(() => {
-    if (!hasWelcomed) {
-      const welcomeTimer = setTimeout(() => {
-        speak("Shalom et bienvenue dans Le Compagnon du Cœur. Cliquez sur un texte de la bibliothèque Breslov pour commencer votre étude spirituelle.", "fr-FR");
-        setHasWelcomed(true);
-      }, 2000);
-
-      return () => clearTimeout(welcomeTimer);
-    }
-  }, [hasWelcomed, speak]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [streamingText, setStreamingText] = useState('');
   const [isAILoading, setIsAILoading] = useState(false);
@@ -66,6 +55,18 @@ function AppSimple() {
 
   // TTS Premium avec fallback Web Speech API
   const { speak, stop: stopTTS, isSpeaking } = useTTS();
+
+  // Message d'accueil automatique au chargement
+  useEffect(() => {
+    if (!hasWelcomed && ttsEnabled) {
+      const welcomeTimer = setTimeout(() => {
+        speak("Shalom et bienvenue dans Le Compagnon du Cœur. Cliquez sur un texte de la bibliothèque Breslov pour commencer votre étude spirituelle.", "fr-FR");
+        setHasWelcomed(true);
+      }, 3000);
+
+      return () => clearTimeout(welcomeTimer);
+    }
+  }, [hasWelcomed, speak, ttsEnabled]);
 
   // Fonction speakGreeting pour compatibilité avec Header
   const speakGreeting = useCallback(async () => {
@@ -851,10 +852,16 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
       {/* Floating TTS Control */}
       <FloatingTTSControl 
         isSpeaking={isSpeaking}
-        onStop={() => {
-          window.speechSynthesis.cancel();
-          stopTTS();
+        isListening={isListening}
+        onToggleTTS={() => {
+          if (isSpeaking) {
+            stopTTS();
+          } else {
+            speak("Mode TTS activé", "fr-FR");
+          }
         }}
+        onStartListening={startListening}
+        onSpeak={(text: string) => speak(text, "fr-FR")}
       />
 
       {/* Background Download Toast */}

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React from 'react';
 import { Volume2, ChevronRight, Loader2 } from 'lucide-react';
 import { useLazyTranslate } from '../hooks/useLazyTranslate';
 
@@ -16,146 +16,126 @@ interface OptimizedTextDisplayProps {
 }
 
 export const OptimizedTextDisplay: React.FC<OptimizedTextDisplayProps> = ({ 
-  selectedText,
-  onTTSSpeak,
-  isTTSSpeaking,
-  language,
-  onTextSelection
+  selectedText, 
+  onTTSSpeak, 
+  isTTSSpeaking, 
+  language, 
+  onTextSelection 
 }) => {
-  // Concaténer le texte anglais pour la traduction française
-  const fullEnglishText = useMemo(() => {
-    return selectedText.text.join('\n\n');
-  }, [selectedText.text]);
-
-  const fullHebrewText = useMemo(() => {
-    return selectedText.he.join('\n\n');
-  }, [selectedText.he]);
-
-  // Hook de traduction lazy (1000 caractères + bouton "Suite")
+  // Traduction paresseuse en français
+  const englishText = selectedText.text.join('\n\n');
   const {
     frenchText,
     isTranslating: isTranslatingFrench,
-    progress,
     translateChunk,
     hasMore,
-    reset
-  } = useLazyTranslate(fullEnglishText, 1000);
+    progress
+  } = useLazyTranslate(englishText, 1000);
 
-  // Fonction TTS intelligente selon la langue
-  const handleTTSClick = useCallback(() => {
-    let textToSpeak = '';
-
-    if (language === 'he' && fullHebrewText) {
-      textToSpeak = fullHebrewText;
-    } else if (language === 'fr' && frenchText) {
-      textToSpeak = frenchText;
-    } else {
-      textToSpeak = fullEnglishText;
+  const handleTextSelection = () => {
+    const selection = window.getSelection();
+    if (selection && selection.toString().trim()) {
+      const selectedString = selection.toString().trim();
+      console.log('[OptimizedTextDisplay] Text selected:', selectedString.substring(0, 50) + '...');
+      if (onTextSelection) {
+        onTextSelection(selectedString);
+      }
     }
+  };
 
-    if (textToSpeak) {
-      onTTSSpeak(textToSpeak);
-    }
-  }, [language, fullHebrewText, frenchText, fullEnglishText, onTTSSpeak]);
+  if (!selectedText || !selectedText.text) {
+    return (
+      <div className="p-6 text-center text-slate-400">
+        <p>Sélectionnez un texte dans la bibliothèque pour commencer</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-slate-900 border border-slate-700 rounded-lg p-6 mb-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-amber-400">{selectedText.title}</h3>
-
-        {/* Bouton TTS toujours visible */}
-        <button
-          onClick={handleTTSClick}
-          className={`p-2 rounded-lg transition-all duration-200 ${
-            isTTSSpeaking 
-              ? 'bg-blue-600 text-white animate-pulse' 
-              : 'bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white'
-          }`}
-          title="Écouter le texte"
-        >
-          <Volume2 size={18} />
-        </button>
+    <div className="p-6 space-y-6">
+      <div className="border-b border-slate-700 pb-4">
+        <h2 className="text-xl font-bold text-amber-400 mb-2">
+          {selectedText.title}
+        </h2>
+        <p className="text-sm text-slate-400">
+          Référence: {selectedText.ref}
+        </p>
       </div>
 
-      {/* Section Hébreu + Anglais side-by-side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {/* Colonne Hébreu (texte original) */}
-        {selectedText.he.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium text-slate-400 mb-2">Texte original (Hébreu)</h4>
-            <div 
-              className="bg-slate-800 p-4 rounded-lg max-h-[60vh] overflow-y-auto cursor-text select-text" 
-              dir="rtl"
-              onMouseUp={() => {
-                const selection = window.getSelection();
-                if (selection && onTextSelection) {
-                  const selectedContent = selection.toString().trim();
-                  if (selectedContent) {
-                    onTextSelection(selectedContent);
-                  }
-                }
-              }}
-            >
-              <div className="font-crimson leading-relaxed text-slate-200">
-                {selectedText.he.map((segment, idx) => (
-                  <p key={idx} className="mb-3 last:mb-0">
-                    {segment}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Colonne Anglais */}
+      {/* Texte original (English) */}
+      {language === 'en' && (
         <div>
-          <h4 className="text-sm font-medium text-slate-400 mb-2">English Translation</h4>
-          <div 
-            className="bg-slate-800 p-4 rounded-lg max-h-[60vh] overflow-y-auto cursor-text select-text"
-            onMouseUp={() => {
-              const selection = window.getSelection();
-              if (selection && onTextSelection) {
-                const selectedContent = selection.toString().trim();
-                if (selectedContent) {
-                  onTextSelection(selectedContent);
-                }
-              }
-            }}
-          >
-            <div className="font-crimson leading-relaxed text-slate-200">
-              {selectedText.text.map((segment, idx) => (
-                <p key={idx} className="mb-3 last:mb-0">
-                  {segment}
-                </p>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Traduction française */}
-      <div className="mt-6">
-        <h4 className="text-sm font-medium text-amber-400 mb-2 flex items-center">
-          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"></path>
-          </svg>
-          Traduction française
-          {onTTSSpeak && (
+          <h4 className="text-sm font-medium text-blue-400 mb-2 flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"></path>
+            </svg>
+            Original Text (English)
             <button
-              onClick={() => onTTSSpeak(frenchText)}
-              className="ml-2 text-amber-500 hover:text-amber-400 transition-colors"
+              onClick={() => onTTSSpeak(englishText)}
+              className="ml-2 text-blue-500 hover:text-blue-400 transition-colors"
             >
               <Volume2 className="w-4 h-4" />
             </button>
-          )}
-        </h4>
-
-        <div className="max-h-[60vh] overflow-y-auto">
-          <div className="font-crimson leading-relaxed text-slate-200 whitespace-pre-wrap">
-            {frenchText}
+          </h4>
+          <div 
+            className="max-h-[60vh] overflow-y-auto cursor-text"
+            onMouseUp={handleTextSelection}
+          >
+            <div className="font-serif leading-relaxed text-slate-200 whitespace-pre-wrap">
+              {englishText}
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Texte hébreu */}
+      {language === 'he' && selectedText.he && selectedText.he.length > 0 && (
+        <div>
+          <h4 className="text-sm font-medium text-blue-400 mb-2 flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"></path>
+            </svg>
+            טקסט מקורי (עברית)
+            <button
+              onClick={() => onTTSSpeak(selectedText.he.join('\n\n'))}
+              className="ml-2 text-blue-500 hover:text-blue-400 transition-colors"
+            >
+              <Volume2 className="w-4 h-4" />
+            </button>
+          </h4>
+          <div 
+            className="max-h-[60vh] overflow-y-auto cursor-text"
+            onMouseUp={handleTextSelection}
+          >
+            <div className="font-hebrew leading-relaxed text-slate-200 whitespace-pre-wrap text-right" dir="rtl">
+              {selectedText.he.join('\n\n')}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Traduction française avec chargement progressif */}
+      {(language === 'fr' || language === 'en') && (
+        <div className="mt-6">
+          <h4 className="text-sm font-medium text-amber-400 mb-2 flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M7 4a3 3 0 616 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"></path>
+            </svg>
+            Traduction française
+            {onTTSSpeak && frenchText && (
+              <button
+                onClick={() => onTTSSpeak(frenchText)}
+                className="ml-2 text-amber-500 hover:text-amber-400 transition-colors"
+              >
+                <Volume2 className="w-4 h-4" />
+              </button>
+            )}
+          </h4>
+
+          <div className="max-h-[60vh] overflow-y-auto">
+            <div className="font-crimson leading-relaxed text-slate-200 whitespace-pre-wrap">
+              {frenchText}
+            </div>
           </div>
 
           {hasMore && (
