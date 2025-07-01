@@ -361,7 +361,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
 
         const completeTextContent = sefariaText.text.join('\n\n');
         console.log(`[AppSimple] Sending complete text to AI (${completeTextContent.length} characters)`);
-        await handleAIRequest(`TEXTE COMPLET DE ${title}:\n\n${completeTextContent}`, 'study');
+        // Auto-analysis supprimée pour éviter le bloc gris redondant
         return;
       }
 
@@ -396,7 +396,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
         if (sefariaText.text && sefariaText.text.length > 0) {
           const completeTextContent = sefariaText.text.join('\n\n');
           console.log(`[AppSimple] Sending complete text to AI (${completeTextContent.length} characters)`);
-          await handleAIRequest(`TEXTE COMPLET DE ${title}:\n\n${completeTextContent}`, 'study');
+        // Auto-analysis supprimée pour éviter le bloc gris redondant
         }
         return;
       }
@@ -420,7 +420,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
 
         const completeTextContent = sefariaText.text.join('\n\n');
         console.log(`[AppSimple] Sending complete text to AI (${completeTextContent.length} characters)`);
-        await handleAIRequest(`TEXTE COMPLET DE ${title}:\n\n${completeTextContent}`, 'study');
+        // Auto-analysis supprimée pour éviter le bloc gris redondant
         return;
       }
 
@@ -434,7 +434,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
         setSidebarOpen(false);
 
         const textContent = directText.text.join('\n\n');
-        await handleAIRequest(`${title}\n\n${textContent}`, 'study');
+        // Auto-analysis supprimée pour éviter le bloc gris redondant
         return;
       }
 
