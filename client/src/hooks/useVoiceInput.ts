@@ -44,13 +44,15 @@ export const useVoiceInput = ({ language, onResult, onError }: VoiceInputOptions
       const transcript = event.results[0][0].transcript;
       console.log('[VoiceInput] Transcript:', transcript);
       
-      // Insérer le transcript dans #questionBox via AppState si disponible
-      const questionBox = document.querySelector('#questionBox') as HTMLInputElement;
+      // Insérer le transcript dans textarea/input pour questions
+      const questionBox = document.querySelector('#questionBox') as HTMLInputElement | HTMLTextAreaElement;
       if (questionBox) {
         questionBox.value = transcript;
         questionBox.dispatchEvent(new Event('input', { bubbles: true }));
+        console.log('[VoiceInput] Transcript inserted into questionBox');
       }
       
+      // Également utiliser la fonction onResult pour AppState
       onResult(transcript);
       setIsListening(false);
     };

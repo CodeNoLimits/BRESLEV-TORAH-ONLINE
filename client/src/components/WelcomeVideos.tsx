@@ -9,9 +9,6 @@ export const WelcomeVideos: React.FC = () => {
         {/* Première vidéo - Introduction */}
         <div className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700">
           <div className="p-4">
-            <h4 className="font-semibold text-slate-200 mb-2">
-              Introduction aux enseignements
-            </h4>
             <p className="text-sm text-slate-400 mb-4">
               Découvrez les bases du Compagnon du Cœur et comment utiliser cette application pour votre étude spirituelle.
             </p>

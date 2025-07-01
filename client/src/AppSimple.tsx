@@ -292,8 +292,18 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
       // L'utilisateur doit cliquer explicitement sur le bouton TTS
       console.log(`[AppSimple] Response complete - TTS available via button click`);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('[AppSimple] AI error:', error);
+      
+      // Check if it's our AI_ERR from backend
+      if (error.message && error.message.includes('502')) {
+        toast({
+          title: "Erreur AI",
+          description: "Erreur de communication avec l'IA spirituelle",
+          variant: "destructive",
+        });
+      }
+      
       const errorMessage: Message = {
         id: generateId(),
         type: 'ai',
