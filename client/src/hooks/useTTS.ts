@@ -15,8 +15,15 @@ export function useTTS() {
   }, []);
 
   const speak = useCallback((text: string, lang = 'fr-FR') => {
+    console.log('[TTS] speak() called with:', { text: text.substring(0, 50) + '...', lang, isSupported });
+    
     if (!text || !isSupported) {
       console.log('[TTS] Texto vide ou TTS non supporté');
+      return;
+    }
+
+    if (!window.speechSynthesis) {
+      console.error('[TTS] speechSynthesis not available');
       return;
     }
 
@@ -24,11 +31,14 @@ export function useTTS() {
       // Arrêter toute lecture en cours
       window.speechSynthesis.cancel();
       
+      console.log('[TTS] Creating utterance...');
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = lang;
       utterance.rate = 0.9;
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
+      
+      console.log('[TTS] Utterance created with lang:', utterance.lang);
       
       utterance.onstart = () => {
         setIsSpeaking(true);
@@ -45,7 +55,9 @@ export function useTTS() {
         console.error('[TTS] Erreur de lecture:', event.error);
       };
 
+      console.log('[TTS] Calling speechSynthesis.speak()...');
       window.speechSynthesis.speak(utterance);
+      console.log('[TTS] speechSynthesis.speak() called successfully');
     } catch (error) {
       console.error('[TTS] Erreur lors de la création de la lecture:', error);
       setIsSpeaking(false);
