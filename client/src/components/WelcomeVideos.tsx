@@ -35,7 +35,7 @@ export const WelcomeVideos: React.FC = () => {
         </a>
 
         {/* Deuxième vidéo - Hébreu */}
-        <a href="/attached_assets/הלב של רבנו_1751382442951.mp4" target="_blank" className="block group">
+        <a href="/attached_assets/הלב של רבנו_1751382442951.mp4" target="_blank" rel="noopener noreferrer" className="block group">
           <div className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 hover:border-amber-500 transition-all duration-300">
             <div className="w-full h-48 bg-slate-700 flex items-center justify-center cursor-pointer group-hover:bg-slate-600 transition-colors">
               <div className="text-center">
