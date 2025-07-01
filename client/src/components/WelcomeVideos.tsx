@@ -4,11 +4,15 @@ const WelcomeVideos: React.FC = () => {
   const videos = [
     {
       src: "/videos/intro_fr.mp4",
-      title: "Introduction (FR)"
+      title: "Introduction Française"
     },
     {
       src: "/videos/intro_en.mp4", 
-      title: "Introduction (EN)"
+      title: "Introduction English"
+    },
+    {
+      src: "/videos/intro_he.mp4",
+      title: "הקדמה עברית"
     }
   ];
 
