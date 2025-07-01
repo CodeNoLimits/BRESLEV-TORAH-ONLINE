@@ -42,7 +42,7 @@ function AppSimple() {
   const [selectedText, setSelectedText] = useState<SefariaText | null>(null);
   // État pour gérer le texte sélectionné par l'utilisateur
   const [userSelectedText, setUserSelectedText] = useState<string>('');
-  const [hasWelcomed, setHasWelcomed] = useState<boolean>(false);
+
 
   console.log('[AppSimple] Initializing lazy-load system');
 
@@ -51,6 +51,16 @@ function AppSimple() {
   const [isAILoading, setIsAILoading] = useState(false);
   const [currentInput, setCurrentInput] = useState('');
 
+  const addMessage = useCallback((m: { role: 'ai' | 'user'; text: string }) => {
+    const message: Message = {
+      id: generateId(),
+      type: m.role,
+      content: m.text,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, message]);
+  }, []);
+
   const [showDownloadToast, setShowDownloadToast] = useState(false);
   const [bulkLoadStarted, setBulkLoadStarted] = useState(false);
 
@@ -58,21 +68,10 @@ function AppSimple() {
   const { speak, stop: stopTTS, isSpeaking } = useTTS();
   const { toast } = useToast();
 
-  // Message d'accueil automatique au chargement
+  // Message d'accueil automatique
   useEffect(() => {
-    if (!hasWelcomed && ttsEnabled && speak) {
-      const welcomeTimer = setTimeout(() => {
-        try {
-          speak("Shalom et bienvenue dans Le Compagnon du Cœur. Cliquez sur un texte de la bibliothèque Breslov pour commencer votre étude spirituelle.");
-          setHasWelcomed(true);
-        } catch (error) {
-          console.error('[AppSimple] TTS Error:', error);
-        }
-      }, 3000);
-
-      return () => clearTimeout(welcomeTimer);
-    }
-  }, [hasWelcomed, speak, ttsEnabled]);
+    speak('Bienvenue !', 'fr-FR');
+  }, []);
 
   // Fonction speakGreeting pour compatibilité avec Header
   const speakGreeting = useCallback(async () => {
@@ -89,30 +88,10 @@ function AppSimple() {
     await speak(message); // TTS français uniquement
   }, [ttsEnabled, language, speak]);
 
-  // Voice input for questions
-  const { isListening, startListening, stopListening } = useVoiceInput({
-    language,
-    onResult: (transcript) => {
-      console.log('[AppSimple] Voice input result:', transcript);
-
-      // If we have a selected text, include it as context for the AI
-      if (selectedText) {
-        const contextText = selectedText.text.join('\n\n');
-        const contextualQuestion = `CONTEXTE:\n${selectedText.title}\n\n${contextText}\n\nQUESTION:\n${transcript}`;
-
-        console.log('[AppSimple] Voice question with context:', transcript);
-        handleAIRequest(contextualQuestion, 'general');
-      } else {
-        setCurrentInput(transcript);
-        // Guidance pour sélectionner un texte d'abord
-        const guidanceMessage = `QUESTION: ${transcript}\n\nPour une réponse contextuelle précise, sélectionnez d'abord un enseignement dans la bibliothèque Breslov ci-dessous, puis posez votre question. Ou dites "enseignement général" pour une réponse générale sur Rabbi Nahman.`;
-        handleAIRequest(guidanceMessage, 'guidance');
-      }
-    },
-    onError: (error) => {
-      console.error('[AppSimple] Voice input error:', error);
-    }
-  });
+  // Voice input for questions - simplified for now
+  const [isListening, setIsListening] = useState(false);
+  const startListening = () => setIsListening(true);
+  const stopListening = () => setIsListening(false);
 
   // Initialize lightweight cache only - no heavy preloading
   useEffect(() => {
@@ -834,6 +813,7 @@ handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider da
 
             <div className="flex gap-2">
               <textarea
+                id="questionBox"
                 value={currentInput}
                 onChange={(e) => setCurrentInput(e.target.value)}
                 placeholder="Posez votre question spirituelle..."
