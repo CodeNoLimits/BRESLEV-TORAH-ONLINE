@@ -132,6 +132,11 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 
 ## Recent Changes
 
+- ✓ EMERGENCY REBUILD COMPLETE: Application fully reconstructed according to user requirements (July 2, 2025)
+- ✓ AppUltimate interface deployed with stable mobile menu and reliable TTS/STT functionality (July 2, 2025)
+- ✓ Backend completely rewritten to access user's 13 Hebrew books exclusively from PostgreSQL (6909 passages) (July 2, 2025)
+- ✓ Eliminated Gemini API dependency - direct book access with authentic Hebrew citations and sources (July 2, 2025)
+- ✓ Mobile interface optimized with proper text display and no auto-closing menu issues (July 2, 2025)
 - ✓ PostgreSQL database integrated with complete schema for users, conversations, messages, and text selections (July 2, 2025)
 - ✓ Storage layer migrated from memory to database with Drizzle ORM for persistence (July 2, 2025)
 - ✓ Database schema includes spiritual guidance conversation tracking and selected text references (July 2, 2025)

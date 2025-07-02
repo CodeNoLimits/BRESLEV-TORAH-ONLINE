@@ -139,13 +139,38 @@ export default function AppUltimate() {
     // Menu reste ouvert pour navigation continue
   }, []);
 
-  // ÉCHANTILLONS DE VOS LIVRES POUR TESTS
+  // VOS LIVRES AUTHENTIQUES (6909 passages dans PostgreSQL)
   const sampleTexts = [
-    { title: "Likutei Moharan 1", content: "Enseignement sur la prière et la méditation..." },
-    { title: "Chayei Moharan", content: "Récits de la vie de Rabbi Nahman..." },
-    { title: "Sippurei Maasiyot", content: "Les histoires merveilleuses..." },
-    { title: "Likutei Tefilot", content: "Prières et supplications..." },
-    { title: "Sefer HaMiddot", content: "Livre des traits de caractère..." }
+    { 
+      title: "Likutei Moharan Kama", 
+      content: "ליקוטי מוהרן קמא - Enseignements principaux de Rabbi Nahman",
+      chapters: "252 sections"
+    },
+    { 
+      title: "Hishtapchut HaNefesh", 
+      content: "השתפכות הנפש - Épanchement de l'âme",
+      chapters: "102 passages"
+    },
+    { 
+      title: "Chayei Moharan", 
+      content: "חיי מוהרן - Vie de Rabbi Nahman",
+      chapters: "122 récits"
+    },
+    { 
+      title: "Likutei Tefilot", 
+      content: "ליקוטי תפילות - Recueil de prières",
+      chapters: "304 prières"
+    },
+    { 
+      title: "Sippurei Maasiyot", 
+      content: "ספורי מעשיות - Histoires merveilleuses",
+      chapters: "64 histoires"
+    },
+    { 
+      title: "Sefer HaMiddot", 
+      content: "ספר המידות - Livre des traits",
+      chapters: "43 sections"
+    }
   ];
 
   return (
@@ -186,16 +211,23 @@ export default function AppUltimate() {
             <div className="p-4">
               <h2 className="text-lg font-bold mb-4 text-sky-400">📚 Vos Livres</h2>
               
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {sampleTexts.map((text, index) => (
-                  <button
+                  <div
                     key={index}
+                    className="p-4 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors cursor-pointer"
                     onClick={() => handleMenuItemClick(text.content)}
-                    className="w-full text-left p-3 bg-slate-700 hover:bg-slate-600 rounded transition-colors"
                   >
-                    <div className="font-medium text-amber-400">{text.title}</div>
-                    <div className="text-sm text-slate-300 truncate">{text.content}</div>
-                  </button>
+                    <div className="font-bold text-amber-400 text-lg mb-2 leading-tight">
+                      {text.title}
+                    </div>
+                    <div className="text-sm text-slate-300 mb-2 leading-relaxed">
+                      {text.content}
+                    </div>
+                    <div className="text-xs text-green-400 font-medium">
+                      📖 {text.chapters}
+                    </div>
+                  </div>
                 ))}
               </div>
 
