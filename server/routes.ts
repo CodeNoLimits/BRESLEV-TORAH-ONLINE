@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 import type { Express, Request, Response } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
@@ -6,7 +8,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { v1beta1, protos } from '@google-cloud/text-to-speech';
 import fs from 'fs/promises';
 import path from 'path';
-import { validateSectionExists, getBookConfig } from './src/data/BRESLOV_BOOKS.js';
+import { validateSectionExists, getBookConfig } from '@shared/data/BRESLOV_BOOKS';
 import { registerMetaRoutes } from './routes/meta.js';
 import { ttsRouter } from './routes/tts.js';
 import chatRouter from './routes/chat.js';

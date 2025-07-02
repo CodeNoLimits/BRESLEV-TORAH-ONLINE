@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BookContents } from './BookContents';
-import { BRESLOV_BOOKS_WORKING, getWorkingBooks, SefariaBook } from '../services/sefariaFix';
+import { BRESLOV_BOOKS } from '@shared/data/BRESLOV_BOOKS';
+import { SefariaBook } from '@shared/types';
 
 interface BreslovLibraryProps {
   isOpen: boolean;
@@ -10,91 +11,47 @@ interface BreslovLibraryProps {
 
 export const BreslovLibrary = ({ isOpen, onClose, onTextSelect }: BreslovLibraryProps) => {
   const [selectedBook, setSelectedBook] = useState<{title: string, key: string} | null>(null);
-  const [availableBooks, setAvailableBooks] = useState<SefariaBook[]>(BRESLOV_BOOKS_WORKING);
+  const [availableBooks, setAvailableBooks] = useState<SefariaBook[]>(() => Object.values(BRESLOV_BOOKS).filter(book => book.verified).map(book => ({
+    title: book.baseRef,
+    englishTitle: book.baseRef,
+    hebrewTitle: book.hebrewTitle,
+    key: book.baseRef,
+    categories: [book.category],
+    isAvailable: book.verified,
+    maxSections: book.maxSections,
+    baseRef: book.baseRef,
+    verified: book.verified,
+    category: book.category
+  })));
   const [loadingBooks, setLoadingBooks] = useState(false);
 
   // Vérifier les livres disponibles au chargement
   useEffect(() => {
-    if (isOpen && !loadingBooks) {
-      setLoadingBooks(true);
-      getWorkingBooks().then(books => {
-        setAvailableBooks(books);
-        setLoadingBooks(false);
-        console.log(`[BreslovLibrary] Loaded ${books.length} working books`);
-      }).catch(error => {
-        console.error('[BreslovLibrary] Error loading books:', error);
-        setAvailableBooks(BRESLOV_BOOKS_WORKING); // Fallback to static list
-        setLoadingBooks(false);
-      });
+    if (isOpen) {
+      // No need to fetch, BRESLOV_BOOKS is now static and complete
+      setAvailableBooks(Object.values(BRESLOV_BOOKS).filter(book => book.verified).map(book => ({
+        title: book.baseRef,
+        englishTitle: book.baseRef,
+        hebrewTitle: book.hebrewTitle,
+        key: book.baseRef,
+        categories: [book.category],
+        isAvailable: book.verified,
+        maxSections: book.maxSections,
+        baseRef: book.baseRef,
+        verified: book.verified,
+        category: book.category
+      })));
+      console.log(`[BreslovLibrary] Loaded ${Object.values(BRESLOV_BOOKS).filter(book => book.verified).length} working books from static data`);
     }
-  }, [isOpen, loadingBooks]);
+  }, [isOpen]);
 
-  // Utiliser les références corrigées
-  const breslovBooks = [
-    { 
-      title: 'Likoutei Moharan', 
-      key: 'Likutei_Moharan', 
-      description: 'Torah 1-286 (Part I) + Torah 1-125 (Part II)',
-      icon: '📜',
-      color: 'from-amber-500 to-orange-600'
-    },
-    { 
-      title: 'Sippurei Maasiyot', 
-      key: 'Sippurei_Maasiyot', 
-      description: '13 contes principaux + contes additionnels',
-      icon: '📖',
-      color: 'from-blue-500 to-indigo-600'
-    },
-    { 
-      title: 'Sichot HaRan', 
-      key: 'Sichot_HaRan', 
-      description: '332 sections de conversations',
-      icon: '💬',
-      color: 'from-green-500 to-emerald-600'
-    },
-    { 
-      title: 'Likoutei Tefilot', 
-      key: 'Likutei_Tefilot', 
-      description: '210 prières spirituelles',
-      icon: '🙏',
-      color: 'from-purple-500 to-violet-600'
-    },
-    { 
-      title: 'Sefer HaMiddot', 
-      key: 'Sefer_HaMiddot', 
-      description: 'Traits de caractère et conseils moraux',
-      icon: '⚖️',
-      color: 'from-red-500 to-rose-600'
-    },
-    { 
-      title: 'Likoutei Halakhot', 
-      key: 'Likutei_Halakhot', 
-      description: 'Lois spirituelles et halakha',
-      icon: '📋',
-      color: 'from-teal-500 to-cyan-600'
-    },
-    { 
-      title: 'Likkutei Etzot', 
-      key: 'Likkutei_Etzot', 
-      description: 'Conseils spirituels par sujets',
-      icon: '💡',
-      color: 'from-yellow-500 to-amber-600'
-    },
-    { 
-      title: 'Chayei Moharan', 
-      key: 'Chayei_Moharan', 
-      description: 'Biographie de Rabbi Nahman',
-      icon: '👤',
-      color: 'from-slate-500 to-gray-600'
-    },
-    { 
-      title: 'Shivchei HaRan', 
-      key: 'Shivchei_HaRan', 
-      description: 'Éloges et récits du Rabbi',
-      icon: '⭐',
-      color: 'from-pink-500 to-rose-600'
-    }
-  ];
+  const breslovBooks = Object.values(BRESLOV_BOOKS).map(book => ({
+    title: book.baseRef,
+    key: book.baseRef,
+    description: book.category, // Using category as description for now
+    icon: '📜', // Default icon
+    color: 'from-amber-500 to-orange-600' // Default color
+  }));
 
   const handleBookSelect = (title: string, key: string) => {
     console.log('[BreslovLibrary] Opening complete book contents:', title, key);

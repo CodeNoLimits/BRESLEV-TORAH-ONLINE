@@ -1,5 +1,5 @@
 
-const { test, expect } = require('@playwright/test');
+import { test, expect } from '@playwright/test';
 
 test.describe('v10 features', () => {
   test('hebrew and translation display', async ({ page }) => {

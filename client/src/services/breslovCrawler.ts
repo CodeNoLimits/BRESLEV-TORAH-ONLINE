@@ -1,3 +1,6 @@
+import { BRESLOV_BOOKS } from '@shared/data/BRESLOV_BOOKS';
+import { BreslovBookConfig } from '@shared/types';
+
 /**
  * Crawler complet pour récupérer TOUS les contenus des 9 livres Breslov
  * Implémentation exacte selon les spécifications utilisateur
@@ -13,23 +16,6 @@ export class BreslovCrawler {
   private cache = new Map<string, any>();
   private readonly CONCURRENCY = 5;
   private readonly DELAY = 250; // ms entre requêtes
-
-  // Liste canonique des 9 ouvrages Breslov
-  private readonly BRESLOV_BOOKS = [
-    { title: 'Likoutei Moharan', key: 'Likutei_Moharan' },
-    { title: 'Likoutei Halakhot', key: 'Likutei_Halakhot' },
-    { title: 'Likoutei Tefilot', key: 'Likutei_Tefilot' },
-    { title: 'Likkutei Etzot', key: 'Likkutei_Etzot' },
-    { title: 'Sefer HaMiddot', key: 'Sefer_HaMiddot' },
-    { title: 'Sichot HaRan', key: 'Sichot_HaRan' },
-    { title: 'Chayei Moharan', key: 'Chayei_Moharan' },
-    { title: 'Shivchei HaRan', key: 'Shivchei_HaRan' },
-    { title: 'Sippurei Maasiyot', key: 'Sippurei_Maasiyot' }
-  ];
-
-  /**
-   * Récupère la table des matières d'un livre
-   */
   async fetchTOC(title: string): Promise<any> {
     const cacheKey = `toc_${title}`;
     if (this.cache.has(cacheKey)) {
@@ -230,19 +216,19 @@ export class BreslovCrawler {
     
     const books: BreslovBook[] = [];
     
-    for (const book of this.BRESLOV_BOOKS) {
+    for (const book of Object.values(BRESLOV_BOOKS)) {
       try {
-        const sections = await this.fetchEntireBook(book.key);
+        const sections = await this.fetchEntireBook(book.baseRef);
         books.push({
-          title: book.title,
-          key: book.key,
+          title: book.baseRef,
+          key: book.baseRef,
           sections
         });
         
         // Pause entre livres pour éviter de surcharger l'API
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        console.error(`[BreslovCrawler] Failed to crawl ${book.title}:`, error);
+        console.error(`[BreslovCrawler] Failed to crawl ${book.baseRef}:`, error);
       }
     }
     
@@ -258,21 +244,21 @@ export class BreslovCrawler {
     let correctedRef = ref;
     
     // Handle different book formats based on API testing
-    if (ref.includes('Likutei_Moharan')) {
+    if (ref.includes('Likutei Moharan')) {
       // Convert Likutei_Moharan.1 to Likutei Moharan.1.1 (Torah.Section format)
-      const match = ref.match(/Likutei_Moharan\.(\d+)/);
+      const match = ref.match(/Likutei Moharan\.(\d+)/);
       if (match) {
         correctedRef = `Likutei Moharan.${match[1]}.1`;
       }
-    } else if (ref.includes('Sichot_HaRan')) {
+    } else if (ref.includes('Sichot HaRan')) {
       // Convert Sichot_HaRan.1 to Sichot HaRan.1.1 (Chapter.Verse format)
-      const match = ref.match(/Sichot_HaRan\.(\d+)/);
+      const match = ref.match(/Sichot HaRan\.(\d+)/);
       if (match) {
         correctedRef = `Sichot HaRan.${match[1]}.1`;
       }
-    } else if (ref.includes('Sippurei_Maasiyot')) {
+    } else if (ref.includes('Sippurei Maasiyot')) {
       // Convert Sippurei_Maasiyot.1 to Sippurei Maasiyot.1.1
-      const match = ref.match(/Sippurei_Maasiyot\.(\d+)/);
+      const match = ref.match(/Sippurei Maasiyot\.(\d+)/);
       if (match) {
         correctedRef = `Sippurei Maasiyot.${match[1]}.1`;
       }

@@ -1,4 +1,5 @@
-import { BRESLOV_BOOKS, BreslovBookConfig } from '../../../server/src/data/BRESLOV_BOOKS.js';
+import { BRESLOV_BOOKS } from '@shared/data/BRESLOV_BOOKS';
+import { BreslovBookConfig } from '@shared/types';
 
 export interface BreslovReference {
   ref: string;
@@ -19,10 +20,10 @@ export function generateAllReferences(): BreslovReference[] {
   
   const allReferences: BreslovReference[] = [];
   
-  BRESLOV_BOOKS.forEach(book => {
+  Object.entries(BRESLOV_BOOKS).forEach(([bookTitle, book]) => {
     // Only generate references for verified books to avoid 404s
     if (!book.verified) {
-      console.log(`[generateAllReferences] Skipping unverified book: ${book.title}`);
+      console.log(`[generateAllReferences] Skipping unverified book: ${bookTitle}`);
       return;
     }
     
@@ -31,8 +32,8 @@ export function generateAllReferences(): BreslovReference[] {
       
       allReferences.push({
         ref,
-        title: `${book.title} ${section}`,
-        book: book.title,
+        title: `${bookTitle} ${section}`,
+        book: bookTitle,
         section,
         hebrewTitle: `${book.hebrewTitle} ${section}`,
         category: book.category,
@@ -41,7 +42,7 @@ export function generateAllReferences(): BreslovReference[] {
     }
   });
   
-  console.log(`[generateAllReferences] Generated ${allReferences.length} references from ${BRESLOV_BOOKS.length} books`);
+  console.log(`[generateAllReferences] Generated ${allReferences.length} references from ${Object.keys(BRESLOV_BOOKS).length} books`);
   
   // Cache the generated references
   try {
@@ -118,15 +119,15 @@ function clearObsoleteCache() {
 export function getBookStatistics(): Record<string, number> {
   const stats: Record<string, number> = {};
   
-  BRESLOV_BOOKS.forEach(book => {
-    stats[book.title] = book.maxSections;
+  Object.entries(BRESLOV_BOOKS).forEach(([bookTitle, book]) => {
+    stats[bookTitle] = book.maxSections;
   });
   
   return stats;
 }
 
 export function getTotalReferenceCount(): number {
-  return BRESLOV_BOOKS
+  return Object.values(BRESLOV_BOOKS)
     .filter(book => book.verified)
     .reduce((total, book) => total + book.maxSections, 0);
 }

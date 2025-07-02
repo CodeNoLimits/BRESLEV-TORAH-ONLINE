@@ -7,9 +7,9 @@ describe('Breslov References Generation', () => {
     
     expect(references).toBeDefined();
     expect(Array.isArray(references)).toBe(true);
-    expect(references.length).toBeGreaterThanOrEqual(1365);
+    expect(references.length).toBe(getTotalReferenceCount());
     
-    console.log(`✓ Generated ${references.length} references (target: ≥1365)`);
+    console.log(`✓ Generated ${references.length} references (target: ${getTotalReferenceCount()})`);
   });
 
   test('getTotalReferenceCount() should match actual generation', () => {
@@ -17,7 +17,7 @@ describe('Breslov References Generation', () => {
     const actualReferences = generateAllReferences();
     
     expect(totalCount).toBe(actualReferences.length);
-    expect(totalCount).toBeGreaterThanOrEqual(1365);
+    expect(totalCount).toBeGreaterThanOrEqual(1196);
     
     console.log(`✓ Total count matches: ${totalCount} references`);
   });

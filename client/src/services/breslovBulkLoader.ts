@@ -1,3 +1,6 @@
+import { BRESLOV_BOOKS } from '@shared/data/BRESLOV_BOOKS';
+import { BreslovBookConfig } from '@shared/types';
+
 // Bulk loader for ALL Breslov books with ALL segments
 // Comprehensive system to load the complete Breslov library
 
@@ -34,51 +37,37 @@ class BreslovBulkLoader {
     loadedSegments: 0
   };
 
-  // Complete list of ALL Breslov books with segment ranges
-  private readonly COMPLETE_BRESLOV_BOOKS = [
-    { title: 'Likutei Moharan', segments: 286, pattern: 'Likutei Moharan.{n}' },
-    { title: 'Likutei Moharan Tinyana', segments: 125, pattern: 'Likutei Moharan, Part II.{n}' },
-    { title: 'Sichot HaRan', segments: 307, pattern: 'Sichot HaRan.{n}' },
-    { title: 'Sippurei Maasiyot', segments: 13, pattern: 'Sippurei Maasiyot.{n}' },
-    { title: 'Likutei Tefilot', segments: 210, pattern: 'Likutei Tefilot.{n}' },
-    { title: 'Chayei Moharan', segments: 50, pattern: 'Chayei Moharan.{n}' },
-    { title: 'Sefer HaMiddot', segments: 100, pattern: 'Sefer HaMiddot.{n}' },
-    { title: 'Likkutei Etzot', segments: 200, pattern: 'Likkutei Etzot.{n}' },
-    { title: 'Shivchei HaRan', segments: 50, pattern: 'Shivchei HaRan.{n}' },
-    { title: 'Alim LiTerufah', segments: 40, pattern: 'Alim LiTerufah.{n}' }
-  ];
-
   async loadCompleteLibrary(onProgress?: (progress: BulkLoadProgress) => void): Promise<CompleteBreslovLibrary> {
     console.log('[BreslovBulkLoader] Starting complete library load...');
     
     // Calculate totals
-    this.progress.total = this.COMPLETE_BRESLOV_BOOKS.reduce((sum, book) => sum + book.segments, 0);
+    this.progress.total = Object.values(BRESLOV_BOOKS).reduce((sum, book) => sum + book.maxSections, 0);
     this.progress.totalSegments = this.progress.total * 10; // Estimated segments per text
     
     const library: CompleteBreslovLibrary = {
       books: {},
       segments: {},
       metadata: {
-        totalBooks: this.COMPLETE_BRESLOV_BOOKS.length,
+        totalBooks: Object.keys(BRESLOV_BOOKS).length,
         totalSegments: 0,
-        categories: this.COMPLETE_BRESLOV_BOOKS.map(b => b.title),
+        categories: Object.values(BRESLOV_BOOKS).map(b => b.baseRef),
         loadedAt: new Date()
       }
     };
 
     // Load each book completely
-    for (const bookConfig of this.COMPLETE_BRESLOV_BOOKS) {
-      this.progress.currentBook = bookConfig.title;
-      console.log(`[BreslovBulkLoader] Loading ${bookConfig.title} (${bookConfig.segments} texts)...`);
+    for (const bookConfig of Object.values(BRESLOV_BOOKS)) {
+      this.progress.currentBook = bookConfig.baseRef;
+      console.log(`[BreslovBulkLoader] Loading ${bookConfig.baseRef} (${bookConfig.maxSections} texts)...`);
       
       try {
         const bookData = await this.loadCompleteBook(bookConfig, onProgress);
-        library.books[bookConfig.title] = bookData.texts;
-        library.segments[bookConfig.title] = bookData.allSegments;
+        library.books[bookConfig.baseRef] = bookData.texts;
+        library.segments[bookConfig.baseRef] = bookData.allSegments;
         library.metadata.totalSegments += bookData.segmentCount;
       } catch (error) {
-        console.error(`[BreslovBulkLoader] Error loading ${bookConfig.title}:`, error);
-        this.progress.errors.push(`Failed to load ${bookConfig.title}: ${error}`);
+        console.error(`[BreslovBulkLoader] Error loading ${bookConfig.baseRef}:`, error);
+        this.progress.errors.push(`Failed to load ${bookConfig.baseRef}: ${error}`);
       }
     }
 
@@ -87,7 +76,7 @@ class BreslovBulkLoader {
   }
 
   private async loadCompleteBook(
-    bookConfig: { title: string; segments: number; pattern: string },
+    bookConfig: BreslovBookConfig,
     onProgress?: (progress: BulkLoadProgress) => void
   ): Promise<{ texts: any[]; allSegments: string[]; segmentCount: number }> {
     
@@ -99,9 +88,9 @@ class BreslovBulkLoader {
     const batchSize = 5;
     const batches: number[][] = [];
     
-    for (let i = 1; i <= bookConfig.segments; i += batchSize) {
+    for (let i = 1; i <= bookConfig.maxSections; i += batchSize) {
       const batch = [];
-      for (let j = i; j < i + batchSize && j <= bookConfig.segments; j++) {
+      for (let j = i; j < i + batchSize && j <= bookConfig.maxSections; j++) {
         batch.push(j);
       }
       batches.push(batch);
@@ -109,7 +98,7 @@ class BreslovBulkLoader {
 
     for (const batch of batches) {
       const batchPromises = batch.map(async (index) => {
-        const ref = bookConfig.pattern.replace('{n}', index.toString());
+        const ref = `${bookConfig.baseRef}.${index}`;
         
         try {
           const textData = await this.fetchAuthenticText(ref);
@@ -117,7 +106,7 @@ class BreslovBulkLoader {
             const segments = this.extractAllSegments(textData);
             texts.push({
               ref,
-              title: `${bookConfig.title} ${index}`,
+              title: `${bookConfig.baseRef} ${index}`,
               segments,
               segmentCount: segments.length
             });
