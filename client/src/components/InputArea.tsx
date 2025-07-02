@@ -1,5 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { InteractionMode } from '../types';
+import { Button } from './ui/button';
+import { Textarea } from './ui/textarea';
+import { Mic, Send, Loader2 } from 'lucide-react';
+import { useSpeechToText } from '../hooks/useSpeechToText';
 
 interface InputAreaProps {
   onSendMessage: (message: string, mode: InteractionMode) => void;
@@ -23,7 +27,7 @@ export const InputArea = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     switch (activeTab) {
       case 'chat':
         if (chatMessage.trim()) {
@@ -51,6 +55,22 @@ export const InputArea = ({
     { id: 'analysis' as InteractionMode, label: 'Analyser un extrait', icon: 'search' },
     { id: 'guidance' as InteractionMode, label: 'Conseil personnalisé', icon: 'heart' }
   ];
+
+  const onSend = (transcript: string) => {
+    if (transcript.trim()) {
+      onSendMessage(transcript, 'chat');
+      setChatMessage('');
+    }
+  };
+
+  const {
+    isListening,
+    startListening,
+    stopListening,
+    isSupported: voiceSupported
+  } = useSpeechToText((transcript) => {
+    onSend(transcript);
+  });
 
   return (
     <div className="border-t border-slate-700 bg-slate-900">
@@ -105,7 +125,7 @@ export const InputArea = ({
               <button
                 type="button"
                 className="absolute right-3 top-3 text-slate-400 hover:text-sky-400 transition-colors"
-                onClick={onStartVoiceInput}
+                onClick={startListening}
                 title="Entrée vocale"
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

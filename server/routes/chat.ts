@@ -92,4 +92,41 @@ router.post("/chat", async (req, res) => {
   }
 });
 
+// Enhanced ask endpoint with better RAG
+app.post('/ask', async (req, res) => {
+  try {
+    const { question, context } = req.body;
+    
+    const systemInstruction = `
+    Tu es un érudit de Rabbi Nahman de Breslev. Réponds de façon structurée,
+    profonde et détaillée (minimum 3 parties numérotées),
+    cite le livre + chapitre exact et, si pertinent, donne
+    un exercice pratique en conclusion.
+    
+    IMPORTANT: Ne retourne que la réponse directe, sans préambule "CONTEXTE" ou section explicative.
+    `;
+
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        maxOutputTokens: 1024,
+        temperature: 0.4,
+        topP: 0.95,
+      },
+      systemInstruction
+    });
+
+    const prompt = `Question: ${question}\n\nContexte des enseignements: ${context}`;
+    const result = await model.generateContent(prompt);
+    const answer = result.response.text();
+
+    res.json({ answer });
+  } catch (error) {
+    console.error('[Ask] Error:', error);
+    res.status(500).json({ 
+      error: "Erreur lors de la génération de la réponse."
+    });
+  }
+});
+
 export default router;
