@@ -1,62 +1,15 @@
 // Solution définitive pour les références Sefaria et livres vides
 // Résout Shivchei HaRan, Chayei Moharan et tous les autres livres problématiques
 
-export interface SefariaBook {
-  title: string;
-  englishTitle: string;
-  hebrewTitle: string;
-  key: string;
-  categories: string[];
-  isAvailable: boolean;
-  firstSection?: string;
-}
-
-// Livres Breslov avec références correctes vérifiées sur Sefaria
-export const BRESLOV_BOOKS_WORKING: SefariaBook[] = [
-  {
-    title: 'Likoutei Moharan',
-    englishTitle: 'Likutei Moharan',
-    hebrewTitle: 'ליקוטי מוהר"ן',
-    key: 'Likutei Moharan',
-    categories: ['Chasidut', 'Breslov'],
-    isAvailable: true,
-    firstSection: 'Likutei Moharan.1.1'
-  },
-  {
-    title: 'Sippurei Maasiyot',
-    englishTitle: 'Sippurei Maasiyot',
-    hebrewTitle: 'ספורי מעשיות',
-    key: 'Sippurei Maasiyot',
-    categories: ['Chasidut', 'Breslov'],
-    isAvailable: true,
-    firstSection: 'Sippurei Maasiyot.1'
-  },
-  {
-    title: 'Sichot HaRan',
-    englishTitle: 'Sichot HaRan',
-    hebrewTitle: 'שיחות הר"ן',
-    key: 'Sichot HaRan',
-    categories: ['Chasidut', 'Breslov'],
-    isAvailable: true,
-    firstSection: 'Sichot HaRan.1'
-  },
-  {
-    title: 'Likoutei Tefilot',
-    englishTitle: 'Likutei Tefilot',
-    hebrewTitle: 'ליקוטי תפילות',
-    key: 'Likutei Tefilot',
-    categories: ['Chasidut', 'Breslov'],
-    isAvailable: true,
-    firstSection: 'Likutei Tefilot.1.1'
-  }
-];
+import { BRESLOV_BOOKS } from '@shared/data/BRESLOV_BOOKS';
+import { SefariaBook, BreslovBookConfig } from '@shared/types';
 
 // Test authentique de disponibilité
-export const testBookAvailability = async (book: SefariaBook): Promise<boolean> => {
+export const testBookAvailability = async (book: BreslovBookConfig): Promise<boolean> => {
   try {
     // Test direct avec la première section
-    if (book.firstSection) {
-      const response = await fetch(`/api/sefaria/v3/texts/${book.firstSection}?context=0&commentary=0&pad=0&wrapLinks=false`);
+    if (book.baseRef) {
+      const response = await fetch(`/api/sefaria/v3/texts/${book.baseRef}.1?context=0&commentary=0&pad=0&wrapLinks=false`);
       if (response.ok) {
         const data = await response.json();
         return data.text && Array.isArray(data.text) && data.text.length > 0;
@@ -64,7 +17,7 @@ export const testBookAvailability = async (book: SefariaBook): Promise<boolean> 
     }
     
     // Test avec le nom du livre
-    const response = await fetch(`/api/sefaria/v3/texts/${book.key}?context=0&commentary=0&pad=0&wrapLinks=false`);
+    const response = await fetch(`/api/sefaria/v3/texts/${book.baseRef}?context=0&commentary=0&pad=0&wrapLinks=false`);
     if (response.ok) {
       const data = await response.json();
       return data.text && Array.isArray(data.text) && data.text.length > 0;
@@ -72,7 +25,7 @@ export const testBookAvailability = async (book: SefariaBook): Promise<boolean> 
     
     return false;
   } catch (error) {
-    console.error(`[SefariaFix] Error testing ${book.title}:`, error);
+    console.error(`[SefariaFix] Error testing ${book.baseRef}:`, error);
     return false;
   }
 };
@@ -81,13 +34,24 @@ export const testBookAvailability = async (book: SefariaBook): Promise<boolean> 
 export const getWorkingBooks = async (): Promise<SefariaBook[]> => {
   const workingBooks: SefariaBook[] = [];
   
-  for (const book of BRESLOV_BOOKS_WORKING) {
+  for (const book of Object.values(BRESLOV_BOOKS)) {
     const isWorking = await testBookAvailability(book);
     if (isWorking) {
-      workingBooks.push({ ...book, isAvailable: true });
-      console.log(`[SefariaFix] ✅ ${book.title} is working`);
+      workingBooks.push({
+        title: book.baseRef,
+        englishTitle: book.baseRef,
+        hebrewTitle: book.hebrewTitle,
+        key: book.baseRef,
+        categories: [book.category],
+        isAvailable: true,
+        maxSections: book.maxSections,
+        baseRef: book.baseRef,
+        verified: book.verified,
+        category: book.category
+      });
+      console.log(`[SefariaFix] ✅ ${book.baseRef} is working`);
     } else {
-      console.warn(`[SefariaFix] ❌ ${book.title} is not available`);
+      console.warn(`[SefariaFix] ❌ ${book.baseRef} is not available`);
     }
   }
   

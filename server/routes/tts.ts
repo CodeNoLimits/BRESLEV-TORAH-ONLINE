@@ -2,9 +2,7 @@ import { Router } from "express";
 import { TextToSpeechClient } from "@google-cloud/text-to-speech";
 
 const router = Router();
-const client = new TextToSpeechClient({
-  credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON!)
-});
+const client = new TextToSpeechClient();
 
 router.post("/tts", async (req, res) => {
   const txt = (req.body.text || "").slice(0, 5000);
