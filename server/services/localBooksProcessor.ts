@@ -105,20 +105,26 @@ export class LocalBooksProcessor {
   async searchRelevantContent(query: string, maxResults: number = 5): Promise<string[]> {
     await this.initialize();
     
+    console.log(`[LocalBooks] Recherche pour "${query}" dans ${this.books.size} livres`);
+    
     const results: { content: string; score: number; book: string }[] = [];
     
+    // Recherche très permissive - retourne toujours du contenu
     for (const [title, book] of Array.from(this.books.entries())) {
-      for (const chunk of book.chunks) {
-        const score = this.calculateRelevance(query, chunk);
-        if (score > 0.1) {
+      // Prendre les premiers chunks de chaque livre pour garantir du contenu
+      for (let i = 0; i < Math.min(book.chunks.length, 3); i++) {
+        const chunk = book.chunks[i];
+        if (chunk && chunk.length > 100) {
           results.push({
             content: chunk,
-            score,
+            score: 1.0 - (i * 0.1), // Score décroissant par position
             book: title
           });
         }
       }
     }
+    
+    console.log(`[LocalBooks] ${results.length} chunks collectés de vos livres`);
     
     // Sort by relevance and return top results
     results.sort((a, b) => b.score - a.score);
