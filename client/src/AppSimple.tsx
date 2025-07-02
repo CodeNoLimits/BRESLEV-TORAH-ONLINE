@@ -8,7 +8,7 @@ import { OptimizedTextDisplay } from './components/OptimizedTextDisplay';
 
 import { simpleTTS } from './services/simpleTTS';
 import { useAsk } from './hooks/useAsk';
-import { useVoiceInputUnified } from './hooks/useVoiceInputUnified';
+import { useVoice } from './hooks/useVoice';
 
 import { useToast } from './hooks/use-toast';
 import { TextSegmenter } from './services/textSegmenter';
@@ -75,7 +75,7 @@ function AppSimple() {
   const speak = (text: string) => simpleTTS.speak(text);
   const stopTTS = () => simpleTTS.stop();
   const isSpeaking = false; // Pour compatibilité
-  
+
   // Système de questions unifié 
   const { ask, isLoading: isAsking } = useAsk();
   const { toast } = useToast();
@@ -105,7 +105,7 @@ function AppSimple() {
   // Nouveau gestionnaire de questions unifié
   const handleQuestion = useCallback(async (question: string) => {
     console.log('[AppSimple] Question reçue:', question);
-    
+
     // Message utilisateur
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -118,7 +118,7 @@ function AppSimple() {
     try {
       // Appel API unifié vers smart-query
       const result = await ask(question);
-      
+
       // Message IA avec filtrage des blocs bleus
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -134,7 +134,7 @@ function AppSimple() {
         console.log('[AppSimple] Lecture automatique TTS...');
         await speak(result.answer);
       }
-      
+
     } catch (error) {
       console.error('[AppSimple] Erreur question:', error);
       const errorMessage: Message = {
@@ -147,9 +147,12 @@ function AppSimple() {
     }
   }, [ask, speak, ttsEnabled]);
 
+  const [currentQuestion, setCurrentQuestion] = useState('');
+
   // Voice input unifié avec nouveau hook
-  const { startListening, stopListening, isListening } = useVoiceInputUnified({
-    onTranscript: handleQuestion
+  const { askVoice, speak: speakVoice, isListening, isSupported } = useVoice((question) => {
+    setCurrentQuestion(question);
+    handleQuestion(question);
   });
 
   // Voice input handled by useVoiceInput hook
@@ -279,7 +282,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
     try {
       // Import RAG service dynamically
       const { breslovRAG } = await import('./services/breslovRAG');
-      
+
       // First check for specific Sefaria requests
       const sefariaRequest = detectSefariaRequest(text);
       let enhancedText = text;
@@ -346,7 +349,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
             .replace(/\*(.*?)\*/g, '$1')     // Remove italic markdown
             .replace(/#{1,6}\s/g, '')        // Remove headers
             .substring(0, 1000);             // Limit to first 1000 chars
-          
+
           speakWithLanguage(cleanResponse, 'fr-FR');
         }, 500);
       }
@@ -882,7 +885,9 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
               />
               <div className="flex flex-col gap-2">
                 <button
-                  onClick={isListening ? stopListening : startListening}
+                  onClick={() => {
+                    askVoice(currentInput);
+                  }}
                   className={`p-3 rounded-lg transition-all duration-200 touch-target ${
                     isListening 
                       ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse' 
@@ -894,10 +899,12 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                     <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"></path>
                   </svg>
                 </button>
-                
+
                 {/* Bouton de reconnaissance vocale directe */}
                 <button
-                  onClick={isListening ? stopListening : startListening}
+                  onClick={() => {
+                    askVoice(currentInput);
+                  }}
                   className={`p-3 rounded-lg transition-all duration-200 touch-target ${
                     isListening 
                       ? 'bg-orange-600 hover:bg-orange-500 text-white animate-pulse' 
@@ -909,7 +916,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                     <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
                   </svg>
                 </button>
-                
+
                 <button
                   onClick={() => handleSendMessage(currentInput, 'chat')}
                   disabled={isAILoading || !currentInput.trim()}
@@ -925,17 +932,17 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
 
       {/* Floating TTS Control */}
       <FloatingTTSControl 
-        isSpeaking={isSpeaking}
+        isSpeaking={isListening}
         isListening={isListening}
         isRecording={isListening}
         onToggleTTS={() => {
-          if (isSpeaking) {
+          if (isListening) {
             stopTTS();
           } else {
             speak("Mode TTS activé");
           }
         }}
-        onStartListening={startListening}
+        onStartListening={() => {askVoice(currentInput)}}
         onSpeak={(text: string) => speak(text)}
       />
 

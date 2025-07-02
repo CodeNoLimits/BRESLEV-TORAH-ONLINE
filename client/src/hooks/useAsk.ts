@@ -1,81 +1,50 @@
-import { useState, useCallback } from 'react';
-
-interface AskResponse {
-  answer: string;
-  sources: Array<{
-    book: string;
-    chapter: string;
-    section: string;
-    reference: string;
-  }>;
-  method: string;
-  duration?: number;
-}
+import { useState } from 'react';
 
 export const useAsk = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  const ask = useCallback(async (question: string): Promise<AskResponse> => {
-    if (!question?.trim()) {
-      throw new Error('Question vide');
+  const [loading, setLoading] = useState(false);
+  const [answer, setAnswer] = useState<string>('');
+  const [error, setError] = useState<string>('');
+
+  const ask = async (question: string) => {
+    if (!question.trim()) {
+      setError('Question vide');
+      return;
     }
 
-    setIsLoading(true);
-    setError(null);
-    
+    setLoading(true);
+    setError('');
+    setAnswer('');
+
     try {
       console.log('[useAsk] Envoi question:', question);
-      
+
       const response = await fetch('/api/smart-query', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ question: question.trim() })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
       });
-      
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
+        throw new Error(`Erreur HTTP: ${response.status}`);
       }
-      
-      const result: AskResponse = await response.json();
-      
-      console.log('[useAsk] Réponse reçue:', {
-        method: result.method,
-        duration: result.duration,
-        sourcesCount: result.sources?.length || 0
-      });
-      
-      return result;
-      
+
+      const data = await response.json();
+
+      if (data.error) {
+        setError(data.error);
+        return;
+      }
+
+      console.log('[useAsk] Réponse reçue:', data.answer?.substring(0, 100));
+      setAnswer(data.answer || 'Aucune réponse reçue');
+
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
-      console.error('[useAsk] Erreur:', errorMessage);
-      setError(errorMessage);
-      
-      // Retour d'erreur structuré
-      return {
-        answer: `❗ Une erreur est survenue: ${errorMessage}`,
-        sources: [],
-        method: 'error'
-      };
-      
+      console.error('[useAsk] Erreur:', err);
+      setError('Erreur lors de la communication avec le serveur');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, []);
-
-  const reset = useCallback(() => {
-    setError(null);
-    setIsLoading(false);
-  }, []);
-
-  return { 
-    ask, 
-    isLoading, 
-    error,
-    reset
   };
+
+  return { ask, loading, answer, error };
 };

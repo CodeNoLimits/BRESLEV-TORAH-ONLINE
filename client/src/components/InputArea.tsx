@@ -1,7 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useSTT } from '../hooks/useSTT';
-import { useTTS } from '../hooks/useTTS';
+import { useVoice } from '../hooks/useVoice';
 
 interface InputAreaProps {
   onSendMessage: (text: string, mode?: string) => void;
@@ -18,28 +17,12 @@ export const InputArea: React.FC<InputAreaProps> = ({
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
-  const { speak, stop, isSpeaking } = useTTS();
-  
-  const { 
-    isListening, 
-    isSupported: sttSupported, 
-    startListening, 
-    stopListening 
-  } = useSTT({
-    language: 'fr-FR',
-    continuous: false,
-    interimResults: true,
-    onResult: (transcript) => {
-      console.log('[InputArea] Transcription reçue:', transcript);
-      setInputValue(transcript);
-      // Auto-focus sur le textarea après transcription
-      setTimeout(() => {
-        textareaRef.current?.focus();
-      }, 100);
-    },
-    onError: (error) => {
-      console.error('[InputArea] Erreur STT:', error);
-    }
+  const { askVoice, speak, isListening, isSupported } = useVoice((transcript) => {
+    console.log('[InputArea] Transcription reçue:', transcript);
+    setInputValue(transcript);
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 100);
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -52,20 +35,14 @@ export const InputArea: React.FC<InputAreaProps> = ({
   };
 
   const handleMicClick = () => {
-    if (!sttSupported) {
+    if (!isSupported) {
       console.warn('[InputArea] STT non supporté');
       return;
     }
 
-    if (isListening) {
-      console.log('[InputArea] Arrêt écoute');
-      stopListening();
-    } else {
+    if (!isListening) {
       console.log('[InputArea] Démarrage écoute');
-      const success = startListening();
-      if (!success) {
-        console.error('[InputArea] Échec démarrage STT');
-      }
+      askVoice();
     }
   };
 
@@ -75,9 +52,9 @@ export const InputArea: React.FC<InputAreaProps> = ({
     console.log('[InputArea] TTS', newState ? 'activé' : 'désactivé');
     
     if (newState) {
-      speak("Mode lecture vocale activé", 'fr-FR');
+      speak("Mode lecture vocale activé");
     } else {
-      stop();
+      speechSynthesis.cancel();
     }
   };
 
@@ -146,19 +123,19 @@ export const InputArea: React.FC<InputAreaProps> = ({
           <button
             type="button"
             onClick={handleMicClick}
-            disabled={!sttSupported}
+            disabled={!isSupported}
             className={`p-3 rounded-lg transition-all duration-200 ${
-              !sttSupported
+              !isSupported
                 ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                 : isListening
                 ? 'bg-red-600 text-white shadow-lg animate-pulse'
                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
             title={
-              !sttSupported 
+              !isSupported 
                 ? 'Microphone non disponible' 
                 : isListening 
-                ? 'Arrêter écoute' 
+                ? 'En écoute...' 
                 : 'Commencer écoute vocale'
             }
           >
@@ -189,7 +166,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
         {/* Info sur les raccourcis */}
         <div className="text-xs text-slate-500 text-center">
           Entrée pour envoyer • Shift+Entrée pour nouvelle ligne • 
-          {sttSupported ? 'Micro activé' : 'Micro indisponible'}
+          {isSupported ? 'Micro activé' : 'Micro indisponible'}
         </div>
       </form>
     </div>

@@ -12,7 +12,7 @@ import { validateSectionExists, getBookConfig } from '@shared/data/BRESLOV_BOOKS
 import { registerMetaRoutes } from './routes/meta';
 import { ttsRouter } from './routes/tts';
 import chatRouter from './routes/chat';
-import smartQueryRouter from './routes/smartQuery';
+import smartQueryRouter from "./routes/smartQuery";
 // Dynamic import for ES module compatibility
 let fullTextExtractor: any = null;
 
@@ -40,7 +40,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // TTS Routes
   app.use('/api', ttsRouter);
   app.use('/api', chatRouter);
-  
+
   // Smart Query Route (nouvelle route unifiée)
   app.use('/api/smart-query', smartQueryRouter);
 
@@ -625,10 +625,10 @@ TRADUCTION FRANÇAISE:`;
     try {
       const { localBooksProcessor } = await import('./services/localBooksProcessor');
       await localBooksProcessor.initialize();
-      
+
       const books = localBooksProcessor.getAvailableBooks();
       const count = localBooksProcessor.getBooksCount();
-      
+
       res.json({
         status: 'ok',
         booksCount: count,
@@ -651,7 +651,7 @@ TRADUCTION FRANÇAISE:`;
 
       const { localBooksProcessor } = await import('./services/localBooksProcessor');
       const results = await localBooksProcessor.searchRelevantContent(query, 5);
-      
+
       res.json({
         query,
         resultsCount: results.length,
