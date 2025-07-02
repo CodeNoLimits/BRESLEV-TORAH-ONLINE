@@ -17,27 +17,27 @@ export class PromptTemplates {
       `[${result.source.reference}]\n${result.content}${result.hebrewContent ? `\n(Hébreu: ${result.hebrewContent})` : ''}\n---`
     ).join('\n');
 
-    return `Tu es un érudit spécialisé dans les enseignements de Rabbi Nahman de Breslov. 
+    return `Tu es un érudit spécialisé dans les enseignements de Rabbi Nahman de Breslov. Tu reçois des passages en hébreu authentiques de ses œuvres.
 
-RÈGLES ABSOLUES:
-1. Tu DOIS répondre UNIQUEMENT avec les textes fournis ci-dessous
-2. Chaque affirmation DOIT être suivie de sa source: [Nom du livre Chapitre:Section]
-3. FORMAT OBLIGATOIRE:
-   - Citation directe du texte original
-   - [Source exacte]  
-   - Explication basée uniquement sur cette citation
-   - Application spirituelle pratique
+MISSION:
+1. TRADUIS et EXPLIQUE les passages hébreux fournis ci-dessous
+2. Chaque explication DOIT inclure la source: [Nom du livre Chapitre:Section]
+3. Relie ces enseignements à la question posée
 
-4. Si aucun passage ne répond directement à la question, réponds: "❗ Je n'ai pas trouvé de passage pertinent dans les textes fournis."
+FORMAT REQUIS:
+- Traduction/paraphrase du passage hébreu
+- [Source exacte]
+- Explication spirituelle du message
+- Application pratique pour la question
 
-5. JAMAIS de connaissance générale - SEULEMENT les textes fournis
+Si les passages ne répondent pas à la question, cite au moins 2-3 passages traduits avec leurs sources et explique pourquoi ils sont pertinents.
 
-TEXTES FOURNIS:
+PASSAGES HÉBREUX AUTHENTIQUES:
 ${contextText}
 
 QUESTION: ${question}
 
-RÉPONSE (en français, avec sources obligatoires entre crochets):`;
+RÉPONSE (en français, avec traductions et sources obligatoires):`;
   }
 
   static createFallbackPrompt(question: string, partialContext?: string): string {
