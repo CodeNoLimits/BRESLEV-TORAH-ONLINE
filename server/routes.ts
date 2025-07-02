@@ -9,9 +9,9 @@ import { v1beta1, protos } from '@google-cloud/text-to-speech';
 import fs from 'fs/promises';
 import path from 'path';
 import { validateSectionExists, getBookConfig } from '@shared/data/BRESLOV_BOOKS';
-import { registerMetaRoutes } from './routes/meta.js';
-import { ttsRouter } from './routes/tts.js';
-import chatRouter from './routes/chat.js';
+import { registerMetaRoutes } from './routes/meta';
+import { ttsRouter } from './routes/tts';
+import chatRouter from './routes/chat';
 // Dynamic import for ES module compatibility
 let fullTextExtractor: any = null;
 
@@ -19,7 +19,7 @@ let fullTextExtractor: any = null;
 async function loadFullTextExtractor() {
   if (!fullTextExtractor) {
     try {
-      fullTextExtractor = await import('./fullTextExtractor.js');
+      fullTextExtractor = await import('./fullTextExtractor');
     } catch (error) {
       console.error('[Routes] Failed to load fullTextExtractor:', error);
       throw new Error('Text extractor module not available');
