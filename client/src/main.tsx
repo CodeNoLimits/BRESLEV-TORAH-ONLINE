@@ -5,7 +5,7 @@ import { Switch, Route } from "wouter";
 import "./index.css";
 import { Toaster } from "@/components/ui/toaster";
 import { toast } from "@/hooks/use-toast";
-import AppSimple from "./AppSimple";
+import AppUltimate from "./AppUltimate";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,8 +31,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Switch>
-        <Route path="/" component={AppSimple} />
-        <Route component={AppSimple} />
+        <Route path="/" component={AppUltimate} />
+        <Route component={AppUltimate} />
       </Switch>
       <Toaster />
     </QueryClientProvider>

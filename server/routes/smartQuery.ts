@@ -27,43 +27,67 @@ router.post("/", async (req, res) => {
 
     console.log(`[SmartQuery] Question reçue: ${question}`);
 
-    // Solution ultra-simple selon playbook : utiliser PostgreSQL directement
+    // RECHERCHE INTELLIGENTE dans VOS livres hébreux exclusivement
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     
     let context = "";
     
     try {
+      // Recherche par mots-clés dans VOS livres en priorité
+      const searchPattern = `%${question.toLowerCase()}%`;
+      
       const { rows } = await pool.query(`
-        SELECT book_title, content, hebrew_content, chapter_number, section_number
+        SELECT book_title, content, hebrew_content, chapter_number, section_number,
+               CASE 
+                 WHEN LOWER(content) LIKE $1 THEN 3.0
+                 WHEN LOWER(book_title) LIKE $1 THEN 2.0
+                 WHEN LOWER(hebrew_content) LIKE $1 THEN 1.5
+                 ELSE 1.0
+               END as relevance_score
         FROM book_embeddings 
         WHERE content IS NOT NULL AND LENGTH(content) > 200
-        ORDER BY RANDOM()
+        ORDER BY relevance_score DESC, RANDOM()
         LIMIT 8
-      `);
+      `, [searchPattern]);
       
-      console.log(`[SmartQuery] ${rows.length} passages trouvés dans PostgreSQL`);
+      console.log(`[SmartQuery] ${rows.length} passages trouvés dans VOS livres avec score de pertinence`);
       
       if (rows.length === 0) {
-        return res.json({ 
-          answer: "Aucun passage trouvé dans la base de données." 
-        });
+        // Fallback - prendre du contenu authentique de VOS livres
+        const fallbackQuery = await pool.query(`
+          SELECT book_title, content, hebrew_content, chapter_number, section_number
+          FROM book_embeddings 
+          WHERE content IS NOT NULL AND LENGTH(content) > 500
+          ORDER BY RANDOM()
+          LIMIT 8
+        `);
+        
+        console.log(`[SmartQuery] Fallback: ${fallbackQuery.rows.length} passages de VOS livres`);
+        
+        if (fallbackQuery.rows.length === 0) {
+          return res.json({ 
+            answer: "❌ Aucun contenu trouvé dans vos livres. Vérifiez que la base de données contient vos 13 livres hébreux." 
+          });
+        }
+        
+        rows.push(...fallbackQuery.rows);
       }
       
       const relevantContent = rows.map((row: any) => 
-        `[${row.book_title} - ${row.chapter_number}:${row.section_number}]\n${row.content.substring(0, 800)}...`
+        `[${row.book_title} - Chapitre ${row.chapter_number}:${row.section_number}]\n${row.content.substring(0, 1000)}\n\nTexte hébreu: ${row.hebrew_content ? row.hebrew_content.substring(0, 300) : 'Non disponible'}`
       );
       
-      console.log(`[SmartQuery] ${relevantContent.length} passages trouvés`);
+      console.log(`[SmartQuery] ${relevantContent.length} extraits préparés de VOS livres`);
 
-      // Construire le contexte
+      // Construire le contexte avec sources authentiques
       context = relevantContent
-        .map((content: string, index: number) => `${content.substring(0, 800)}...\n[Source: Enseignement ${index + 1}]`)
-        .join('\n---\n');
+        .map((content: string, index: number) => `${content}\n[Source: Livre ${index + 1}]`)
+        .join('\n\n---\n\n');
         
     } catch (dbError) {
       console.error('[SmartQuery] Erreur PostgreSQL:', dbError);
       return res.json({ 
-        answer: "Erreur d'accès à la base de données." 
+        answer: "❌ Erreur d'accès à la base de données contenant vos livres hébreux." 
       });
     }
 
@@ -74,22 +98,28 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Prompt optimisé selon vos spécifications
-    const prompt = `Tu es un érudit de Rabbi Na'hman. Règles STRICTES:
-1️⃣ Utilise UNIQUEMENT le CONTEXTE fourni ci-dessous.
-2️⃣ CITE une phrase exacte puis [Source: Enseignement X].
-3️⃣ Structure obligatoire:
-   • Citation textuelle
-   • Source précise
-   • Explication (≤150 mots)
-   • Application pratique
+    // Prompt ULTRA-STRICT pour utiliser VOS livres EXCLUSIVEMENT
+    const prompt = `Tu es un érudit spécialisé dans les enseignements de Rabbi Na'hman de Breslov. 
 
-CONTEXTE:
+RÈGLES ABSOLUES ET NON-NÉGOCIABLES:
+🚫 Tu ne peux utiliser AUCUNE connaissance générale sur Rabbi Nahman
+🚫 Tu ne peux utiliser AUCUNE source externe 
+✅ Tu dois utiliser UNIQUEMENT le contexte ci-dessous extrait des livres personnels de l'utilisateur
+✅ Chaque réponse DOIT contenir des citations exactes avec [Source: Livre X]
+✅ Si le contexte ne permet pas de répondre, dis clairement "Le contexte fourni ne contient pas d'information sur cette question"
+
+FORMAT OBLIGATOIRE:
+1. Citation textuelle exacte du contexte
+2. [Source: Livre X] - obligatoire  
+3. Explication basée uniquement sur la citation (max 150 mots)
+4. Application pratique tirée du texte cité
+
+CONTEXTE AUTHENTIQUE DES LIVRES DE L'UTILISATEUR:
 """${context}"""
 
 QUESTION: ${question}
 
-Réponds en français uniquement avec les sources fournies.`;
+IMPORTANT: Si tu n'arrives pas à répondre avec le contexte fourni, ne invente rien. Dis simplement que l'information n'est pas dans les extraits fournis.`;
 
     const result = await model.generateContent(prompt);
     const answer = result.response.text().trim();
