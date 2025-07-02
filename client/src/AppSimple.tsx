@@ -98,28 +98,7 @@ function AppSimple() {
     speak
   );
 
-  // Enhanced STT for direct voice questions
-  const { useSTT } = await import('./hooks/useSTT');
-  const sttOptions = {
-    language: 'fr-FR',
-    onResult: (transcript: string) => {
-      console.log('[AppSimple] Voice input received:', transcript);
-      setCurrentInput(transcript);
-      // Auto-send voice questions
-      if (transcript.trim().length > 10) {
-        handleSendMessage(transcript, 'chat');
-      }
-    },
-    onError: (error: any) => {
-      console.error('[AppSimple] STT Error:', error);
-    }
-  };
-  
-  const { 
-    isListening: isSTTListening, 
-    startListening: startSTT, 
-    stopListening: stopSTT 
-  } = useSTT(sttOptions);
+  // Voice input handled by useVoiceInput hook
 
   // Initialize lightweight cache only - no heavy preloading
   useEffect(() => {
@@ -882,15 +861,15 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                   </svg>
                 </button>
                 
-                {/* Bouton STT séparé pour questions directes */}
+                {/* Bouton de reconnaissance vocale directe */}
                 <button
-                  onClick={isSTTListening ? stopSTT : startSTT}
+                  onClick={isListening ? stopListening : startListening}
                   className={`p-3 rounded-lg transition-all duration-200 touch-target ${
-                    isSTTListening 
+                    isListening 
                       ? 'bg-orange-600 hover:bg-orange-500 text-white animate-pulse' 
                       : 'bg-blue-700 hover:bg-blue-600 text-blue-200'
                   }`}
-                  title={isSTTListening ? 'Arrêter l\'écoute directe' : 'Question vocale directe'}
+                  title={isListening ? 'Arrêter l\'écoute vocale' : 'Question vocale directe'}
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
