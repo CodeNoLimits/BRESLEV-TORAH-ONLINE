@@ -12,6 +12,7 @@ import { validateSectionExists, getBookConfig } from '@shared/data/BRESLOV_BOOKS
 import { registerMetaRoutes } from './routes/meta';
 import { ttsRouter } from './routes/tts';
 import chatRouter from './routes/chat';
+import smartQueryRouter from './routes/smartQuery';
 // Dynamic import for ES module compatibility
 let fullTextExtractor: any = null;
 
@@ -39,6 +40,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // TTS Routes
   app.use('/api', ttsRouter);
   app.use('/api', chatRouter);
+  
+  // Smart Query Route (nouvelle route unifiée)
+  app.use('/api/smart-query', smartQueryRouter);
 
   // Docs API Endpoints
   app.get('/api/docs/index', async (req: Request, res: Response) => {

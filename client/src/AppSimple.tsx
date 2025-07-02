@@ -6,11 +6,10 @@ import { DownloadToast } from './components/DownloadToast';
 import { VoiceAssistant } from './components/VoiceAssistant';
 import { OptimizedTextDisplay } from './components/OptimizedTextDisplay';
 
-import { useTTSFixed } from './hooks/useTTSFixed';
-import { useTTS } from './hooks/useTTS';
+import { useGlobalTTS } from './services/globalTTSManager';
+import { useAsk } from './hooks/useAsk';
+import { useVoiceInputUnified } from './hooks/useVoiceInputUnified';
 
-import { MobileTTS, isMobile, MobileUtils } from './services/mobileOptimized';
-import { useVoiceInput } from './hooks/useVoiceInput';
 import { useToast } from './hooks/use-toast';
 import { TextSegmenter } from './services/textSegmenter';
 import { sefariaClient, SefariaText } from './services/sefariaDirectClient';
@@ -27,6 +26,12 @@ interface Message {
   content: string;
   timestamp: Date;
   mode?: string;
+  sources?: Array<{
+    book: string;
+    chapter: string;
+    section: string;
+    reference: string;
+  }>;
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -65,15 +70,17 @@ function AppSimple() {
   const [showDownloadToast, setShowDownloadToast] = useState(false);
   const [bulkLoadStarted, setBulkLoadStarted] = useState(false);
 
-  // TTS Premium avec fallback Web Speech API - VERSION FIXÉE
-  const { speak, stop: stopTTS, isSpeaking } = useTTS();
+  // TTS Global unifié - VERSION RÉVOLUTIONNAIRE
+  const { speak, stop: stopTTS, isSpeaking } = useGlobalTTS();
+  
+  // Système de questions unifié 
+  const { ask, isLoading: isAsking } = useAsk();
   const { toast } = useToast();
 
   // Fonction TTS multilingue
   const speakWithLanguage = useCallback((text: string, langCode?: string) => {
     if (!ttsEnabled || !text) return;
-    const finalLangCode = langCode || 'fr-FR';
-    speak(text, finalLangCode);
+    speak(text);
   }, [ttsEnabled, speak]);
 
   // Fonction speakGreeting pour compatibilité avec Header
@@ -89,15 +96,58 @@ function AppSimple() {
     const message = greetingMessages[language] || greetingMessages.fr;
     const langCode = language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'fr-FR';
 
-    speakWithLanguage(message, langCode);
+    speakWithLanguage(message);
   }, [ttsEnabled, language, speakWithLanguage]);
 
-  // Voice input for questions with STT
-  const { startListening, stopListening, isListening } = useVoiceInput(
-    selectedText?.ref || null,
-    addMessage,
-    speak
-  );
+  // Nouveau gestionnaire de questions unifié
+  const handleQuestion = useCallback(async (question: string) => {
+    console.log('[AppSimple] Question reçue:', question);
+    
+    // Message utilisateur
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: question,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    try {
+      // Appel API unifié vers smart-query
+      const result = await ask(question);
+      
+      // Message IA avec filtrage des blocs bleus
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: result.answer,
+        timestamp: new Date(),
+        sources: result.sources
+      };
+      setMessages(prev => [...prev, aiMessage]);
+
+      // TTS automatique si activé
+      if (ttsEnabled && result.answer) {
+        console.log('[AppSimple] Lecture automatique TTS...');
+        await speak(result.answer);
+      }
+      
+    } catch (error) {
+      console.error('[AppSimple] Erreur question:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: "❗ Une erreur est survenue lors du traitement de votre question.",
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    }
+  }, [ask, speak, ttsEnabled]);
+
+  // Voice input unifié avec nouveau hook
+  const { startListening, stopListening, isListening } = useVoiceInputUnified({
+    onTranscript: handleQuestion
+  });
 
   // Voice input handled by useVoiceInput hook
 
@@ -583,7 +633,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
 
               <OptimizedTextDisplay
                 selectedText={selectedText}
-                onTTSSpeak={speakWithLanguage}
+                onTTSSpeak={speak}
                 isTTSSpeaking={isSpeaking}
                 language={language}
                 onTextSelection={setUserSelectedText}
@@ -620,7 +670,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                       (selectedText.text.length > 0 ? selectedText.text[0] : selectedText.title);
                     console.log('[AppSimple] Manual TTS trigger:', textToSpeak.substring(0, 50));
 
-                    speak(textToSpeak, 'fr-FR'); // TTS français
+                    speak(textToSpeak); // TTS unifié
                   }}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${
                     isSpeaking 

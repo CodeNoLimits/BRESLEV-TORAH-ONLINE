@@ -263,3 +263,51 @@ div:has(> div:contains("KEY POINTS")),
 .chat-bubble:contains("GUIDANCE SPIRITUELLE BASÉE SUR") {
   display: none !important;
 }
+
+/* ========================================
+   SYSTÈME ANTI-BLOC-BLEU RÉVOLUTIONNAIRE
+   ======================================== */
+
+/* Suppression agressive de tous les patterns de blocs contexte */
+*[class*="context"], 
+*[class*="Context"], 
+*[class*="summary"], 
+*[class*="Summary"],
+*[class*="points"], 
+*[class*="Points"],
+*[data-type*="context"],
+*[data-type*="summary"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Suppression par contenu - patterns français */
+*:contains("**Contexte"), 
+*:contains("**Points"), 
+*:contains("POINTS CLÉS"),
+*:contains("Points-clés"),
+*:contains("En résumé"),
+*:contains("Points principaux") {
+  display: none !important;
+}
+
+/* Indicateurs TTS et Voice améliorés */
+.speaking-indicator {
+  animation: pulse 1.5s infinite;
+  color: #10b981;
+  font-weight: 600;
+}
+
+.voice-active {
+  background: linear-gradient(45deg, #ef4444, #f97316) !important;
+  animation: voicePulse 1s infinite;
+  border-radius: 50%;
+}
+
+@keyframes voicePulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
