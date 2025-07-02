@@ -17,27 +17,34 @@ export class PromptTemplates {
       `[${result.source.reference}]\n${result.content}${result.hebrewContent ? `\n(Hébreu: ${result.hebrewContent})` : ''}\n---`
     ).join('\n');
 
-    return `Tu es un érudit spécialisé dans les enseignements de Rabbi Nahman de Breslov. Tu reçois des passages en hébreu authentiques de ses œuvres.
+    if (!context || context.length === 0) {
+      return `❗ AUCUN PASSAGE TROUVÉ dans les textes de Rabbi Nahman fournis.
 
-MISSION:
-1. TRADUIS et EXPLIQUE les passages hébreux fournis ci-dessous
-2. Chaque explication DOIT inclure la source: [Nom du livre Chapitre:Section]
-3. Relie ces enseignements à la question posée
+La question "${question}" ne trouve pas de correspondance dans les livres suivants :
+- Likutei Moharan Kama (2864 passages)
+- Hishtapchut HaNefesh (1149 passages) 
+- Chayei Moharan (1428 passages)
+- Yemei Moharnat (988 passages)
+- Likutei Etzot (230 passages)
+- Likutei Moharan Tinyana (250 passages)
 
-FORMAT REQUIS:
-- Traduction/paraphrase du passage hébreu
-- [Source exacte]
-- Explication spirituelle du message
-- Application pratique pour la question
+Reformulez votre question avec des termes plus spécifiques aux enseignements de Rabbi Nahman.`;
+    }
 
-Si les passages ne répondent pas à la question, cite au moins 2-3 passages traduits avec leurs sources et explique pourquoi ils sont pertinents.
+    return `INSTRUCTIONS STRICTES : Tu DOIS répondre UNIQUEMENT avec les passages hébreux fournis ci-dessous de Rabbi Nahman de Breslov.
 
-PASSAGES HÉBREUX AUTHENTIQUES:
+RÈGLES ABSOLUES :
+1. CITE le texte hébreu exact puis traduis-le
+2. Ajoute OBLIGATOIREMENT [${context[0].source.reference}] après chaque citation
+3. Si aucun passage ne répond EXACTEMENT à la question, réponds : "❗ Aucun passage pertinent trouvé"
+4. JAMAIS de connaissance générale - SEULEMENT ces passages
+
+PASSAGES AUTHENTIQUES DE RABBI NAHMAN :
 ${contextText}
 
-QUESTION: ${question}
+QUESTION : ${question}
 
-RÉPONSE (en français, avec traductions et sources obligatoires):`;
+RÉPONSE (FORMAT OBLIGATOIRE: Citation hébraïque → Traduction → [Source] → Explication) :`;
   }
 
   static createFallbackPrompt(question: string, partialContext?: string): string {

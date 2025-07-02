@@ -35,11 +35,11 @@ export class QueryRouter {
       return 'force_rag';
     }
     
-    // Mots-clés spirituels → essaie RAG d'abord
-    const spiritualKeywords = ['rabbi', 'rebbe', 'nahman', 'tsaddik', 'torah', 'mitzvah', 'tikkun', 'joie', 'musique', 'prière', 'yetzer'];
+    // Mots-clés spirituels → FORCE RAG (pas "try first")
+    const spiritualKeywords = ['rabbi', 'rebbe', 'nahman', 'tsaddik', 'torah', 'mitzvah', 'tikkun', 'joie', 'musique', 'prière', 'yetzer', 'enseignement', 'dit', 'explique', 'résume', 'points'];
     if (spiritualKeywords.some(keyword => questionLower.includes(keyword))) {
-      console.log('[QueryRouter] Try RAG first pour:', question);
-      return 'try_rag_first';
+      console.log('[QueryRouter] Force RAG détecté pour:', question);
+      return 'force_rag';
     }
     
     console.log('[QueryRouter] Requête générale:', question);

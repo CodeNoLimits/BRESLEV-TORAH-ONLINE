@@ -6,7 +6,7 @@ import { DownloadToast } from './components/DownloadToast';
 import { VoiceAssistant } from './components/VoiceAssistant';
 import { OptimizedTextDisplay } from './components/OptimizedTextDisplay';
 
-import { useGlobalTTS } from './services/globalTTSManager';
+import { simpleTTS } from './services/simpleTTS';
 import { useAsk } from './hooks/useAsk';
 import { useVoiceInputUnified } from './hooks/useVoiceInputUnified';
 
@@ -70,8 +70,11 @@ function AppSimple() {
   const [showDownloadToast, setShowDownloadToast] = useState(false);
   const [bulkLoadStarted, setBulkLoadStarted] = useState(false);
 
-  // TTS Global unifié - VERSION RÉVOLUTIONNAIRE
-  const { speak, stop: stopTTS, isSpeaking } = useGlobalTTS();
+  // TTS Global unifié - VERSION SIMPLE
+  // TTS simple et fiable
+  const speak = (text: string) => simpleTTS.speak(text);
+  const stopTTS = () => simpleTTS.stop();
+  const isSpeaking = false; // Pour compatibilité
   
   // Système de questions unifié 
   const { ask, isLoading: isAsking } = useAsk();
