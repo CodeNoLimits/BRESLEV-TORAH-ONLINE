@@ -673,17 +673,16 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                 <button
                   onClick={() => {
                     const content = userSelectedText || selectedText.text.join('\n\n');
-                    const prefix = userSelectedText ? 'GUIDANCE SPIRITUELLE BASÉE SUR LE TEXTE SÉLECTIONNÉ' : `GUIDANCE SPIRITUELLE BASÉE SUR ${selectedText.title}`;
 
                     // Use intelligent segmentation for long texts
                     if (!userSelectedText && content.length > 8000) {
                       const segmentResult = TextSegmenter.segmentText(content, selectedText.title);
                       const optimizedContent = TextSegmenter.formatForAI(segmentResult, selectedText.title);
                       console.log(`[AppSimple] Guidance - using segmented text (${optimizedContent.length} chars from ${content.length} original)`);
-                      handleAIRequest(`${prefix}:\n\n${optimizedContent}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
+                      handleAIRequest(`${optimizedContent}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
                     } else {
                       console.log(`[AppSimple] Guidance - using ${userSelectedText ? 'selected' : 'full'} text (${content.length} chars)`);
-handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
+                      handleAIRequest(`${content}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
                     }
 
                     if (userSelectedText) setUserSelectedText('');
@@ -773,9 +772,9 @@ handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider da
                     const segmentResult = TextSegmenter.segmentText(content, 'Demande de guidance');
                     const optimizedContent = TextSegmenter.formatForAI(segmentResult, 'Guidance spirituelle');
                     console.log(`[AppSimple] Guidance - using segmented text (${optimizedContent.length} chars from ${content.length} original)`);
-                    handleAIRequest(`GUIDANCE SPIRITUELLE:\n\n${optimizedContent}\n\nComment puis-je appliquer ces enseignements dans ma vie quotidienne?`, 'counsel');
+                    handleAIRequest(`${optimizedContent}\n\nComment puis-je appliquer ces enseignements dans ma vie quotidienne?`, 'counsel');
                   } else {
-                    handleAIRequest(`GUIDANCE SPIRITUELLE:\n\n${content}\n\nComment puis-je appliquer ces enseignements dans ma vie quotidienne?`, 'counsel');
+                    handleAIRequest(`${content}\n\nComment puis-je appliquer ces enseignements dans ma vie quotidienne?`, 'counsel');
                   }
 
                   if (selectedText) {

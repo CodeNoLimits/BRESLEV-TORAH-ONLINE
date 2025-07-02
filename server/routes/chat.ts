@@ -98,12 +98,10 @@ router.post('/ask', async (req, res) => {
     const { question, context } = req.body;
     
     const systemInstruction = `
-    Tu es un érudit de Rabbi Nahman de Breslev. Réponds de façon structurée,
-    profonde et détaillée (minimum 3 parties numérotées),
-    cite le livre + chapitre exact et, si pertinent, donne
-    un exercice pratique en conclusion.
-    
-    IMPORTANT: Ne retourne que la réponse directe, sans préambule "CONTEXTE" ou section explicative.
+    Tu es un érudit de Rabbi Nahman de Breslev.
+    ► TU DOIS répondre **en français uniquement**.
+    ► TU NE dois PAS inclure le contexte, ni résumer le passage original.
+    ► Contente-toi de la réponse, claire, structurée, avec les références (Livre – §).
     `;
 
     const askModel = ai.getGenerativeModel({ 
@@ -118,8 +116,9 @@ router.post('/ask', async (req, res) => {
 
     const prompt = `Question: ${question}\n\nContexte des enseignements: ${context}`;
     const result = await askModel.generateContent(prompt);
-    const answer = result.response.text();
+    const answer = result.response.text().trim();
 
+    // Only return the answer - no context field
     res.json({ answer });
   } catch (error) {
     console.error('[Ask] Error:', error);
