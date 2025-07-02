@@ -691,8 +691,7 @@ handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider da
                   className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded transition-colors"
                   disabled={isAILoading}
                 >
-                  Increase context search to 8 results and apply the change in the code.```text
-Guidance sélection' : 'Guidance personnelle'}
+                  {userSelectedText ? 'Guidance sélection' : 'Guidance personnelle'}
                 </button>
               </div>
             </div>

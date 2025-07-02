@@ -623,4 +623,3 @@ TRADUCTION FRANÇAISE:`;
 
   return httpServer;
 }
-```

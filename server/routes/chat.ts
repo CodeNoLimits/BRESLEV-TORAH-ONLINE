@@ -93,7 +93,7 @@ router.post("/chat", async (req, res) => {
 });
 
 // Enhanced ask endpoint with better RAG
-app.post('/ask', async (req, res) => {
+router.post('/ask', async (req, res) => {
   try {
     const { question, context } = req.body;
     
@@ -106,7 +106,7 @@ app.post('/ask', async (req, res) => {
     IMPORTANT: Ne retourne que la réponse directe, sans préambule "CONTEXTE" ou section explicative.
     `;
 
-    const model = genAI.getGenerativeModel({ 
+    const askModel = ai.getGenerativeModel({ 
       model: "gemini-1.5-flash",
       generationConfig: {
         maxOutputTokens: 1024,
@@ -117,7 +117,7 @@ app.post('/ask', async (req, res) => {
     });
 
     const prompt = `Question: ${question}\n\nContexte des enseignements: ${context}`;
-    const result = await model.generateContent(prompt);
+    const result = await askModel.generateContent(prompt);
     const answer = result.response.text();
 
     res.json({ answer });
