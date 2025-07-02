@@ -60,7 +60,7 @@ export const BreslovCompleteLibrary: React.FC<BreslovCompleteLibraryProps> = ({
       filtered = breslovComplete.searchTexts(searchQuery);
     }
 
-    setFilteredTexts(filtered.slice(0, 100)); // Limit to 100 for performance
+    setFilteredTexts(filtered); // Show all results for complete exploration
   };
 
   const handleTextClick = async (text: CompleteBreslovText) => {
@@ -255,11 +255,7 @@ export const BreslovCompleteLibrary: React.FC<BreslovCompleteLibraryProps> = ({
                 </div>
               )}
 
-              {filteredTexts.length === 100 && texts.length > 100 && (
-                <div className="text-center py-4 text-gray-400">
-                  <p className="text-sm">Affichage limité à 100 résultats. Affinez votre recherche pour voir plus.</p>
-                </div>
-              )}
+              {/* Removed 100 results limit message to allow full exploration */}
             </div>
           )}
         </div>

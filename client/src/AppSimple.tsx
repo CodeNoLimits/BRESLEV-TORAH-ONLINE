@@ -723,9 +723,12 @@ handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider da
                     <span className="text-sm font-medium text-sky-300">
                       Vous
                     </span>
-                    {message.mode && (
+                    {message.mode && message.mode !== 'general' && (
                       <span className="text-xs text-slate-500 bg-slate-700 px-2 py-1 rounded">
-                        {message.mode}
+                        {message.mode === 'snippet' ? 'Analyse' : 
+                         message.mode === 'advice' ? 'Conseil' : 
+                         message.mode === 'counsel' ? 'Guidance' :
+                         message.mode}
                       </span>
                     )}
                   </div>
