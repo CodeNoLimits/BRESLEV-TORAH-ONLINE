@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* COUP DE MASSE: Dernière barrière anti-cadre bleu contexte */
+.chat-bubble:has([data-context]),
+.chat-bubble:has(.context-flag),
+.message-bubble[data-origin="context"],
+.context-block,
+[class*="context"],
+div:has(> div:contains("CONTEXTE")),
+div:has(> div:contains("CONTEXT")) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
 /* Mobile-first responsive design for Le Compagnon du Cœur */
 @layer base {
   html {

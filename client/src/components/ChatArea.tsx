@@ -54,7 +54,21 @@ export const ChatArea = ({
 
       {/* Messages */}
       {messages
-            .filter(message => !message.text?.toUpperCase().includes('CONTEXTE') && !message.text?.toUpperCase().includes('CONTEXT'))
+            .filter(message => {
+              // COUP DE MASSE: Triple filtrage anti-contexte
+              const blackList = [
+                "CONTEXTE DE L'ENSEIGNEMENT",
+                "CONTEXT OF THE TEACHING", 
+                "GUIDANCE SPIRITUELLE BASÉE SUR",
+                "CONTEXTE PRINCIPAL",
+                "MAIN CONTEXT",
+                "TEACHING CONTEXT"
+              ];
+              
+              return !blackList.some(flag => 
+                message.text?.toUpperCase().includes(flag.toUpperCase())
+              );
+            })
             .map((message) => (
         <div
           key={message.id}

@@ -71,8 +71,7 @@ router.post("/chat", async (req, res) => {
     }
 
     res.json({ 
-      answer: response,
-      hasContext: !!ref
+      answer: response
     });
 
   } catch (error) {
@@ -118,7 +117,7 @@ router.post('/ask', async (req, res) => {
     const result = await askModel.generateContent(prompt);
     const answer = result.response.text().trim();
 
-    // Only return the answer - no context field
+    // COUP DE MASSE: Réponse uniquement, jamais de contexte
     res.json({ answer });
   } catch (error) {
     console.error('[Ask] Error:', error);
