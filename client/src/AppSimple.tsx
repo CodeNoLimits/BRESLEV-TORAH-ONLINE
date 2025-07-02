@@ -91,12 +91,35 @@ function AppSimple() {
     speakWithLanguage(message, langCode);
   }, [ttsEnabled, language, speakWithLanguage]);
 
-  // Voice input for questions
+  // Voice input for questions with STT
   const { startListening, stopListening, isListening } = useVoiceInput(
     selectedText?.ref || null,
     addMessage,
     speak
   );
+
+  // Enhanced STT for direct voice questions
+  const { useSTT } = await import('./hooks/useSTT');
+  const sttOptions = {
+    language: 'fr-FR',
+    onResult: (transcript: string) => {
+      console.log('[AppSimple] Voice input received:', transcript);
+      setCurrentInput(transcript);
+      // Auto-send voice questions
+      if (transcript.trim().length > 10) {
+        handleSendMessage(transcript, 'chat');
+      }
+    },
+    onError: (error: any) => {
+      console.error('[AppSimple] STT Error:', error);
+    }
+  };
+  
+  const { 
+    isListening: isSTTListening, 
+    startListening: startSTT, 
+    stopListening: stopSTT 
+  } = useSTT(sttOptions);
 
   // Initialize lightweight cache only - no heavy preloading
   useEffect(() => {
@@ -215,12 +238,15 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
     return results.sort((a, b) => b.score - a.score).slice(0, 3);
   }, []);
 
-  // Enhanced AI handler with intelligent search integration
+  // Enhanced AI handler with intelligent RAG integration
   const handleAIRequest = useCallback(async (text: string, mode: string = 'general') => {
     setIsAILoading(true);
     setStreamingText('');
 
     try {
+      // Import RAG service dynamically
+      const { breslovRAG } = await import('./services/breslovRAG');
+      
       // First check for specific Sefaria requests
       const sefariaRequest = detectSefariaRequest(text);
       let enhancedText = text;
@@ -238,19 +264,11 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
           console.error('[AppSimple] Error fetching Sefaria content:', error);
         }
       } else if (mode === 'general') {
-        // For general questions, search across all loaded texts
-        const searchResults = await searchLoadedTexts(text);
-        if (searchResults.length > 0) {
-          console.log(`[AppSimple] Found ${searchResults.length} relevant texts for question`);
-          let contextualText = `QUESTION: ${text}\n\nCONTEXTE - Textes pertinents de Rabbi Nahman:\n\n`;
-
-          searchResults.forEach((result, index) => {
-            contextualText += `${index + 1}. ${result.book}:\n"${result.content}"\n\n`;
-          });
-
-          contextualText += `Réponds à la question en te basant sur ces textes authentiques de Rabbi Nahman de Breslov.`;
-          enhancedText = contextualText;
-        }
+        // Use intelligent RAG for all general questions
+        console.log(`[AppSimple] Using RAG for question: ${text}`);
+        const relevantContext = await breslovRAG.getRelevantContext(text);
+        enhancedText = `${relevantContext}\n\nQUESTION: ${text}`;
+        console.log(`[AppSimple] RAG context provided for question`);
       }
 
       const prompt = buildPrompt(mode, enhancedText);
@@ -285,9 +303,22 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
       setMessages(prev => [...prev, aiMessage]);
       setStreamingText('');
 
-      // Retirer l'auto-lecture pour éviter les problèmes mobiles
-      // L'utilisateur doit cliquer explicitement sur le bouton TTS
-      console.log(`[AppSimple] Response complete - TTS available via button click`);
+      // Auto-lecture intelligente des réponses IA
+      if (ttsEnabled && fullResponse.trim().length > 0) {
+        // Délai pour éviter les conflits avec l'interface
+        setTimeout(() => {
+          console.log(`[AppSimple] Auto-lecture de la réponse IA`);
+          const cleanResponse = fullResponse
+            .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+            .replace(/\*(.*?)\*/g, '$1')     // Remove italic markdown
+            .replace(/#{1,6}\s/g, '')        // Remove headers
+            .substring(0, 1000);             // Limit to first 1000 chars
+          
+          speakWithLanguage(cleanResponse, 'fr-FR');
+        }, 500);
+      }
+
+      console.log(`[AppSimple] Response complete - Auto-TTS ${ttsEnabled ? 'enabled' : 'disabled'}`);
 
     } catch (error: any) {
       console.error('[AppSimple] AI error:', error);
@@ -839,7 +870,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
               <div className="flex flex-col gap-2">
                 <button
                   onClick={isListening ? stopListening : startListening}
-                  className={`p-3 rounded-lg transition-all duration-200 ${
+                  className={`p-3 rounded-lg transition-all duration-200 touch-target ${
                     isListening 
                       ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse' 
                       : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
@@ -850,6 +881,22 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                     <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"></path>
                   </svg>
                 </button>
+                
+                {/* Bouton STT séparé pour questions directes */}
+                <button
+                  onClick={isSTTListening ? stopSTT : startSTT}
+                  className={`p-3 rounded-lg transition-all duration-200 touch-target ${
+                    isSTTListening 
+                      ? 'bg-orange-600 hover:bg-orange-500 text-white animate-pulse' 
+                      : 'bg-blue-700 hover:bg-blue-600 text-blue-200'
+                  }`}
+                  title={isSTTListening ? 'Arrêter l\'écoute directe' : 'Question vocale directe'}
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+                  </svg>
+                </button>
+                
                 <button
                   onClick={() => handleSendMessage(currentInput, 'chat')}
                   disabled={isAILoading || !currentInput.trim()}

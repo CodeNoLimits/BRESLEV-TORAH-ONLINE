@@ -55,16 +55,28 @@ export const ChatArea = ({
       {/* Messages */}
       {messages
             .filter(message => {
-              // COUP DE MASSE: Triple filtrage anti-contexte
+              // COUP DE MASSE: Filtrage ultra-agressif anti-contexte
               const blackList = [
                 "CONTEXTE DE L'ENSEIGNEMENT",
                 "CONTEXT OF THE TEACHING", 
                 "GUIDANCE SPIRITUELLE BASÉE SUR",
                 "CONTEXTE PRINCIPAL",
                 "MAIN CONTEXT",
-                "TEACHING CONTEXT"
+                "TEACHING CONTEXT",
+                "POINTS CLÉS",
+                "KEY POINTS",
+                "ANALYSE SPIRITUELLE",
+                "SPIRITUAL ANALYSIS"
               ];
               
+              // Filtrage par début de message
+              if (blackList.some(flag => 
+                message.text?.toUpperCase().startsWith(flag.toUpperCase())
+              )) {
+                return false;
+              }
+              
+              // Filtrage par contenu 
               return !blackList.some(flag => 
                 message.text?.toUpperCase().includes(flag.toUpperCase())
               );

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 
 // Fonction pour nettoyer le texte HTML et Markdown
 const cleanText = (text: string): string => {
@@ -9,74 +9,88 @@ const cleanText = (text: string): string => {
   return cleanedText;
 };
 
-export function useTTS() {
+export const useTTS = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const queueRef = useRef<string[]>([]);
 
   useEffect(() => {
-    const handleVoicesChanged = () => {
-      const availableVoices = window.speechSynthesis.getVoices();
-      setVoices(availableVoices);
+    const checkSupport = () => {
+      const supported = 'speechSynthesis' in window;
+      setIsSupported(supported);
+      console.log('[TTS] Web Speech API', supported ? 'détecté et activé' : 'non disponible');
     };
 
-    if ('speechSynthesis' in window && 'SpeechSynthesisUtterance' in window) {
-      setIsSupported(true);
-      console.log('[TTS] Web Speech API détecté et activé');
-      // Charger les voix immédiatement et écouter les changements
-      handleVoicesChanged();
-      window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
-    } else {
-      console.warn('[TTS] Web Speech API non supporté sur cet appareil');
-    }
+    checkSupport();
 
-    return () => {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.onvoiceschanged = null;
+    // Monitor speech synthesis state
+    const checkSpeaking = () => {
+      if (window.speechSynthesis) {
+        setIsSpeaking(window.speechSynthesis.speaking);
       }
     };
+
+    const interval = setInterval(checkSpeaking, 100);
+    return () => clearInterval(interval);
   }, []);
 
-  const speak = useCallback((text: string, lang = 'fr-FR') => {
-    const cleanedText = cleanText(text);
-    console.log('[TTS] 🔊 DEMANDE DE LECTURE:', { text: cleanedText.substring(0, 50) + '...', lang, isSupported });
-    
-    if (!cleanedText || !isSupported) {
-      console.log('[TTS] ❌ Texto vide ou TTS non supporté');
+  const speak = useCallback((text: string, language: string = 'fr-FR') => {
+    if (!isSupported || !text.trim()) {
+      console.warn('[TTS] Conditions non remplies pour la lecture');
       return;
     }
 
-    if (!window.speechSynthesis) {
-      console.error('[TTS] ❌ speechSynthesis not available');
-      return;
-    }
+    try {
+      // Force cancel any ongoing speech
+      window.speechSynthesis.cancel();
 
-    window.speechSynthesis.cancel();
-      
-    const utterance = new SpeechSynthesisUtterance(cleanedText);
-    utterance.lang = lang;
-    utterance.rate = 0.8;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
-      
-    if (voices.length > 0) {
-      const voice = voices.find(v => v.lang.startsWith(lang.split('-')[0])) || voices[0];
-      utterance.voice = voice;
-      console.log('[TTS] 🎯 Using voice:', voice.name, voice.lang);
-    } else {
-      console.log('[TTS] ⚠️ No voices found, using default');
-    }
-      
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = (event) => {
+      // Wait a bit for cancel to complete
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = language;
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        utterance.onstart = () => {
+          console.log('[TTS] Lecture démarrée');
+          setIsSpeaking(true);
+        };
+
+        utterance.onend = () => {
+          console.log('[TTS] Lecture terminée');
+          setIsSpeaking(false);
+          currentUtteranceRef.current = null;
+
+          // Process queue if any
+          if (queueRef.current.length > 0) {
+            const nextText = queueRef.current.shift();
+            if (nextText) speak(nextText, language);
+          }
+        };
+
+        utterance.onerror = (event) => {
+          console.error('[TTS] Erreur:', event.error);
+          setIsSpeaking(false);
+          currentUtteranceRef.current = null;
+
+          // Retry mechanism for network errors
+          if (event.error === 'network' && queueRef.current.length === 0) {
+            console.log('[TTS] Tentative de relance après erreur réseau');
+            setTimeout(() => speak(text, language), 1000);
+          }
+        };
+
+        currentUtteranceRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
+      }, 100);
+
+    } catch (error) {
+      console.error('[TTS] Erreur lors de la lecture:', error);
       setIsSpeaking(false);
-      console.error('[TTS] ❌ ERREUR AUDIO COMPLÈTE:', event.error, event);
-    };
-
-    window.speechSynthesis.speak(utterance);
-
-  }, [isSupported, voices]);
+    }
+  }, [isSupported]);
 
   const stop = useCallback(() => {
     if (isSupported) {
@@ -101,5 +115,5 @@ export function useTTS() {
     return () => window.removeEventListener('videoPlaying', stopOnVideo);
   }, [isSupported]);
 
-  return { speak, stop, isSpeaking, isSupported, voices, speakGreeting };
+  return { speak, stop, isSpeaking, isSupported, voices: [], speakGreeting };
 }

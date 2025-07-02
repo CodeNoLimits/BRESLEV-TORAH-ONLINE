@@ -1,4 +1,3 @@
-
 import express from "express";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -36,13 +35,13 @@ MODES DE RÉPONSE :
 router.post("/chat", async (req, res) => {
   try {
     const { text, ref } = req.body;
-    
+
     if (!text || text.trim().length === 0) {
       return res.status(400).json({ error: "Question vide" });
     }
 
     let prompt = text;
-    
+
     // Add context if reference is provided
     if (ref) {
       try {
@@ -61,7 +60,7 @@ router.post("/chat", async (req, res) => {
     }
 
     console.log(`[Chat] Processing request: ${text.substring(0, 100)}...`);
-    
+
     const chat = model.startChat();
     const result = await chat.sendMessage(prompt);
     const response = result.response.text();
@@ -76,9 +75,9 @@ router.post("/chat", async (req, res) => {
 
   } catch (error) {
     console.error("[Chat] Error:", error);
-    
+
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    
+
     if (errorMessage.includes('quota') || errorMessage.includes('limit')) {
       return res.status(429).json({ 
         error: "Le guide spirituel est temporairement surchargé. Veuillez patienter un moment."
@@ -91,29 +90,40 @@ router.post("/chat", async (req, res) => {
   }
 });
 
-// Enhanced ask endpoint with better RAG
+// Enhanced ask endpoint with intelligent RAG
 router.post('/ask', async (req, res) => {
   try {
-    const { question, context } = req.body;
-    
+    const { question } = req.body;
+
     const systemInstruction = `
-    Tu es un érudit de Rabbi Nahman de Breslev.
-    ► TU DOIS répondre **en français uniquement**.
-    ► TU NE dois PAS inclure le contexte, ni résumer le passage original.
-    ► Contente-toi de la réponse, claire, structurée, avec les références (Livre – §).
+    Tu es Le Compagnon du Cœur, érudit expert de Rabbi Nahman de Breslov.
+
+    RÈGLES ABSOLUES:
+    ► Réponds UNIQUEMENT en français
+    ► Structure ta réponse en 4 parties numérotées:
+      1. Réponse spirituelle détaillée (300-400 mots)
+      2. Référence exacte (Livre, section)
+      3. Fil conducteur spirituel principal
+      4. Conseils pratiques pour la vie quotidienne
+    ► NE PAS inclure de section "CONTEXTE" ou "CONTEXT"
+    ► Utilise UNIQUEMENT les textes fournis dans le contexte
     `;
 
     const askModel = ai.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-1.5-pro-latest",
       generationConfig: {
-        maxOutputTokens: 1024,
-        temperature: 0.4,
+        maxOutputTokens: 2048,
+        temperature: 0.3,
         topP: 0.95,
       },
       systemInstruction
     });
 
-    const prompt = `Question: ${question}\n\nContexte des enseignements: ${context}`;
+    // Enhanced prompt with structured context
+    const prompt = `QUESTION: ${question}
+
+Réponds en te basant uniquement sur les enseignements authentiques de Rabbi Nahman fournis dans le contexte.`;
+
     const result = await askModel.generateContent(prompt);
     const answer = result.response.text().trim();
 

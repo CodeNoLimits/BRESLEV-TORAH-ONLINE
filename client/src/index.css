@@ -2,17 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-/* COUP DE MASSE: Dernière barrière anti-cadre bleu contexte */
+/* COUP DE MASSE: Triple barrière anti-cadre bleu contexte - NUCLEAR OPTION */
 .chat-bubble:has([data-context]),
 .chat-bubble:has(.context-flag),
 .message-bubble[data-origin="context"],
 .context-block,
+.guidance-context,
+[data-context-type],
+.context-flag,
 [class*="context"],
+[id*="context"],
 div:has(> div:contains("CONTEXTE")),
-div:has(> div:contains("CONTEXT")) {
+div:has(> div:contains("CONTEXT")),
+div:has(> div:contains("POINTS CLÉS")),
+div:has(> div:contains("KEY POINTS")),
+.chat-bubble:contains("CONTEXTE DE L'ENSEIGNEMENT"),
+.chat-bubble:contains("CONTEXT OF THE TEACHING"),
+.chat-bubble:contains("GUIDANCE SPIRITUELLE BASÉE SUR"),
+.chat-bubble:contains("POINTS CLÉS"),
+.message-content:contains("CONTEXTE"),
+.message-content:contains("CONTEXT") {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
 }
 
 /* Mobile-first responsive design for Le Compagnon du Cœur */
