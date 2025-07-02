@@ -20,20 +20,30 @@ export const useTTS = () => {
       const supported = 'speechSynthesis' in window;
       setIsSupported(supported);
       console.log('[TTS] Web Speech API', supported ? 'détecté et activé' : 'non disponible');
+      
+      // Force reset du système TTS
+      if (supported && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        console.log('[TTS] Système réinitialisé');
+      }
     };
 
     checkSupport();
 
-    // Monitor speech synthesis state
+    // Monitor speech synthesis state avec reset automatique
     const checkSpeaking = () => {
       if (window.speechSynthesis) {
-        setIsSpeaking(window.speechSynthesis.speaking);
+        const actuallySpaeking = window.speechSynthesis.speaking;
+        if (isSpeaking && !actuallySpaeking) {
+          console.log('[TTS] Lecture terminée automatiquement');
+          setIsSpeaking(false);
+        }
       }
     };
 
-    const interval = setInterval(checkSpeaking, 100);
+    const interval = setInterval(checkSpeaking, 250);
     return () => clearInterval(interval);
-  }, []);
+  }, [isSpeaking]);
 
   const speak = useCallback((text: string, language: string = 'fr-FR') => {
     if (!isSupported || !text.trim()) {

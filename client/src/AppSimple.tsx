@@ -6,6 +6,7 @@ import { DownloadToast } from './components/DownloadToast';
 import { VoiceAssistant } from './components/VoiceAssistant';
 import { OptimizedTextDisplay } from './components/OptimizedTextDisplay';
 
+import { useTTSFixed } from './hooks/useTTSFixed';
 import { useTTS } from './hooks/useTTS';
 
 import { MobileTTS, isMobile, MobileUtils } from './services/mobileOptimized';
@@ -64,7 +65,7 @@ function AppSimple() {
   const [showDownloadToast, setShowDownloadToast] = useState(false);
   const [bulkLoadStarted, setBulkLoadStarted] = useState(false);
 
-  // TTS Premium avec fallback Web Speech API
+  // TTS Premium avec fallback Web Speech API - VERSION FIXÉE
   const { speak, stop: stopTTS, isSpeaking } = useTTS();
   const { toast } = useToast();
 
