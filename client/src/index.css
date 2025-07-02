@@ -231,3 +231,20 @@ div:has(> div:contains("CONTEXT")) {
     appearance: none !important;
   }
 }
+
+/* COUP DE MASSE: Triple kill CSS defense layer - hide any context blocks */
+.chat-bubble:has([data-context]),
+.message-bubble[data-origin="context"],
+.context-block,
+.guidance-context,
+[data-context-type],
+.context-flag {
+  display: none !important;
+}
+
+/* Nuclear option: Hide any message containing context keywords */
+.chat-bubble:contains("CONTEXTE DE L'ENSEIGNEMENT"),
+.chat-bubble:contains("CONTEXT OF THE TEACHING"),
+.chat-bubble:contains("GUIDANCE SPIRITUELLE BASÉE SUR") {
+  display: none !important;
+}
