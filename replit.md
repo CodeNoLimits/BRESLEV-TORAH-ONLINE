@@ -132,6 +132,9 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 
 ## Recent Changes
 
+- ✓ PostgreSQL database integrated with complete schema for users, conversations, messages, and text selections (July 2, 2025)
+- ✓ Storage layer migrated from memory to database with Drizzle ORM for persistence (July 2, 2025)
+- ✓ Database schema includes spiritual guidance conversation tracking and selected text references (July 2, 2025)
 - ✓ Architecture correction complète - données fictives remplacées par références Sefaria authentiques (30 juin 2025)
 - ✓ Validation robuste sélection - contenu vérifié avant fermeture interface (30 juin 2025)  
 - ✓ Références Likutei Tefilot corrigées - 210 références inexistantes remplacées par notice informative (30 juin 2025)
