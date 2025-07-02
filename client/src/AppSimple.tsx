@@ -550,31 +550,11 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
     }
   }, [handleAIRequest, breslovCrawler, breslovComplete, sefariaClient]);
 
-  // Handle input submission with context awareness
+  // SYSTÈME UNIFIÉ RÉVOLUTIONNAIRE - remplace handleSendMessage par handleQuestion
   const handleSendMessage = useCallback(async (message: string, mode: InteractionMode) => {
-    if (!message.trim()) return;
-
-    const aiMode = mode === 'analysis' ? 'snippet' : 
-                   mode === 'guidance' ? 'advice' : 'general';
-
-    console.log(`[AppSimple] Send message - Mode: ${aiMode}, Has context: ${!!selectedText}`);
-
-    // If we have a selected text, include it as context for written questions
-    if (selectedText && selectedText.text && selectedText.text.length > 0) {
-      const contextText = selectedText.text.join('\n\n');
-      const contextualQuestion = `${contextText.substring(0, 8000)}${contextText.length > 8000 ? '...' : ''}\n\nQuestion: ${message}`;
-
-      console.log(`[AppSimple] Written question with context: ${message}`);
-      await handleAIRequest(contextualQuestion, aiMode);
-    } else {
-      // No context available, respond with guidance
-      const guidanceMessage = `${message}\n\nPour une réponse contextuelle précise, sélectionnez d'abord un enseignement dans la bibliothèque Breslov, puis posez votre question. Sinon, je peux vous donner une réponse générale sur les enseignements de Rabbi Nahman.`;
-      console.log(`[AppSimple] Question without context: ${message}`);
-      await handleAIRequest(guidanceMessage, 'guidance');
-    }
-
-    setCurrentInput('');
-  }, [handleAIRequest, selectedText]);
+    console.log(`[AppSimple] Redirection vers système unifié: ${message}`);
+    await handleQuestion(message);
+  }, [handleQuestion]);
 
   // Handle text analysis events from TextViewer
   useEffect(() => {

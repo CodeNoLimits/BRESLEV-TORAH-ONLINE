@@ -100,7 +100,8 @@ export class VectorRAGService {
     console.log(`[VectorRAG] Recherche: "${query}" (score min: ${minScore})`);
     
     try {
-      // Pour l'instant, recherche lexicale simple mais efficace
+      // Recherche multilingue améliorée pour hébreu/français/anglais
+      const searchPattern = `%${query}%`;
       const results = await db.execute(sql`
         SELECT 
           book_title,
@@ -109,13 +110,19 @@ export class VectorRAGService {
           content,
           hebrew_content,
           metadata,
-          ts_rank(to_tsvector('french', content), plainto_tsquery('french', ${query})) as lexical_score
+          CASE 
+            WHEN content ILIKE ${searchPattern} THEN 1.0
+            WHEN book_title ILIKE ${searchPattern} THEN 0.8
+            WHEN hebrew_content ILIKE ${searchPattern} THEN 0.6
+            ELSE 0.1
+          END as similarity_score
         FROM book_embeddings 
         WHERE 
-          to_tsvector('french', content) @@ plainto_tsquery('french', ${query})
-          OR content ILIKE ${`%${query}%`}
-          OR book_title ILIKE ${`%${query}%`}
-        ORDER BY lexical_score DESC
+          content ILIKE ${searchPattern}
+          OR book_title ILIKE ${searchPattern}
+          OR hebrew_content ILIKE ${searchPattern}
+          OR LENGTH(content) > 100
+        ORDER BY similarity_score DESC, LENGTH(content) DESC
         LIMIT 10
       `);
 

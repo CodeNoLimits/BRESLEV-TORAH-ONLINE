@@ -31,24 +31,8 @@ class BreslovRAGService {
       }
     }
     
-    // Index from breslovComplete
-    const completeTexts = breslovComplete.getAvailableTexts();
-    for (const text of completeTexts) {
-      if (!this.textIndex.has(text.ref)) {
-        try {
-          const content = await breslovComplete.getAuthenticText(text.ref);
-          if (content?.english) {
-            this.textIndex.set(text.ref, {
-              text: content.english,
-              he: content.hebrew || [],
-              title: text.title
-            });
-          }
-        } catch (error) {
-          console.warn(`[BreslovRAG] Could not index ${text.ref}:`, error);
-        }
-      }
-    }
+    // Index from breslovComplete - DÉSACTIVÉ pour éviter l'erreur
+    console.log('[BreslovRAG] Skipping breslovComplete indexing - using crawler cache only');
     
     this.isIndexed = true;
     console.log(`[BreslovRAG] ✅ Index built with ${this.textIndex.size} texts`);
