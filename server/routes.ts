@@ -616,6 +616,50 @@ TRADUCTION FRANÇAISE:`;
     res.json({ status: 'ok' });
   });
 
+  // Endpoint pour tester l'accès aux livres locaux
+  app.get('/api/local-books/status', async (req: Request, res: Response) => {
+    try {
+      const { localBooksProcessor } = await import('./services/localBooksProcessor');
+      await localBooksProcessor.initialize();
+      
+      const books = localBooksProcessor.getAvailableBooks();
+      const count = localBooksProcessor.getBooksCount();
+      
+      res.json({
+        status: 'ok',
+        booksCount: count,
+        availableBooks: books,
+        message: count > 0 ? `${count} livres Breslov chargés et prêts` : 'Aucun livre trouvé'
+      });
+    } catch (error) {
+      console.error('[Local Books] Error:', error);
+      res.status(500).json({ error: 'Erreur d\'accès aux livres locaux' });
+    }
+  });
+
+  // Endpoint pour rechercher dans les livres locaux
+  app.post('/api/local-books/search', async (req: Request, res: Response) => {
+    try {
+      const { query } = req.body;
+      if (!query) {
+        return res.status(400).json({ error: 'Question manquante' });
+      }
+
+      const { localBooksProcessor } = await import('./services/localBooksProcessor');
+      const results = await localBooksProcessor.searchRelevantContent(query, 5);
+      
+      res.json({
+        query,
+        resultsCount: results.length,
+        results,
+        message: results.length > 0 ? `${results.length} passages trouvés` : 'Aucun passage pertinent trouvé'
+      });
+    } catch (error) {
+      console.error('[Local Books Search] Error:', error);
+      res.status(500).json({ error: 'Erreur de recherche' });
+    }
+  });
+
   // Register meta routes
   registerMetaRoutes(app);
 

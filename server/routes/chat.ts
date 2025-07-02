@@ -1,5 +1,6 @@
 import express from "express";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { localBooksProcessor } from "../services/localBooksProcessor";
 
 const router = express.Router();
 
@@ -42,10 +43,23 @@ router.post("/chat", async (req, res) => {
 
     let prompt = text;
 
-    // Add context if reference is provided
-    if (ref) {
+    // Search in local books first for relevant content
+    try {
+      const relevantContent = await localBooksProcessor.searchRelevantContent(text, 3);
+      if (relevantContent.length > 0) {
+        const contextFromLocalBooks = relevantContent.join('\n\n---\n\n');
+        prompt = `Contexte des enseignements de Rabbi Nahman:\n${contextFromLocalBooks}\n\nQuestion: ${text}`;
+        console.log(`[Chat] Found ${relevantContent.length} relevant passages from local books`);
+      } else {
+        console.log('[Chat] No relevant content found in local books, using general mode');
+      }
+    } catch (localError) {
+      console.warn('[Chat] Failed to search local books:', localError);
+    }
+
+    // Add context if reference is provided (Sefaria fallback)
+    if (ref && !prompt.includes('Contexte des enseignements')) {
       try {
-        // Fetch the referenced text for context
         const textResponse = await fetch(`${process.env.BASE_URL || 'http://localhost:5000'}/api/sefaria/texts/${encodeURIComponent(ref)}`);
         if (textResponse.ok) {
           const textData = await textResponse.json();
@@ -55,7 +69,7 @@ router.post("/chat", async (req, res) => {
           }
         }
       } catch (contextError) {
-        console.warn('[Chat] Failed to fetch context:', contextError);
+        console.warn('[Chat] Failed to fetch Sefaria context:', contextError);
       }
     }
 
