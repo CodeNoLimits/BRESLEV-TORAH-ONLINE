@@ -4,7 +4,7 @@ export const HEBREW_BOOKS_CONFIG = [
   {
     id: 'likutei_moharan',
     title: 'Likutei Moharan',
-    titleFrench: 'Les Enseignements du Rabbi Nahman',
+    titleFrench: 'Les Enseignements de Rabbi Nahman',
     titleHebrew: 'ליקוטי מוהרן',
     filename: 'ליקוטי מוהרן קמא_1751481234338.docx',
     language: 'hebrew' as const
@@ -12,7 +12,7 @@ export const HEBREW_BOOKS_CONFIG = [
   {
     id: 'likutei_moharan_tinyana',
     title: 'Likutei Moharan Tinyana',
-    titleFrench: 'Les Enseignements du Rabbi Nahman - Tome 2',
+    titleFrench: 'Les Enseignements de Rabbi Nahman - Tome 2',
     titleHebrew: 'ליקוטי מוהרן תנינא',
     filename: 'ליקוטי מוהרן תנינא_1751481234338.docx',
     language: 'hebrew' as const
@@ -20,7 +20,7 @@ export const HEBREW_BOOKS_CONFIG = [
   {
     id: 'sippurei_maasiyot',
     title: 'Sippurei Maasiyot',
-    titleFrench: 'Les Contes du Rabbi Nahman',
+    titleFrench: 'Les Contes de Rabbi Nahman',
     titleHebrew: 'סיפורי מעשיות',
     filename: 'סיפורי מעשיות_1751481234338.docx',
     language: 'hebrew' as const
@@ -36,7 +36,7 @@ export const HEBREW_BOOKS_CONFIG = [
   {
     id: 'chayei_moharan_hebrew',
     title: 'Chayei Moharan',
-    titleFrench: 'La Vie du Rabbi Nahman',
+    titleFrench: 'La Vie de Rabbi Nahman',
     titleHebrew: 'חיי מוהרן',
     filename: 'חיי מוהרן_1751481234338.docx',
     language: 'hebrew' as const
@@ -44,7 +44,7 @@ export const HEBREW_BOOKS_CONFIG = [
   {
     id: 'shivchei_haran',
     title: 'Shivchei HaRan',
-    titleFrench: 'Les Louanges du Rabbi Nahman',
+    titleFrench: 'Les Louanges de Rabbi Nahman',
     titleHebrew: 'שבחי ושיחות הרן',
     filename: 'שבחי ושיחות הרן_1751481234339.docx',
     language: 'hebrew' as const

@@ -3,18 +3,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Mic, 
   MicOff, 
   Volume2, 
   VolumeX, 
   Send, 
-  Book, 
+  BookOpen, 
   Search,
   ChevronRight,
   Loader2,
-  Languages
+  Languages,
+  Library
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -85,63 +85,6 @@ export default function AppMultiBook() {
     }
   };
 
-  // Initialiser la reconnaissance vocale
-  useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-      const recognition = new SpeechRecognition();
-      
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = 'fr-FR';
-      recognition.maxAlternatives = 1;
-      
-      recognition.onresult = (event: any) => {
-        const last = event.results.length - 1;
-        const transcript = event.results[last][0].transcript;
-        
-        if (event.results[last].isFinal) {
-          setInput(transcript);
-          setIsListening(false);
-        }
-      };
-      
-      recognition.onerror = (event: any) => {
-        console.error('Erreur STT:', event.error);
-        setIsListening(false);
-      };
-      
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-      
-      recognitionRef.current = recognition;
-    }
-  }, []);
-
-  // Auto-scroll vers le bas
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Basculer la reconnaissance vocale
-  const toggleListening = useCallback(() => {
-    if (!recognitionRef.current) return;
-    
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    } else {
-      // Arrêter le TTS si actif
-      if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-      }
-      
-      recognitionRef.current.start();
-      setIsListening(true);
-    }
-  }, [isListening]);
-
   // Lire un texte avec TTS
   const speak = useCallback((text: string) => {
     if (!isTTSEnabled || !text) return;
@@ -162,49 +105,14 @@ export default function AppMultiBook() {
     window.speechSynthesis.speak(utterance);
   }, [isTTSEnabled]);
 
-  // Traduire un chunk hébreu
-  const translateChunk = async (chunkId: string) => {
-    try {
-      const response = await fetch('/api/multi-book/translate-chunk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chunkId })
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        // Mettre à jour le message avec la traduction
-        setMessages(prev => prev.map(msg => ({
-          ...msg,
-          sources: msg.sources?.map(source => 
-            source.chunkId === chunkId 
-              ? { ...source, translation: data.translation }
-              : source
-          )
-        })));
-        
-        // Lire la traduction si TTS activé
-        speak(data.translation);
-      }
-    } catch (error) {
-      console.error('Erreur traduction:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de traduire ce passage",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Envoyer un message
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+  // Envoyer un message avec un texte spécifique
+  const sendMessageWithText = useCallback(async (text: string) => {
+    if (!text.trim() || isLoading) return;
     
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: input,
+      content: text,
       timestamp: new Date()
     };
     
@@ -220,7 +128,7 @@ export default function AppMultiBook() {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: userMessage.content })
+        body: JSON.stringify({ query: text })
       });
       
       const data = await response.json();
@@ -260,7 +168,7 @@ export default function AppMultiBook() {
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: data.answer,
+        content: data.answer || 'Aucune réponse',
         timestamp: new Date(),
         sources: sources.length > 0 ? sources : undefined
       };
@@ -277,6 +185,109 @@ export default function AppMultiBook() {
     } finally {
       setIsLoading(false);
     }
+  }, [selectedBookId, availableBooks, isLoading, speak, toast]);
+
+  // Initialiser la reconnaissance vocale
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      const recognition = new SpeechRecognition();
+      
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'fr-FR';
+      recognition.maxAlternatives = 1;
+      
+      recognition.onresult = (event: any) => {
+        const last = event.results.length - 1;
+        const transcript = event.results[last][0].transcript;
+        
+        if (event.results[last].isFinal) {
+          setInput(transcript);
+          setIsListening(false);
+          // Envoyer automatiquement le message après reconnaissance vocale
+          setTimeout(() => {
+            if (transcript.trim()) {
+              sendMessageWithText(transcript);
+            }
+          }, 100);
+        }
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.error('Erreur STT:', event.error);
+        setIsListening(false);
+      };
+      
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+      
+      recognitionRef.current = recognition;
+    }
+  }, [sendMessageWithText]);
+
+  // Auto-scroll vers le bas
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Basculer la reconnaissance vocale
+  const toggleListening = useCallback(() => {
+    if (!recognitionRef.current) return;
+    
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      // Arrêter le TTS si actif
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+      
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  }, [isListening]);
+
+  // Traduire un chunk hébreu
+  const translateChunk = async (chunkId: string) => {
+    try {
+      const response = await fetch('/api/multi-book/translate-chunk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chunkId })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Mettre à jour le message avec la traduction
+        setMessages(prev => prev.map(msg => ({
+          ...msg,
+          sources: msg.sources?.map(source => 
+            source.chunkId === chunkId 
+              ? { ...source, translation: data.translation }
+              : source
+          )
+        })));
+        
+        // Lire la traduction si TTS activé
+        speak(data.translation);
+      }
+    } catch (error) {
+      console.error('Erreur traduction:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de traduire ce passage",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Envoyer un message
+  const sendMessage = async () => {
+    await sendMessageWithText(input);
   };
 
   const selectedBook = availableBooks.find(b => b.id === selectedBookId);
@@ -289,7 +300,7 @@ export default function AppMultiBook() {
           <CardContent className="p-0 h-full flex flex-col">
             <div className="p-4 border-b border-slate-800">
               <h2 className="text-lg font-semibold text-amber-400 flex items-center gap-2">
-                <Book size={20} />
+                <Library size={20} />
                 Bibliothèque Breslov
               </h2>
             </div>
@@ -314,15 +325,18 @@ export default function AppMultiBook() {
                     className="w-full justify-start text-left"
                     onClick={() => setSelectedBookId(book.id)}
                   >
-                    <div className="flex-1">
-                      <div className="font-medium">{book.titleFrench}</div>
-                      {book.titleHebrew && (
-                        <div className="text-xs text-slate-400 mt-1" dir="rtl">
-                          {book.titleHebrew}
+                    <div className="flex items-start gap-2 w-full">
+                      <BookOpen size={16} className="mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 overflow-hidden">
+                        <div className="font-medium truncate">{book.titleFrench}</div>
+                        {book.titleHebrew && (
+                          <div className="text-xs text-slate-400 mt-1 truncate" dir="rtl">
+                            {book.titleHebrew}
+                          </div>
+                        )}
+                        <div className="text-xs text-slate-500 mt-1">
+                          {book.language === 'hebrew' ? '🇮🇱' : '🇫🇷'} {book.stats.chunks} sections
                         </div>
-                      )}
-                      <div className="text-xs text-slate-500 mt-1">
-                        {book.language === 'hebrew' ? '🇮🇱' : '🇫🇷'} {book.stats.chunks} sections
                       </div>
                     </div>
                   </Button>
