@@ -133,8 +133,12 @@ export class ChayeiMoharanProcessor {
 
     console.log(`[ChayeiMoharan] Recherche Gemini: "${query}"`);
 
-    // 1. Recherche textuelle dans les chapitres
-    const relevantSections = this.findRelevantSections(query);
+    // 1. TRADUCTION FRANÇAISE → HÉBREU POUR RECHERCHE EFFICACE
+    const hebrewTerms = await this.translateQueryToHebrew(query);
+    console.log(`[ChayeiMoharan] Termes hébreux: ${hebrewTerms.join(', ')}`);
+
+    // 2. Recherche avec termes français ET hébreux
+    const relevantSections = this.findRelevantSections(query, hebrewTerms);
     
     // 2. Construire le contexte pour Gemini
     const context = relevantSections.map(section => 
@@ -239,7 +243,35 @@ Réponds UNIQUEMENT avec la traduction française, sans commentaires.`;
     return match ? parseInt(match[1]) : 1;
   }
 
-  private findRelevantSections(query: string): ChayeiSection[] {
+  // FONCTION DE TRADUCTION FRANÇAISE → HÉBREU 
+  private async translateQueryToHebrew(query: string): Promise<string[]> {
+    try {
+      const translationPrompt = `Traduis ces mots/concepts spirituels français en hébreu biblique/talmudique correspondant:
+
+Query: "${query}"
+
+Retourne UNIQUEMENT une liste de mots hébreux séparés par des virgules, sans explication.
+Exemple pour "joie": שמחה, גיל, חדוה
+Exemple pour "prière": תפילה, דברות, השתוותיות
+Exemple pour "tsadik": צדיק, אמת, האמת
+
+Mots hébreux:`;
+
+      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const response = await model.generateContent(translationPrompt);
+      const hebrewText = response.response.text().trim();
+      
+      // Extraire les mots hébreux
+      const hebrewTerms = hebrewText.split(',').map(term => term.trim()).filter(term => term.length > 0);
+      
+      return hebrewTerms.length > 0 ? hebrewTerms : [];
+    } catch (error) {
+      console.warn('[ChayeiMoharan] Erreur traduction:', error);
+      return [];
+    }
+  }
+
+  private findRelevantSections(query: string, hebrewTerms: string[] = []): ChayeiSection[] {
     const queryWords = query.toLowerCase().split(' ').filter(w => w.length > 2);
     const results: { section: ChayeiSection; score: number }[] = [];
 
@@ -250,6 +282,7 @@ Réponds UNIQUEMENT avec la traduction française, sans commentaires.`;
         let score = 0;
         const sectionText = section.hebrewText.toLowerCase();
         
+        // Score pour mots français
         queryWords.forEach(word => {
           if (sectionText.includes(word)) score += 2;
           // Ajouter des synonymes spirituels
@@ -257,6 +290,14 @@ Réponds UNIQUEMENT avec la traduction française, sans commentaires.`;
           spiritualMatches.forEach(synonym => {
             if (sectionText.includes(synonym)) score += 1;
           });
+        });
+
+        // Score ÉLEVÉ pour mots hébreux (recherche principale)
+        hebrewTerms.forEach(hebrewTerm => {
+          if (section.hebrewText.includes(hebrewTerm)) {
+            score += 10; // Score très élevé pour correspondance hébreu
+            console.log(`[ChayeiMoharan] Trouvé "${hebrewTerm}" dans ${section.reference}`);
+          }
         });
 
         if (score > 0) {

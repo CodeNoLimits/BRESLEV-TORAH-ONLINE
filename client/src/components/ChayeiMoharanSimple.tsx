@@ -23,55 +23,153 @@ export function ChayeiMoharanSimple() {
 
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // TTS OPTIMISÉ ET CORRIGÉ
+  // TTS ULTRA-ROBUSTE - SOLUTION COMPLEXE SIMPLIFIÉE
   const speak = (text: string) => {
     if (!text || !text.trim()) {
       console.warn('[TTS] Texte vide, pas de lecture');
       return;
     }
 
+    // Nettoyer le texte (supprimer markdown, étoiles, etc.)
+    const cleanText = text
+      .replace(/\*\*([^*]+)\*\*/g, '$1') // **bold** -> bold
+      .replace(/\*([^*]+)\*/g, '$1')     // *italic* -> italic
+      .replace(/#+\s/g, '')              // ## titre -> titre
+      .replace(/\n{2,}/g, '. ')          // doubles sauts -> point
+      .replace(/\n/g, ' ')               // sauts simples -> espace
+      .trim();
+
     if ('speechSynthesis' in window) {
-      // Arrêter toute parole en cours
+      // ARRÊT FORCÉ
       window.speechSynthesis.cancel();
       
-      // Délai pour éviter les conflits
-      setTimeout(() => {
-        const utterance = new SpeechSynthesisUtterance(text.trim());
+      // Attendre que les voix soient chargées
+      const speakWithVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        console.log('[TTS] Voix disponibles:', voices.length);
+        
+        if (voices.length === 0) {
+          console.warn('[TTS] Aucune voix trouvée, retry dans 500ms...');
+          setTimeout(speakWithVoices, 500);
+          return;
+        }
+
+        // Chercher voix française
+        let selectedVoice = voices.find(voice => 
+          voice.lang.startsWith('fr') && voice.localService
+        ) || voices.find(voice => 
+          voice.lang.startsWith('fr')
+        ) || voices[0];
+
+        console.log('[TTS] Voix sélectionnée:', selectedVoice?.name, selectedVoice?.lang);
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.voice = selectedVoice;
         utterance.lang = 'fr-FR';
-        utterance.rate = 0.85;
+        utterance.rate = 0.8;
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
         
         utterance.onstart = () => {
           setIsTTSActive(true);
-          console.log('[TTS] ✅ Démarrage lecture:', text.substring(0, 50));
+          console.log('[TTS] ✅ DÉMARRAGE CONFIRMÉ:', cleanText.substring(0, 50));
         };
         
         utterance.onend = () => {
           setIsTTSActive(false);
-          console.log('[TTS] ✅ Fin lecture');
+          console.log('[TTS] ✅ FIN CONFIRMÉE');
         };
         
         utterance.onerror = (event) => {
           setIsTTSActive(false);
-          console.error('[TTS] ❌ Erreur:', event.error);
+          console.error('[TTS] ❌ ERREUR TTS:', event.error);
+          
+          // Fallback avec voix par défaut
+          if (selectedVoice && selectedVoice !== voices[0]) {
+            console.log('[TTS] Tentative avec voix par défaut...');
+            utterance.voice = voices[0];
+            setTimeout(() => window.speechSynthesis.speak(utterance), 100);
+          }
         };
 
         utteranceRef.current = utterance;
+        
+        // PARLER MAINTENANT
         window.speechSynthesis.speak(utterance);
         
-        // Vérification que ça démarre vraiment
-        setTimeout(() => {
-          if (!window.speechSynthesis.speaking) {
-            console.warn('[TTS] ⚠️ TTS ne démarre pas, retry...');
+        // Vérification robuste
+        let checkCount = 0;
+        const checkSpeaking = () => {
+          checkCount++;
+          if (!window.speechSynthesis.speaking && checkCount < 5) {
+            console.warn(`[TTS] ⚠️ Retry ${checkCount}/5...`);
             window.speechSynthesis.speak(utterance);
+            setTimeout(checkSpeaking, 200);
+          } else if (checkCount >= 5) {
+            console.error('[TTS] ❌ ÉCHEC APRÈS 5 TENTATIVES');
+            setIsTTSActive(false);
+            
+            // Dernier recours : TTS Cloud fallback
+            fallbackCloudTTS(cleanText);
           }
-        }, 100);
+        };
         
-      }, 200);
+        setTimeout(checkSpeaking, 300);
+      };
+
+      // Démarrer avec chargement voix
+      if (window.speechSynthesis.getVoices().length > 0) {
+        speakWithVoices();
+      } else {
+        window.speechSynthesis.onvoiceschanged = speakWithVoices;
+        setTimeout(speakWithVoices, 1000); // Timeout sécurité
+      }
+      
     } else {
       console.error('[TTS] ❌ Speech Synthesis non supporté');
-      alert('La synthèse vocale n\'est pas supportée sur votre navigateur');
+      fallbackCloudTTS(cleanText);
+    }
+  };
+
+  // FALLBACK CLOUD TTS
+  const fallbackCloudTTS = async (text: string) => {
+    try {
+      console.log('[TTS] Tentative Cloud TTS fallback...');
+      setIsTTSActive(true);
+      
+      const response = await fetch('/api/tts/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          text: text.substring(0, 500), // Limiter pour Cloud TTS
+          lang: 'fr-FR' 
+        })
+      });
+
+      if (response.ok) {
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        
+        audio.onplay = () => console.log('[TTS] ✅ Cloud TTS démarré');
+        audio.onended = () => {
+          setIsTTSActive(false);
+          URL.revokeObjectURL(audioUrl);
+          console.log('[TTS] ✅ Cloud TTS terminé');
+        };
+        audio.onerror = () => {
+          setIsTTSActive(false);
+          console.error('[TTS] ❌ Erreur Cloud TTS');
+        };
+        
+        await audio.play();
+      } else {
+        throw new Error('Cloud TTS non disponible');
+      }
+    } catch (error) {
+      console.error('[TTS] ❌ Fallback échoué:', error);
+      setIsTTSActive(false);
+      alert('Impossible de lire le texte. Vérifiez vos paramètres audio.');
     }
   };
 
