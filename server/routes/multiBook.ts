@@ -26,15 +26,15 @@ export function registerMultiBookRoutes(app: Express) {
   // Route pour rechercher dans tous les livres
   app.post('/api/multi-book/search', async (req: Request, res: Response) => {
     try {
-      const { question, bookIds } = req.body;
+      const { query, bookIds } = req.body;
       
-      if (!question) {
+      if (!query) {
         return res.status(400).json({ error: 'Question manquante' });
       }
 
-      console.log(`[MultiBook] Recherche globale: "${question}"`);
+      console.log(`[MultiBook] Recherche globale: "${query}"`);
       
-      const result = await multiBookProcessor.searchAcrossBooks(question, bookIds);
+      const result = await multiBookProcessor.searchAcrossBooks(query, bookIds);
       
       console.log(`[MultiBook] Résultat:`, {
         answer: result.answer.substring(0, 100) + '...',
@@ -56,15 +56,15 @@ export function registerMultiBookRoutes(app: Express) {
   app.post('/api/multi-book/search/:bookId', async (req: Request, res: Response) => {
     try {
       const { bookId } = req.params;
-      const { question } = req.body;
+      const { query } = req.body;
       
-      if (!question) {
+      if (!query) {
         return res.status(400).json({ error: 'Question manquante' });
       }
 
-      console.log(`[MultiBook] Recherche dans ${bookId}: "${question}"`);
+      console.log(`[MultiBook] Recherche dans ${bookId}: "${query}"`);
       
-      const result = await multiBookProcessor.searchInSpecificBook(bookId, question);
+      const result = await multiBookProcessor.searchInSpecificBook(bookId, query);
       
       res.json(result);
     } catch (error) {
