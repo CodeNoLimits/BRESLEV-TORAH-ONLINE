@@ -6,6 +6,7 @@ import "./index.css";
 import { Toaster } from "@/components/ui/toaster";
 import { toast } from "@/hooks/use-toast";
 import ChayeiMoharanMain from "./ChayeiMoharanMain";
+import AppFrench from "./AppFrench";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,8 +32,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Switch>
-        <Route path="/" component={ChayeiMoharanMain} />
-        <Route component={ChayeiMoharanMain} />
+        <Route path="/" component={AppFrench} />
+        <Route component={AppFrench} />
       </Switch>
       <Toaster />
     </QueryClientProvider>

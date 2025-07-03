@@ -14,6 +14,7 @@ import { ttsRouter } from './routes/tts';
 import chatRouter from './routes/chat';
 import smartQueryRouter from "./routes/smartQuery";
 import chayeiMoharanRouter from "./routes/chayeiMoharan";
+import { registerChayeiMoharanFrenchRoutes } from "./routes/chayeiMoharanFrench.js";
 // Dynamic import for ES module compatibility
 let fullTextExtractor: any = null;
 
@@ -47,6 +48,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Chayei Moharan Routes (livre principal avec Gemini)
   app.use('/api/chayei-moharan', chayeiMoharanRouter);
+  
+  // Chayei Moharan French Routes (document français authentique)
+  registerChayeiMoharanFrenchRoutes(app);
 
   // Docs API Endpoints
   app.get('/api/docs/index', async (req: Request, res: Response) => {
