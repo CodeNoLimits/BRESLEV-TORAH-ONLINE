@@ -1,5 +1,5 @@
 import { Express, Request, Response } from 'express';
-import { chayeiMoharanFrenchProcessor } from '../services/chayeiMoharanFrenchProcessor.js';
+import { chayeiMoharanFrenchProcessorV2 } from '../services/chayeiMoharanFrenchProcessorV2.js';
 
 export function registerChayeiMoharanFrenchRoutes(app: Express) {
   console.log('[Route] Configuration routes Chayei Moharan French...');
@@ -15,12 +15,12 @@ export function registerChayeiMoharanFrenchRoutes(app: Express) {
 
       console.log(`[ChayeiMoharan-FR] Recherche: "${question}"`);
       
-      const result = await chayeiMoharanFrenchProcessor.searchInFrenchDocument(question);
+      const result = await chayeiMoharanFrenchProcessorV2.searchWithFullContext(question);
       
       console.log(`[ChayeiMoharan-FR] Résultat:`, {
         answer: result.answer.substring(0, 100) + '...',
-        sectionsFound: result.relevantSections.length,
-        citationsFound: result.directCitations.length
+        chunksFound: result.relevantChunks.length,
+        foundInDocument: result.foundInDocument
       });
       
       res.json(result);
@@ -36,12 +36,12 @@ export function registerChayeiMoharanFrenchRoutes(app: Express) {
   // Route pour obtenir la liste des sections
   app.get('/api/chayei-moharan-french/sections', async (req: Request, res: Response) => {
     try {
-      await chayeiMoharanFrenchProcessor.initialize();
-      const sections = chayeiMoharanFrenchProcessor.getSectionsList();
+      await chayeiMoharanFrenchProcessorV2.initialize();
+      const stats = chayeiMoharanFrenchProcessorV2.getDocumentStats();
       
       res.json({
-        sections,
-        totalSections: chayeiMoharanFrenchProcessor.getTotalSections()
+        stats,
+        message: 'Document complet chargé'
       });
     } catch (error) {
       console.error('[ChayeiMoharan-FR] Erreur sections:', error);
@@ -55,8 +55,8 @@ export function registerChayeiMoharanFrenchRoutes(app: Express) {
   // Route pour obtenir le texte complet
   app.get('/api/chayei-moharan-french/full-text', async (req: Request, res: Response) => {
     try {
-      await chayeiMoharanFrenchProcessor.initialize();
-      const fullText = chayeiMoharanFrenchProcessor.getFullText();
+      await chayeiMoharanFrenchProcessorV2.initialize();
+      const fullText = chayeiMoharanFrenchProcessorV2.getFullText();
       
       res.json({
         fullText,
@@ -75,17 +75,48 @@ export function registerChayeiMoharanFrenchRoutes(app: Express) {
   // Route de statut
   app.get('/api/chayei-moharan-french/status', async (req: Request, res: Response) => {
     try {
-      await chayeiMoharanFrenchProcessor.initialize();
+      await chayeiMoharanFrenchProcessorV2.initialize();
+      
+      const stats = chayeiMoharanFrenchProcessorV2.getDocumentStats();
       
       res.json({
         status: 'ready',
-        sections: chayeiMoharanFrenchProcessor.getTotalSections(),
-        message: 'Processeur français initialisé et prêt'
+        totalLines: stats.totalLines,
+        totalChunks: stats.totalChunks,
+        message: 'Processeur français V2 initialisé et prêt'
       });
     } catch (error) {
       console.error('[ChayeiMoharan-FR] Erreur statut:', error);
       res.status(500).json({ 
         error: 'Erreur d\'initialisation',
+        details: String(error)
+      });
+    }
+  });
+
+  // Route pour rechercher un terme exact
+  app.post('/api/chayei-moharan-french/find-term', async (req: Request, res: Response) => {
+    try {
+      const { term } = req.body;
+      
+      if (!term) {
+        return res.status(400).json({ error: 'Terme manquant' });
+      }
+
+      console.log(`[ChayeiMoharan-FR] Recherche exacte du terme: "${term}"`);
+      
+      const result = await chayeiMoharanFrenchProcessorV2.findExactTerm(term);
+      
+      console.log(`[ChayeiMoharan-FR] Résultat recherche exacte:`, {
+        found: result.found,
+        occurrences: result.occurrences.length
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error('[ChayeiMoharan-FR] Erreur recherche terme:', error);
+      res.status(500).json({ 
+        error: 'Erreur lors de la recherche',
         details: String(error)
       });
     }

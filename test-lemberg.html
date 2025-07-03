@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Lemberg</title>
+</head>
+<body>
+    <h1>Test de recherche "Lemberg"</h1>
+    <button onclick="testLemberg()">Rechercher Lemberg</button>
+    <button onclick="testQuestion()">Question sur Lemberg</button>
+    <div id="result"></div>
+    
+    <script>
+    async function testLemberg() {
+        try {
+            const response = await fetch('/api/chayei-moharan-french/find-term', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ term: 'Lemberg' })
+            });
+            
+            const data = await response.json();
+            document.getElementById('result').innerHTML = `
+                <h2>Résultat recherche exacte "Lemberg":</h2>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+        } catch (error) {
+            document.getElementById('result').innerHTML = `Erreur: ${error}`;
+        }
+    }
+    
+    async function testQuestion() {
+        try {
+            const response = await fetch('/api/chayei-moharan-french/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question: 'Où est-ce que Rabbi Nahman a voyagé à Lemberg?' })
+            });
+            
+            const data = await response.json();
+            document.getElementById('result').innerHTML = `
+                <h2>Résultat question sur Lemberg:</h2>
+                <p><strong>Réponse:</strong> ${data.answer}</p>
+                <p><strong>Trouvé dans le document:</strong> ${data.foundInDocument}</p>
+                <p><strong>Chunks trouvés:</strong> ${data.relevantChunks?.length || 0}</p>
+            `;
+        } catch (error) {
+            document.getElementById('result').innerHTML = `Erreur: ${error}`;
+        }
+    }
+    </script>
+</body>
+</html>

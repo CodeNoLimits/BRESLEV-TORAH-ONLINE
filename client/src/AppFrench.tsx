@@ -3,13 +3,22 @@ import { useState, useRef, useEffect } from 'react';
 interface SearchResult {
   answer: string;
   sources: string[];
-  relevantSections: Array<{
+  relevantChunks?: Array<{
+    id: string;
+    content: string;
+    startLine: number;
+    endLine: number;
+    keywords: string[];
+  }>;
+  foundInDocument?: boolean;
+  // Anciens champs pour la compatibilité
+  relevantSections?: Array<{
     id: string;
     title: string;
     content: string;
     sectionType: string;
   }>;
-  directCitations: Array<{
+  directCitations?: Array<{
     text: string;
     source: string;
     context: string;
@@ -223,6 +232,16 @@ export default function AppFrench() {
           {/* Résultats */}
           {result && (
             <div className="space-y-6">
+              {/* Indicateur de statut */}
+              <div className="flex items-center gap-3 bg-slate-800/50 border border-slate-600 rounded-lg p-4">
+                <div className={`w-4 h-4 rounded-full ${result.foundInDocument ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                <span className="font-medium text-slate-200">
+                  {result.foundInDocument ? 
+                    '✓ Information trouvée dans le document' : 
+                    '⚠ Information non trouvée directement dans le document'}
+                </span>
+              </div>
+
               {/* Réponse principale */}
               <div className="bg-slate-800/50 border border-slate-600 rounded-lg p-6">
                 <h2 className="text-xl font-semibold mb-4 text-amber-300">Réponse</h2>
@@ -248,7 +267,39 @@ export default function AppFrench() {
                 </div>
               )}
 
-              {/* Sections pertinentes */}
+              {/* Chunks pertinents (nouveau format) */}
+              {result.relevantChunks && result.relevantChunks.length > 0 && (
+                <div className="bg-slate-800/50 border border-slate-600 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-green-300">
+                    Passages pertinents trouvés ({result.relevantChunks.length})
+                  </h3>
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {result.relevantChunks.slice(0, 5).map((chunk, index) => (
+                      <div key={index} className="border border-slate-700 rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-sm text-slate-400">
+                            📍 Lignes {chunk.startLine}-{chunk.endLine}
+                          </span>
+                          {chunk.keywords.length > 0 && (
+                            <div className="flex gap-1">
+                              {chunk.keywords.slice(0, 3).map((keyword, kIndex) => (
+                                <span key={kIndex} className="text-xs bg-blue-900/50 px-2 py-1 rounded">
+                                  {keyword}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-slate-300 text-sm">
+                          {chunk.content.substring(0, 300)}...
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sections pertinentes (ancien format) */}
               {result.relevantSections && result.relevantSections.length > 0 && (
                 <div className="bg-slate-800/50 border border-slate-600 rounded-lg p-6">
                   <h3 className="text-lg font-semibold mb-4 text-green-300">Sections pertinentes</h3>
