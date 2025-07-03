@@ -9,3 +9,5 @@ export function ChayeiMoharanMain() {
     </div>
   );
 }
+
+export default ChayeiMoharanMain;
