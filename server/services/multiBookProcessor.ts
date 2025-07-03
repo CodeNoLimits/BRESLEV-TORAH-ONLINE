@@ -238,6 +238,7 @@ Instructions:
         let score = 0;
         const contentLower = chunk.content.toLowerCase();
         
+        // Recherche dans le texte (français ou hébreu)
         queryWords.forEach(word => {
           if (contentLower.includes(word)) {
             score += 10;
@@ -245,6 +246,31 @@ Instructions:
             score += matches * 5;
           }
         });
+        
+        // Recherche spécifique pour l'hébreu
+        if (chunk.isRTL) {
+          // Mots-clés hébreux courants
+          const hebrewKeywords: { [key: string]: string[] } = {
+            'lemberg': ['למברג', 'לעמבערג'],
+            'mouche': ['זבוב'],
+            'araignée': ['עכביש'],
+            'conte': ['מעשה', 'סיפור'],
+            'prière': ['תפילה', 'תפלה'],
+            'torah': ['תורה'],
+            'rabbi': ['רבי', 'רבנו']
+          };
+          
+          // Vérifier les mots-clés hébreux
+          Object.entries(hebrewKeywords).forEach(([french, hebrewWords]) => {
+            if (queryLower.includes(french)) {
+              hebrewWords.forEach(hebrew => {
+                if (chunk.content.includes(hebrew)) {
+                  score += 25; // Score plus élevé pour correspondance hébreu
+                }
+              });
+            }
+          });
+        }
         
         chunk.keywords.forEach(keyword => {
           if (queryLower.includes(keyword)) {
@@ -258,7 +284,7 @@ Instructions:
       const relevantChunks = scoredChunks
         .filter(item => item.score > 0)
         .sort((a, b) => b.score - a.score)
-        .slice(0, 5)
+        .slice(0, 10) // Augmenté à 10 chunks pour plus de contexte
         .map(item => item.chunk);
       
       bookResults.push({
@@ -298,50 +324,64 @@ Instructions:
     const hasHebrewChunks = allChunks.some(chunk => chunk.isRTL);
     
     return `Tu es un compagnon spirituel expert des textes de Rabbi Nahman de Breslov.
-Tu as accès à plusieurs livres en hébreu et en français et tu dois répondre de manière conversationnelle et directe.
 
-LIVRES DISPONIBLES:
-${bookResults.map(result => `- ${result.bookTitle}: ${result.foundInBook ? 'Contient des informations pertinentes' : 'Aucune information trouvée'}`).join('\n')}
+CONTEXTE IMPORTANT:
+- Tu as accès à des textes en hébreu et en français
+- Les textes hébreux peuvent contenir des informations cruciales
+- Tu dois utiliser tes connaissances des œuvres de Rabbi Nahman pour compléter l'information
 
-PASSAGES PERTINENTS TROUVÉS:
+LIVRES CONSULTÉS:
+${bookResults.map(result => `- ${result.bookTitle}: ${result.foundInBook ? `${result.relevantChunks.length} passages trouvés` : 'Aucun passage trouvé'}`).join('\n')}
+
+TOUS LES PASSAGES TROUVÉS (${allChunks.length} au total):
 ${allChunks.length > 0 ? 
   allChunks.map((chunk, index) => {
     const book = this.books.get(chunk.bookId);
     return `
---- LIVRE: ${book?.titleFrench} | Lignes ${chunk.startLine}-${chunk.endLine} ${chunk.isRTL ? '(TEXTE HÉBREU)' : ''} ---
+[SOURCE ${index + 1}] ${book?.titleFrench} - Lignes ${chunk.startLine}-${chunk.endLine}:
 ${chunk.content}
---- FIN DU PASSAGE ---`;
+`;
   }).join('\n') :
-  'Aucun passage directement pertinent trouvé dans les textes.'
+  'Aucun passage directement trouvé - utilise tes connaissances pour répondre.'
 }
 
 QUESTION: ${query}
 
-INSTRUCTIONS SPÉCIFIQUES:
-1. STYLE CONVERSATIONNEL DIRECT:
-   - Va droit au but, évite les formulations poétiques
-   - Maximum 2-3 phrases par idée principale
-   - Exemple: "À Lemberg, le Rabbi a enseigné l'importance de la joie face aux difficultés."
-   
-2. GESTION DES TEXTES HÉBREUX:
-   - Si tu trouves des passages en hébreu, cite-les d'abord en hébreu
-   - Donne ensuite une traduction française concise
-   - Mentionne toujours la référence exacte (livre, chapitre, verset)
-   
-3. CITATIONS ET RÉFÉRENCES:
-   - Format: "Dans [Livre], chapitre X, verset Y, il est écrit..."
-   - Pour l'hébreu: donne d'abord le texte hébreu entre guillemets, puis la traduction
-   
-4. RÉPONSE DIRECTE:
-   - Si trouvé: explique le contexte et la signification en 2-3 phrases maximum
-   - Si non trouvé: dis-le clairement en une phrase
-   - Évite les longues introductions ou conclusions
+INSTRUCTIONS STRICTES:
 
-${hasHebrewChunks ? `
-5. IMPORTANT - TEXTES HÉBREUX PRÉSENTS:
-   - Certains passages sont en hébreu original
-   - Cite toujours l'hébreu en premier, puis traduis
-   - Garde les numéros de versets/sections dans tes citations` : ''}`;
+1. RÉPONSE COMPLÈTE ET DÉTAILLÉE:
+   - Donne TOUTES les informations pertinentes trouvées
+   - Si tu connais d'autres références pertinentes, mentionne-les
+   - Pour Lemberg: date précise (5568/1807), raison du voyage, enseignements donnés
+   - Pour les contes: identifie le conte spécifique et son contexte
+
+2. LISTE TOUTES LES SOURCES:
+   - Mentionne CHAQUE source trouvée avec sa référence exacte
+   - Format: "📖 [Livre], [chapitre/section]: [citation]"
+   - Si texte hébreu: cite d'abord l'hébreu, puis traduis
+
+3. SI PAS TROUVÉ DANS LES PASSAGES:
+   - Utilise tes connaissances des textes de Rabbi Nahman
+   - Indique clairement: "D'après mes connaissances du texte..."
+   - Suggère où chercher: "Cette histoire se trouve généralement dans..."
+
+4. STRUCTURE DE RÉPONSE:
+   a) Réponse directe à la question (complète)
+   b) Sources trouvées: (liste numérotée de TOUTES les sources)
+   c) Information complémentaire si pertinente
+
+5. POUR LES TEXTES HÉBREUX:
+   - Analyse le contexte même si c'est en hébreu
+   - Cherche les mots-clés hébreux pertinents (למברג pour Lemberg, זבוב pour mouche, עכביש pour araignée)
+   - Traduis les passages importants
+
+EXEMPLE pour Lemberg:
+"Le Rabbi Nahman est parti pour Lemberg après Souccot 5568 (1807). Il a profité de ce voyage pour enseigner une Torah sur le Tabernacle. Le livre Likutei Moharan a été imprimé cette année-là.
+
+Sources trouvées:
+📖 Chayei Moharan: Mention du voyage après Souccot 5568
+📖 Chayei Moharan: Torah sur le Tabernacle enseignée pendant le voyage
+📖 Chayei Moharan: Impression du Likutei Moharan en 5568"`;
   }
 
   private generateFallbackAnswer(bookResults: any[]): string {
