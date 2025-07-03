@@ -51,6 +51,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Chayei Moharan French Routes (document français authentique)
   registerChayeiMoharanFrenchRoutes(app);
+  
+  // Multi-Book Routes (architecture extensible pour tous les livres)
+  const { registerMultiBookRoutes } = await import('./routes/multiBook.js');
+  registerMultiBookRoutes(app);
 
   // Docs API Endpoints
   app.get('/api/docs/index', async (req: Request, res: Response) => {

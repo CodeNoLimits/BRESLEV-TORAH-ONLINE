@@ -18,6 +18,8 @@ export class ChayeiMoharanFrenchProcessorV2 {
   private fullText: string = '';
   private lines: string[] = [];
   private initialized = false;
+  private searchCache = new Map<string, { timestamp: number; result: any }>();
+  private cacheTimeout = 5 * 60 * 1000; // 5 minutes
 
   async initialize() {
     if (this.initialized) return;
@@ -97,6 +99,15 @@ export class ChayeiMoharanFrenchProcessorV2 {
   }> {
     await this.initialize();
 
+    // Vérifier le cache
+    const cacheKey = query.toLowerCase().trim();
+    const cached = this.searchCache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      console.log(`[ChayeiMoharan-FR-V2] Résultat trouvé dans le cache pour: "${query}"`);
+      return cached.result;
+    }
+
     console.log(`[ChayeiMoharan-FR-V2] Recherche approfondie: "${query}"`);
     
     // 1. Recherche exhaustive dans tous les chunks
@@ -137,7 +148,8 @@ export class ChayeiMoharanFrenchProcessorV2 {
     console.log(`[ChayeiMoharan-FR-V2] Trouvé ${relevantChunks.length} chunks pertinents`);
     
     // 2. Construire un contexte complet pour Gemini
-    const contextForGemini = `Tu es un expert du livre "Chayei Moharan" en français. 
+    const contextForGemini = `Tu es un compagnon spirituel expert du livre "Chayei Moharan" en français.
+Tu dois répondre de manière CONVERSATIONNELLE et HUMAINE, comme si tu discutais avec un ami qui cherche à comprendre les enseignements profonds.
     
 VOICI LE DOCUMENT COMPLET À ANALYSER (${this.lines.length} lignes):
 
@@ -158,17 +170,33 @@ ${chunk.content}
 
 QUESTION DE L'UTILISATEUR: ${query}
 
-INSTRUCTIONS IMPORTANTES:
-1. Base ta réponse UNIQUEMENT sur le contenu du document fourni
-2. Si l'information est dans le document, cite le passage exact et indique les numéros de lignes
-3. Si l'information n'est PAS dans les passages fournis, indique clairement que tu n'as pas trouvé cette information dans les extraits analysés
-4. Sois précis et cite directement le texte quand c'est pertinent
-5. N'invente JAMAIS d'information qui n'est pas dans le document
+INSTRUCTIONS CRITIQUES POUR UNE RÉPONSE NUANCÉE ET CONTEXTUELLE:
 
-Format de réponse:
-**Réponse:** [Ta réponse détaillée]
-**Citations du document:** [Les passages exacts avec numéros de lignes]
-**Trouvé dans le document:** [OUI ou NON]`;
+1. ANALYSE DU CONTEXTE PROFOND:
+   - Ne te contente pas de dire "X est mentionné", explique LE CONTEXTE et LA SIGNIFICATION
+   - Par exemple: Si Lemberg est mentionné, explique POURQUOI c'est important, QU'EST-CE QUI s'y est passé, et COMMENT cela se rapporte aux enseignements
+   - Identifie les LIENS SUBTILS entre les lieux, les événements et les enseignements spirituels
+
+2. STYLE CONVERSATIONNEL:
+   - Parle comme un ami sage qui partage une sagesse profonde
+   - Utilise "tu vois..." ou "ce qui est intéressant ici..."
+   - Évite le ton académique sec, privilégie la chaleur humaine
+
+3. NUANCES ET PRÉCISION:
+   - Si un lieu est mentionné, explique ce qui s'y est PASSÉ, pas juste qu'il existe
+   - Distingue entre: ce qui a causé quelque chose VS où quelque chose a été discuté
+   - Exemple: "Ce n'est pas Lemberg qui a causé la joie, mais c'est À Lemberg que le Rabbi a parlé de l'importance de la joie"
+
+4. CITATIONS CONTEXTUALISÉES:
+   - Ne cite pas juste des phrases isolées
+   - Explique ce qui précède et suit la citation pour donner du sens
+   - Relie les citations entre elles pour montrer la cohérence
+
+5. RÉPONSE RAPIDE ET FLUIDE:
+   - Va droit au but tout en restant profond
+   - Structure: Point principal → Contexte → Citations pertinentes → Signification spirituelle
+
+RAPPEL: Tu converses avec quelqu'un qui cherche une compréhension spirituelle profonde, pas juste des faits.`;
 
     try {
       const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent(contextForGemini);
@@ -179,12 +207,17 @@ Format de réponse:
                              relevantChunks.length > 0 ||
                              !answer.toLowerCase().includes('pas trouvé');
       
-      return {
+      const result = {
         answer,
         sources: relevantChunks.map(chunk => `Lignes ${chunk.startLine}-${chunk.endLine}`),
         relevantChunks,
         foundInDocument
       };
+      
+      // Mettre en cache le résultat
+      this.searchCache.set(cacheKey, { timestamp: Date.now(), result });
+      
+      return result;
     } catch (error) {
       console.error('[ChayeiMoharan-FR-V2] Erreur Gemini:', error);
       

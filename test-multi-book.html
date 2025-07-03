@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Architecture Multi-Livres</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0052aa;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 10px;
+            white-space: pre-wrap;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #333;
+            border-radius: 8px;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border-radius: 4px;
+            border: 1px solid #666;
+            background: #444;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Architecture Multi-Livres - Test</h1>
+    
+    <div class="section">
+        <h2>📚 Livres disponibles</h2>
+        <button onclick="getBooks()">Voir les livres disponibles</button>
+    </div>
+    
+    <div class="section">
+        <h2>🔍 Recherche</h2>
+        <input type="text" id="searchQuery" placeholder="Votre question..." style="width: 400px;">
+        <br>
+        <button onclick="searchAllBooks()">Rechercher dans tous les livres</button>
+        <button onclick="searchSpecificBook()">Rechercher dans Chayei Moharan FR</button>
+    </div>
+    
+    <div class="section">
+        <h2>➕ Ajouter un nouveau livre</h2>
+        <select id="newBookSelect">
+            <option value="">Choisissez un livre à ajouter...</option>
+            <option value="likutei-moharan">Likoutei Moharan (ליקוטי מוהרן)</option>
+            <option value="sichot-haran">Sichot HaRan (שיחות הרן)</option>
+            <option value="likutei-tefilot">Likoutei Tefilot (ליקוטי תפילות)</option>
+            <option value="sefer-hamidot">Sefer HaMiddot (ספר המידות)</option>
+            <option value="sippurei-maasiyot">Sipourei Maasiyot (סיפורי מעשיות)</option>
+        </select>
+        <button onclick="addBook()">Ajouter ce livre</button>
+    </div>
+    
+    <div id="result"></div>
+    
+    <script>
+    async function getBooks() {
+        try {
+            const response = await fetch('/api/multi-book/books');
+            const data = await response.json();
+            
+            document.getElementById('result').innerHTML = `
+<h3>📚 Livres disponibles (${data.totalBooks}):</h3>
+${data.books.map(book => `
+<div style="margin: 10px 0; padding: 10px; background: #444; border-radius: 5px;">
+    <strong>${book.titleFrench}</strong> (${book.title})
+    <br>ID: ${book.id}
+    <br>Langue: ${book.language}
+    <br>Stats: ${book.stats.lines} lignes, ${book.stats.chunks} chunks, ${book.stats.characters} caractères
+</div>
+`).join('')}`;
+        } catch (error) {
+            document.getElementById('result').innerHTML = `Erreur: ${error}`;
+        }
+    }
+    
+    async function searchAllBooks() {
+        const query = document.getElementById('searchQuery').value;
+        if (!query) {
+            alert('Veuillez entrer une question');
+            return;
+        }
+        
+        document.getElementById('result').innerHTML = '⏳ Recherche en cours...';
+        
+        try {
+            const response = await fetch('/api/multi-book/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question: query })
+            });
+            
+            const data = await response.json();
+            
+            document.getElementById('result').innerHTML = `
+<h3>🔍 Résultats de la recherche multi-livres:</h3>
+<div style="margin: 15px 0;">
+    <strong>Réponse:</strong>
+    <div style="padding: 10px; background: #555; border-radius: 5px; margin-top: 5px;">
+        ${data.answer}
+    </div>
+</div>
+
+<h4>📚 Résultats par livre:</h4>
+${data.bookResults.map(bookResult => `
+<div style="margin: 10px 0; padding: 10px; background: #444; border-radius: 5px;">
+    <strong>${bookResult.bookTitle}</strong>
+    <br>Trouvé: ${bookResult.foundInBook ? '✅ OUI' : '❌ NON'}
+    <br>Chunks pertinents: ${bookResult.relevantChunks.length}
+</div>
+`).join('')}
+
+<p><strong>Information trouvée dans au moins un livre:</strong> ${data.overallFound ? '✅ OUI' : '❌ NON'}</p>`;
+        } catch (error) {
+            document.getElementById('result').innerHTML = `Erreur: ${error}`;
+        }
+    }
+    
+    async function searchSpecificBook() {
+        const query = document.getElementById('searchQuery').value;
+        if (!query) {
+            alert('Veuillez entrer une question');
+            return;
+        }
+        
+        document.getElementById('result').innerHTML = '⏳ Recherche en cours dans Chayei Moharan FR...';
+        
+        try {
+            const response = await fetch('/api/multi-book/search/chayei-moharan-fr', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question: query })
+            });
+            
+            const data = await response.json();
+            
+            document.getElementById('result').innerHTML = `
+<h3>🔍 Résultats dans Chayei Moharan FR:</h3>
+<div style="margin: 15px 0;">
+    <strong>Réponse:</strong>
+    <div style="padding: 10px; background: #555; border-radius: 5px; margin-top: 5px;">
+        ${data.answer}
+    </div>
+</div>
+<p><strong>Trouvé dans le document:</strong> ${data.foundInDocument ? '✅ OUI' : '❌ NON'}</p>
+<p><strong>Sources:</strong> ${data.sources.join(', ')}</p>`;
+        } catch (error) {
+            document.getElementById('result').innerHTML = `Erreur: ${error}`;
+        }
+    }
+    
+    async function addBook() {
+        const select = document.getElementById('newBookSelect');
+        const bookId = select.value;
+        
+        if (!bookId) {
+            alert('Veuillez choisir un livre');
+            return;
+        }
+        
+        // Configuration pour les livres disponibles
+        const bookConfigs = {
+            'likutei-moharan': {
+                id: 'likutei-moharan-he',
+                title: 'Likutei Moharan',
+                titleFrench: 'Likoutei Moharan (Recueil des enseignements)',
+                titleHebrew: 'ליקוטי מוהרן',
+                filename: 'ליקוטי מוהרן קמא_1751481234338.docx',
+                language: 'hebrew'
+            },
+            'sichot-haran': {
+                id: 'sichot-haran-he',
+                title: 'Sichot HaRan',
+                titleFrench: 'Sichot HaRan (Conversations du Rabbi)',
+                titleHebrew: 'שיחות הרן',
+                filename: 'שבחי ושיחות הרן_1751481234339.docx',
+                language: 'hebrew'
+            },
+            'likutei-tefilot': {
+                id: 'likutei-tefilot-he',
+                title: 'Likutei Tefilot',
+                titleFrench: 'Likoutei Tefilot (Recueil de prières)',
+                titleHebrew: 'ליקוטי תפילות',
+                filename: 'ליקוטי תפילות_1751481234338.docx',
+                language: 'hebrew'
+            },
+            'sefer-hamidot': {
+                id: 'sefer-hamidot-he',
+                title: 'Sefer HaMiddot',
+                titleFrench: 'Sefer HaMiddot (Livre des traits de caractère)',
+                titleHebrew: 'ספר המידות',
+                filename: 'ספר המידות_1751481234338.docx',
+                language: 'hebrew'
+            },
+            'sippurei-maasiyot': {
+                id: 'sippurei-maasiyot-he',
+                title: 'Sippurei Maasiyot',
+                titleFrench: 'Sipourei Maasiyot (Contes)',
+                titleHebrew: 'סיפורי מעשיות',
+                filename: 'סיפורי מעשיות_1751481234338.docx',
+                language: 'hebrew'
+            }
+        };
+        
+        const config = bookConfigs[bookId];
+        if (!config) {
+            alert('Configuration non trouvée');
+            return;
+        }
+        
+        document.getElementById('result').innerHTML = `⏳ Ajout du livre "${config.titleFrench}" en cours...`;
+        
+        try {
+            const response = await fetch('/api/multi-book/add-book', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(config)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('result').innerHTML = `
+<h3>✅ Livre ajouté avec succès!</h3>
+<p>${data.message}</p>
+<h4>Livres maintenant disponibles (${data.books.length}):</h4>
+${data.books.map(book => `
+<div style="margin: 10px 0; padding: 10px; background: #444; border-radius: 5px;">
+    <strong>${book.titleFrench}</strong>
+    <br>Stats: ${book.stats.lines} lignes, ${book.stats.chunks} chunks
+</div>
+`).join('')}`;
+                
+                // Réinitialiser le select
+                select.value = '';
+            } else {
+                document.getElementById('result').innerHTML = `❌ Erreur: ${data.error}`;
+            }
+        } catch (error) {
+            document.getElementById('result').innerHTML = `Erreur: ${error}`;
+        }
+    }
+    
+    // Charger les livres au démarrage
+    getBooks();
+    </script>
+</body>
+</html>

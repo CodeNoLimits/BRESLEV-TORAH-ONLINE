@@ -26,6 +26,18 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 - **Connection**: Neon Database serverless PostgreSQL instance
 - **Local Storage**: Browser sessionStorage for caching Sefaria API responses
 
+### Multi-Book Architecture (July 3, 2025)
+- **MultiBookProcessor**: Service centralisé pour gérer plusieurs livres de manière extensible
+- **Document Processing**: Chunking automatique (30 lignes avec chevauchement de 5) pour recherche optimale
+- **Caching Strategy**: Cache de 5 minutes pour les recherches fréquentes
+- **API Endpoints**:
+  - `/api/multi-book/books` - Liste des livres disponibles
+  - `/api/multi-book/search` - Recherche dans tous les livres
+  - `/api/multi-book/search/:bookId` - Recherche dans un livre spécifique
+  - `/api/multi-book/add-book` - Ajouter un nouveau livre
+- **Supported Languages**: French, Hebrew, Mixed content
+- **Gemini Integration**: Instructions nuancées pour réponses conversationnelles et contextuelles
+
 ## Key Components
 
 ### 1. Library System (Sefaria Integration)
@@ -132,6 +144,11 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 
 ## Recent Changes
 
+- ✓ PROCESSEUR V2 AMÉLIORÉ: Recherche exhaustive dans tout le document Chayei Moharan français (663 lignes, 27 chunks) avec cache 5 minutes (July 3, 2025)
+- ✓ INSTRUCTIONS GEMINI OPTIMISÉES: Réponses conversationnelles nuancées avec analyse contextuelle profonde (July 3, 2025)
+- ✓ STT AMÉLIORÉ: Délai de silence augmenté à 2 secondes pour permettre des pauses naturelles (July 3, 2025)
+- ✓ ARCHITECTURE MULTI-LIVRES: Système extensible pour ajouter tous les livres Breslov un par un (July 3, 2025)
+- ✓ INDICATEUR VISUEL: Affichage clair si l'information est trouvée ou non dans le document (July 3, 2025)
 - ✓ RECHERCHE GEMINI BASÉE SUR CONNAISSANCES: L'IA utilise maintenant ses connaissances du vrai Chayei Moharan pour répondre aux questions (July 3, 2025)
 - ✓ SOLUTION D'URGENCE DÉPLOYÉE: En réponse au problème de correspondance textuelle, l'IA donne des réponses authentiques basées sur ses connaissances bibliographiques (July 3, 2025)
 - ✓ CHAYEI MOHARAN DEDICATED SYSTEM: Complete focus on single book with 823 chapters (July 3, 2025)

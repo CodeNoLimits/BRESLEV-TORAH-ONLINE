@@ -33,21 +33,42 @@ export default function AppFrench() {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognition = useRef<any>(null);
+  const silenceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const lastResultTime = useRef<number>(0);
 
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       recognition.current = new SpeechRecognition();
-      recognition.current.continuous = false;
-      recognition.current.interimResults = false;
+      recognition.current.continuous = true;  // Changé pour permettre l'écoute continue
+      recognition.current.interimResults = true;  // Pour détecter les pauses
       recognition.current.lang = 'fr-FR';
 
       recognition.current.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setQuestion(transcript);
-        console.log('[STT] ✅ Transcription:', transcript);
-        setIsListening(false);
-        handleSearch(transcript);
+        // Effacer le timeout existant
+        if (silenceTimeout.current) {
+          clearTimeout(silenceTimeout.current);
+        }
+
+        // Récupérer le dernier résultat
+        const lastResult = event.results[event.results.length - 1];
+        const transcript = lastResult[0].transcript;
+        
+        if (lastResult.isFinal) {
+          setQuestion(transcript);
+          console.log('[STT] ✅ Transcription finale:', transcript);
+          
+          // Démarrer un timeout de 2 secondes après un résultat final
+          silenceTimeout.current = setTimeout(() => {
+            recognition.current.stop();
+            setIsListening(false);
+            handleSearch(transcript);
+          }, 2000);  // 2 secondes de silence avant d'arrêter
+        } else {
+          // Résultat provisoire - afficher en temps réel
+          setQuestion(transcript);
+          lastResultTime.current = Date.now();
+        }
       };
 
       recognition.current.onerror = (event: any) => {
