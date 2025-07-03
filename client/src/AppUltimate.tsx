@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './index.css';
+import { ChayeiMoharanViewer } from './components/ChayeiMoharanViewer';
 
 interface Message {
   id: string;

@@ -13,6 +13,7 @@ import { registerMetaRoutes } from './routes/meta';
 import { ttsRouter } from './routes/tts';
 import chatRouter from './routes/chat';
 import smartQueryRouter from "./routes/smartQuery";
+import chayeiMoharanRouter from "./routes/chayeiMoharan";
 // Dynamic import for ES module compatibility
 let fullTextExtractor: any = null;
 
@@ -43,6 +44,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Smart Query Route (nouvelle route unifiée)
   app.use('/api/smart-query', smartQueryRouter);
+  
+  // Chayei Moharan Routes (livre principal avec Gemini)
+  app.use('/api/chayei-moharan', chayeiMoharanRouter);
 
   // Docs API Endpoints
   app.get('/api/docs/index', async (req: Request, res: Response) => {
