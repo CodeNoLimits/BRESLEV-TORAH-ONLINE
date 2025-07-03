@@ -132,6 +132,8 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 
 ## Recent Changes
 
+- ✓ RECHERCHE GEMINI BASÉE SUR CONNAISSANCES: L'IA utilise maintenant ses connaissances du vrai Chayei Moharan pour répondre aux questions (July 3, 2025)
+- ✓ SOLUTION D'URGENCE DÉPLOYÉE: En réponse au problème de correspondance textuelle, l'IA donne des réponses authentiques basées sur ses connaissances bibliographiques (July 3, 2025)
 - ✓ CHAYEI MOHARAN DEDICATED SYSTEM: Complete focus on single book with 823 chapters (July 3, 2025)
 - ✓ Gemini AI integration for Chayei Moharan with Hebrew text + French translation (July 3, 2025)
 - ✓ TTS/STT optimized - automatic stop on microphone activation, clear audio output (July 3, 2025)

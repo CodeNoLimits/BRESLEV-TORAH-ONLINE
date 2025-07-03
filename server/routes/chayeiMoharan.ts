@@ -97,4 +97,69 @@ router.get("/status", async (req, res) => {
   }
 });
 
+// DEBUG - RECHERCHE GLOBALE LEMBERG
+router.get("/debug-search-lemberg", async (req, res) => {
+  try {
+    await chayeiMoharanProcessor.initialize();
+    
+    const fullText = chayeiMoharanProcessor.getFullBookText();
+    const lemberVariants = [
+      'lemberg', 'למברג', 'לעמבערג', 'lviv', 'lwów', 'ליוב', 'לבוב',
+      'לעמברג', 'לעמבורג', 'לבמברג', 'לימברג', 'לימבערג', 'ליבוב'
+    ];
+    
+    const results = [];
+    
+    // Recherche chaque variante
+    for (const variant of lemberVariants) {
+      const indices = [];
+      let index = fullText.indexOf(variant);
+      while (index !== -1) {
+        indices.push(index);
+        index = fullText.indexOf(variant, index + 1);
+      }
+      
+      if (indices.length > 0) {
+        results.push({
+          variant,
+          occurrences: indices.length,
+          positions: indices.slice(0, 5), // Limite à 5 positions pour debug
+          contexts: indices.slice(0, 3).map(pos => ({
+            position: pos,
+            context: fullText.substring(Math.max(0, pos - 200), pos + 300)
+          }))
+        });
+      }
+    }
+    
+    // Recherche aussi des mots connexes
+    const travelTerms = ['נסיעה', 'דרך', 'מסע', 'הלך', 'journey', 'voyage'];
+    const travelResults = [];
+    
+    for (const term of travelTerms) {
+      const count = (fullText.match(new RegExp(term, 'g')) || []).length;
+      if (count > 0) {
+        travelResults.push({ term, count });
+      }
+    }
+    
+    res.json({
+      totalChapters: chayeiMoharanProcessor.getTotalChapters(),
+      textLength: fullText.length,
+      lemberResults: results,
+      travelTermsCounts: travelResults,
+      summary: results.length > 0 ? 
+        `Trouvé ${results.reduce((sum, r) => sum + r.occurrences, 0)} occurrences de Lemberg` :
+        "Aucune occurrence de Lemberg trouvée"
+    });
+
+  } catch (error) {
+    console.error('[ChayeiMoharan] Erreur recherche Lemberg:', error);
+    res.status(500).json({ 
+      error: "Erreur recherche Lemberg",
+      details: error.message 
+    });
+  }
+});
+
 export default router;
