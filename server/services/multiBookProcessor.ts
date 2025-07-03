@@ -12,6 +12,9 @@ export interface BookChunk {
   startLine: number;
   endLine: number;
   keywords: string[];
+  isRTL?: boolean; // Pour l'hébreu
+  cachedTranslation?: string; // Cache de traduction
+  translationTimestamp?: number;
 }
 
 export interface Book {
@@ -31,13 +34,15 @@ export interface Book {
 export class MultiBookProcessor {
   private books: Map<string, Book> = new Map();
   private initialized = false;
+  private translationCache = new Map<string, { translation: string; timestamp: number }>();
+  private translationCacheTimeout = 30 * 60 * 1000; // 30 minutes
 
   async initialize() {
     if (this.initialized) return;
     
     console.log('[MultiBook] Initialisation du processeur multi-livres...');
     
-    // Pour l'instant, on charge uniquement Chayei Moharan
+    // Charger Chayei Moharan français
     await this.loadBook({
       id: 'chayei-moharan-fr',
       title: 'Chayei Moharan',
@@ -45,6 +50,14 @@ export class MultiBookProcessor {
       filename: 'CHAYE MOHARAN FR_1751542665093.docx',
       language: 'french'
     });
+    
+    // Charger tous les livres hébreux
+    try {
+      const { loadAllHebrewBooks } = await import('../loadHebrewBooks.js');
+      await loadAllHebrewBooks();
+    } catch (error) {
+      console.error('[MultiBook] Erreur chargement livres hébreux:', error);
+    }
     
     this.initialized = true;
     console.log(`[MultiBook] Initialisé avec ${this.books.size} livre(s)`);
@@ -97,7 +110,8 @@ export class MultiBookProcessor {
             content: chunkContent,
             startLine: i,
             endLine: endIndex,
-            keywords: this.extractKeywords(chunkContent)
+            keywords: this.extractKeywords(chunkContent),
+            isRTL: this.isHebrewText(chunkContent)
           };
           
           book.chunks.push(chunk);
@@ -114,15 +128,84 @@ export class MultiBookProcessor {
 
   private extractKeywords(text: string): string[] {
     const keywords: string[] = [];
-    const importantWords = text.match(/[A-Z][a-zàâäéèêëïîôùûüÿçœæ]+/g) || [];
     
-    importantWords.forEach(word => {
+    // Pour le français
+    const frenchWords = text.match(/[A-Z][a-zàâäéèêëïîôùûüÿçœæ]+/g) || [];
+    
+    // Pour l'hébreu
+    const hebrewWords = text.match(/[\u0590-\u05FF]{3,}/g) || [];
+    
+    frenchWords.forEach(word => {
       if (word.length > 3 && !keywords.includes(word)) {
         keywords.push(word.toLowerCase());
       }
     });
     
+    hebrewWords.forEach(word => {
+      if (!keywords.includes(word)) {
+        keywords.push(word);
+      }
+    });
+    
     return keywords;
+  }
+
+  private isHebrewText(text: string): boolean {
+    const hebrewChars = (text.match(/[\u0590-\u05FF]/g) || []).length;
+    const totalChars = text.length;
+    return hebrewChars / totalChars > 0.3; // Plus de 30% de caractères hébreux
+  }
+
+  async translateChunk(chunkId: string): Promise<string> {
+    // Vérifier le cache
+    const cached = this.translationCache.get(chunkId);
+    if (cached && Date.now() - cached.timestamp < this.translationCacheTimeout) {
+      return cached.translation;
+    }
+
+    // Trouver le chunk
+    let targetChunk: BookChunk | null = null;
+    const books = Array.from(this.books.values());
+    for (const book of books) {
+      const chunk = book.chunks.find((c: BookChunk) => c.id === chunkId);
+      if (chunk) {
+        targetChunk = chunk;
+        break;
+      }
+    }
+
+    if (!targetChunk) {
+      throw new Error(`Chunk ${chunkId} non trouvé`);
+    }
+
+    // Si le chunk n'est pas en hébreu, retourner le contenu original
+    if (!targetChunk.isRTL) {
+      return targetChunk.content;
+    }
+
+    try {
+      const prompt = `Traduis ce texte hébreu en français. Reste fidèle au sens spirituel et conserve les références (numéros de versets, etc.).
+      
+Texte hébreu:
+${targetChunk.content}
+
+Instructions:
+- Traduction fluide et naturelle en français
+- Préserve les numéros de versets/sections
+- Garde le sens spirituel profond
+- Ne rajoute pas de commentaires`;
+
+      const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent(prompt);
+      const translation = response.response.text() || targetChunk.content;
+      
+      // Mettre en cache
+      this.translationCache.set(chunkId, { translation, timestamp: Date.now() });
+      
+      return translation;
+    } catch (error) {
+      console.error(`[MultiBook] Erreur traduction chunk ${chunkId}:`, error);
+      return targetChunk.content; // Fallback sur le texte original
+    }
   }
 
   async searchAcrossBooks(query: string, bookIds?: string[]): Promise<{
@@ -212,8 +295,10 @@ export class MultiBookProcessor {
   }
 
   private buildGeminiContext(query: string, bookResults: any[], allChunks: BookChunk[]): string {
+    const hasHebrewChunks = allChunks.some(chunk => chunk.isRTL);
+    
     return `Tu es un compagnon spirituel expert des textes de Rabbi Nahman de Breslov.
-Tu as accès à plusieurs livres et tu dois répondre de manière conversationnelle et profonde.
+Tu as accès à plusieurs livres en hébreu et en français et tu dois répondre de manière conversationnelle et directe.
 
 LIVRES DISPONIBLES:
 ${bookResults.map(result => `- ${result.bookTitle}: ${result.foundInBook ? 'Contient des informations pertinentes' : 'Aucune information trouvée'}`).join('\n')}
@@ -223,7 +308,7 @@ ${allChunks.length > 0 ?
   allChunks.map((chunk, index) => {
     const book = this.books.get(chunk.bookId);
     return `
---- LIVRE: ${book?.titleFrench} | Lignes ${chunk.startLine}-${chunk.endLine} ---
+--- LIVRE: ${book?.titleFrench} | Lignes ${chunk.startLine}-${chunk.endLine} ${chunk.isRTL ? '(TEXTE HÉBREU)' : ''} ---
 ${chunk.content}
 --- FIN DU PASSAGE ---`;
   }).join('\n') :
@@ -232,12 +317,31 @@ ${chunk.content}
 
 QUESTION: ${query}
 
-INSTRUCTIONS:
-1. Réponds de manière conversationnelle et chaleureuse
-2. Si tu trouves l'information, explique le contexte et la signification spirituelle
-3. Cite les livres et les passages spécifiques
-4. Si l'information n'est pas trouvée, dis-le clairement mais offre une réflexion basée sur ta connaissance générale des enseignements
-5. Fais des liens entre différents livres si pertinent`;
+INSTRUCTIONS SPÉCIFIQUES:
+1. STYLE CONVERSATIONNEL DIRECT:
+   - Va droit au but, évite les formulations poétiques
+   - Maximum 2-3 phrases par idée principale
+   - Exemple: "À Lemberg, le Rabbi a enseigné l'importance de la joie face aux difficultés."
+   
+2. GESTION DES TEXTES HÉBREUX:
+   - Si tu trouves des passages en hébreu, cite-les d'abord en hébreu
+   - Donne ensuite une traduction française concise
+   - Mentionne toujours la référence exacte (livre, chapitre, verset)
+   
+3. CITATIONS ET RÉFÉRENCES:
+   - Format: "Dans [Livre], chapitre X, verset Y, il est écrit..."
+   - Pour l'hébreu: donne d'abord le texte hébreu entre guillemets, puis la traduction
+   
+4. RÉPONSE DIRECTE:
+   - Si trouvé: explique le contexte et la signification en 2-3 phrases maximum
+   - Si non trouvé: dis-le clairement en une phrase
+   - Évite les longues introductions ou conclusions
+
+${hasHebrewChunks ? `
+5. IMPORTANT - TEXTES HÉBREUX PRÉSENTS:
+   - Certains passages sont en hébreu original
+   - Cite toujours l'hébreu en premier, puis traduis
+   - Garde les numéros de versets/sections dans tes citations` : ''}`;
   }
 
   private generateFallbackAnswer(bookResults: any[]): string {

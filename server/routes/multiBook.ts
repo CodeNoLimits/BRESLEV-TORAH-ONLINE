@@ -118,5 +118,27 @@ export function registerMultiBookRoutes(app: Express) {
     }
   });
 
+  // Route pour traduire un chunk hébreu à la demande
+  app.post('/api/multi-book/translate-chunk', async (req: Request, res: Response) => {
+    try {
+      const { chunkId } = req.body;
+      
+      if (!chunkId) {
+        return res.status(400).json({ error: 'ID du chunk manquant' });
+      }
+      
+      const translation = await multiBookProcessor.translateChunk(chunkId);
+      
+      res.json({ 
+        success: true, 
+        translation,
+        chunkId
+      });
+    } catch (error) {
+      console.error('[MultiBook] Erreur traduction chunk:', error);
+      res.status(500).json({ error: 'Erreur lors de la traduction' });
+    }
+  });
+
   console.log('[Route] Routes Multi-Livres configurées ✓');
 }

@@ -26,17 +26,28 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 - **Connection**: Neon Database serverless PostgreSQL instance
 - **Local Storage**: Browser sessionStorage for caching Sefaria API responses
 
-### Multi-Book Architecture (July 3, 2025)
+### Multi-Book Architecture with Hebrew Support (July 3, 2025)
 - **MultiBookProcessor**: Service centralisé pour gérer plusieurs livres de manière extensible
 - **Document Processing**: Chunking automatique (30 lignes avec chevauchement de 5) pour recherche optimale
-- **Caching Strategy**: Cache de 5 minutes pour les recherches fréquentes
+- **Hebrew Text Support**: 
+  - Détection automatique RTL pour textes hébreux (>30% caractères hébreux)
+  - Extraction de mots-clés bilingue (français + hébreu)
+  - Traduction paresseuse uniquement à la demande
+- **Caching Strategy**: 
+  - Cache de 5 minutes pour les recherches
+  - Cache de 30 minutes pour les traductions
 - **API Endpoints**:
   - `/api/multi-book/books` - Liste des livres disponibles
   - `/api/multi-book/search` - Recherche dans tous les livres
   - `/api/multi-book/search/:bookId` - Recherche dans un livre spécifique
   - `/api/multi-book/add-book` - Ajouter un nouveau livre
+  - `/api/multi-book/translate-chunk` - Traduire un chunk hébreu à la demande
 - **Supported Languages**: French, Hebrew, Mixed content
-- **Gemini Integration**: Instructions nuancées pour réponses conversationnelles et contextuelles
+- **Gemini Integration**: 
+  - Recherche directe dans le texte hébreu
+  - Réponses conversationnelles directes (2-3 phrases par idée)
+  - Citations hébraïques avec traduction française
+  - Instructions spécifiques pour textes bilingues
 
 ## Key Components
 
@@ -144,6 +155,12 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 
 ## Recent Changes
 
+- ✓ INTERFACE MULTI-LIVRES COMPLÈTE: Nouvelle interface avec sidebar pour sélectionner les livres, architecture identique à Chayei Moharan (July 3, 2025)
+- ✓ SUPPORT HÉBREU NATIF: Recherche directe dans les textes hébreux avec traduction paresseuse uniquement pour l'affichage (July 3, 2025)
+- ✓ GEMINI BILINGUE: Instructions optimisées pour chercher en hébreu et répondre en français avec citations originales (July 3, 2025)
+- ✓ TRADUCTION À LA DEMANDE: API endpoint `/api/multi-book/translate-chunk` pour traduire uniquement les passages affichés (July 3, 2025)
+- ✓ CACHE INTELLIGENT: Cache de 30 minutes pour les traductions, évitant de retraduire les mêmes passages (July 3, 2025)
+- ✓ LIVRES HÉBREUX DISPONIBLES: 10 livres prêts à charger (Likutei Moharan, Sippurei Maasiyot, Likutei Tefilot, etc.) (July 3, 2025)
 - ✓ PROCESSEUR V2 AMÉLIORÉ: Recherche exhaustive dans tout le document Chayei Moharan français (663 lignes, 27 chunks) avec cache 5 minutes (July 3, 2025)
 - ✓ INSTRUCTIONS GEMINI OPTIMISÉES: Réponses conversationnelles nuancées avec analyse contextuelle profonde (July 3, 2025)
 - ✓ STT AMÉLIORÉ: Délai de silence augmenté à 2 secondes pour permettre des pauses naturelles (July 3, 2025)

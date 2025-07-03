@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { toast } from "@/hooks/use-toast";
 import ChayeiMoharanMain from "./ChayeiMoharanMain";
 import AppFrench from "./AppFrench";
+import AppMultiBook from "./AppMultiBook";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,8 +33,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Switch>
-        <Route path="/" component={AppFrench} />
-        <Route component={AppFrench} />
+        <Route path="/" component={AppMultiBook} />
+        <Route path="/french-only" component={AppFrench} />
+        <Route path="/chayei-moharan" component={ChayeiMoharanMain} />
+        <Route component={AppMultiBook} />
       </Switch>
       <Toaster />
     </QueryClientProvider>
