@@ -15,17 +15,17 @@ export class LocalBooksProcessor {
 
   async initialize() {
     if (this.initialized) return;
-    
+
     try {
       const assetsPath = path.join(process.cwd(), 'attached_assets');
       const files = await fs.readdir(assetsPath);
-      
+
       for (const file of files) {
         if (file.endsWith('.docx')) {
           await this.processDocxFile(path.join(assetsPath, file));
         }
       }
-      
+
       this.initialized = true;
       console.log(`[LocalBooks] Initialized with ${this.books.size} books`);
     } catch (error) {
@@ -38,19 +38,19 @@ export class LocalBooksProcessor {
       const buffer = await fs.readFile(filePath);
       const result = await mammoth.extractRawText({ buffer });
       const content = result.value;
-      
+
       if (content.trim().length > 100) {
         const filename = path.basename(filePath, '.docx');
         const title = this.extractTitleFromFilename(filename);
         const chunks = this.chunkText(content, 1000, 200);
-        
+
         const book: LocalBook = {
           title,
           content,
           filename,
           chunks
         };
-        
+
         this.books.set(title, book);
         console.log(`[LocalBooks] Processed: ${title} (${chunks.length} chunks)`);
       }
@@ -84,31 +84,87 @@ export class LocalBooksProcessor {
         return english;
       }
     }
-    
+
     return filename;
   }
 
   private chunkText(text: string, chunkSize: number, overlap: number): string[] {
     const words = text.split(/\s+/);
     const chunks: string[] = [];
-    
+
     for (let i = 0; i < words.length; i += chunkSize - overlap) {
       const chunk = words.slice(i, i + chunkSize).join(' ');
       if (chunk.trim().length > 50) {
         chunks.push(chunk.trim());
       }
     }
-    
+
     return chunks;
   }
 
+  // Search in a specific book only
+  async searchInSpecificBook(bookName: string, query: string, maxResults: number = 5): Promise<string[]> {
+    const results: Array<{content: string, score: number}> = [];
+    const queryLower = query.toLowerCase();
+    const queryWords = queryLower.split(/\s+/).filter(word => word.length > 2);
+
+    console.log(`[LocalBooks] Recherche "${query}" dans ${bookName} uniquement`);
+
+    if (!this.books.has(bookName)) {
+      console.log(`[LocalBooks] Livre ${bookName} non trouvé`);
+      return [];
+    }
+
+    const book = this.books.get(bookName);
+
+    if (!book) {
+      console.log(`[LocalBooks] Livre ${bookName} non trouvé`);
+      return [];
+    }
+
+    const chunks = book.chunks;
+
+    chunks.forEach(chunk => {
+      let score = 0;
+      const chunkLower = chunk.toLowerCase();
+
+      // Score based on query words
+      queryWords.forEach(word => {
+        const matches = (chunkLower.match(new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+        score += matches * 2;
+      });
+
+      // Bonus for exact phrase
+      if (chunkLower.includes(queryLower)) {
+        score += 20;
+      }
+
+      if (score > 0) {
+        results.push({
+          content: `${bookName}: ${chunk}`,
+          score
+        });
+      }
+    });
+
+    // Sort by relevance and return top results
+    const sortedResults = results
+      .sort((a, b) => b.score - a.score)
+      .slice(0, maxResults)
+      .map(r => r.content);
+
+    console.log(`[LocalBooks] ${sortedResults.length} résultats trouvés dans ${bookName}`);
+    return sortedResults;
+  }
+
+  // Search for relevant content across all books
   async searchRelevantContent(query: string, maxResults: number = 5): Promise<string[]> {
     await this.initialize();
-    
+
     console.log(`[LocalBooks] Recherche pour "${query}" dans ${this.books.size} livres`);
-    
+
     const results: { content: string; score: number; book: string }[] = [];
-    
+
     // Recherche très permissive - retourne toujours du contenu
     for (const [title, book] of Array.from(this.books.entries())) {
       // Prendre les premiers chunks de chaque livre pour garantir du contenu
@@ -123,9 +179,9 @@ export class LocalBooksProcessor {
         }
       }
     }
-    
+
     console.log(`[LocalBooks] ${results.length} chunks collectés de vos livres`);
-    
+
     // Sort by relevance and return top results
     results.sort((a, b) => b.score - a.score);
     return results.slice(0, maxResults).map(r => `[${r.book}]\n${r.content}`);
@@ -134,14 +190,14 @@ export class LocalBooksProcessor {
   private calculateRelevance(query: string, text: string): number {
     const queryWords = query.toLowerCase().split(/\s+/);
     const textWords = text.toLowerCase().split(/\s+/);
-    
+
     let matches = 0;
     for (const qWord of queryWords) {
       if (textWords.some(tWord => tWord.includes(qWord) || qWord.includes(tWord))) {
         matches++;
       }
     }
-    
+
     return matches / queryWords.length;
   }
 

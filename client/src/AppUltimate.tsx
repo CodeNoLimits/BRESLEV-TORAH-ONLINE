@@ -1,342 +1,213 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import './index.css';
+import { useState, useCallback, useEffect } from 'react';
 import { ChayeiMoharanViewer } from './components/ChayeiMoharanViewer';
+import { useVoice } from './hooks/useVoice';
 
 interface Message {
   id: string;
   type: 'user' | 'ai';
   content: string;
   timestamp: Date;
+  hebrew?: string;
+  french?: string;
 }
 
-export default function AppUltimate() {
+function AppUltimate() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
+  const [currentInput, setCurrentInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [selectedText, setSelectedText] = useState<string>('');
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [currentView, setCurrentView] = useState<'chat' | 'chayei'>('chat');
-  
-  const recognitionRef = useRef<any>(null);
-  const synthRef = useRef<any>(null);
-  const menuTimeoutRef = useRef<any>(null);
+  const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+  const [showLibrary, setShowLibrary] = useState(false);
 
-  // TTS SIMPLE ET FIABLE
+  // TTS simple et direct
   const speak = useCallback((text: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'fr-FR';
-      utterance.rate = 0.9;
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      window.speechSynthesis.speak(utterance);
-    }
+    if (!text.trim()) return;
+    console.log('[TTS] Speaking:', text.substring(0, 50));
+
+    speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'fr-FR';
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    speechSynthesis.speak(utterance);
   }, []);
 
-  // RECONNAISSANCE VOCALE SIMPLE
-  const startListening = useCallback(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.lang = 'fr-FR';
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
+  // Système vocal unifié
+  const { askVoice, isListening } = useVoice((question: string) => {
+    setCurrentInput(question);
+    handleQuestion(question);
+  });
 
-      recognitionRef.current.onstart = () => setIsListening(true);
-      recognitionRef.current.onend = () => setIsListening(false);
-      
-      recognitionRef.current.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInputValue(transcript);
-        handleSend(transcript);
-      };
+  // Fonction principale pour poser des questions
+  const handleQuestion = useCallback(async (question: string) => {
+    if (!question.trim()) return;
 
-      recognitionRef.current.onerror = () => {
-        setIsListening(false);
-        console.log('Erreur reconnaissance vocale');
-      };
-
-      recognitionRef.current.start();
-    }
-  }, []);
-
-  // ENVOI QUESTION À L'IA - UTILISE VOS LIVRES UNIQUEMENT
-  const handleSend = useCallback(async (question?: string) => {
-    const finalQuestion = question || inputValue.trim();
-    if (!finalQuestion) return;
+    console.log('[AppUltimate] Question:', question);
 
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: finalQuestion,
+      content: question,
       timestamp: new Date()
     };
-
     setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
     setIsLoading(true);
 
     try {
-      console.log('[AppUltimate] Envoi question:', finalQuestion);
-      
+      // Appel à l'API smart-query (concentrée sur Chayei Moharan)
       const response = await fetch('/api/smart-query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: finalQuestion })
+        body: JSON.stringify({ 
+          question,
+          book: 'Chayei_Moharan',
+          translate: true,
+          chapter: selectedChapter
+        })
       });
-
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
 
       const data = await response.json();
       console.log('[AppUltimate] Réponse reçue:', data);
 
+      // Message IA avec traduction
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: data.answer || "Aucune réponse disponible",
+        content: data.french || data.answer || 'Réponse non disponible',
+        hebrew: data.hebrew,
+        french: data.french || data.answer,
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, aiMessage]);
-      
-      // TTS automatique des réponses
-      if (data.answer) {
-        speak(data.answer);
+
+      // TTS automatique de la réponse en français
+      if (data.french || data.answer) {
+        setTimeout(() => {
+          speak(data.french || data.answer);
+        }, 500);
       }
 
     } catch (error) {
       console.error('[AppUltimate] Erreur:', error);
-      
+
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: "❌ Erreur de connexion. Vérifiez que le serveur fonctionne.",
+        content: "❌ Erreur lors de la recherche dans Chayei Moharan",
         timestamp: new Date()
       };
-
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
-  }, [inputValue, speak]);
+  }, [selectedChapter, speak]);
 
-  // GESTION MENU MOBILE STABLE
-  const handleMenuToggle = useCallback(() => {
-    if (menuTimeoutRef.current) {
-      clearTimeout(menuTimeoutRef.current);
+  const handleSend = useCallback(() => {
+    if (currentInput.trim()) {
+      handleQuestion(currentInput);
+      setCurrentInput('');
     }
-    
-    setIsMenuOpen(prev => !prev);
-    
-    // Menu reste ouvert, pas de fermeture automatique
-  }, []);
-
-  const handleMenuItemClick = useCallback((text: string) => {
-    setSelectedText(text);
-    // Menu reste ouvert pour navigation continue
-  }, []);
-
-  // VOS LIVRES AUTHENTIQUES (6909 passages dans PostgreSQL)
-  const sampleTexts = [
-    { 
-      title: "Likutei Moharan Kama", 
-      content: "ליקוטי מוהרן קמא - Enseignements principaux de Rabbi Nahman",
-      chapters: "252 sections"
-    },
-    { 
-      title: "Hishtapchut HaNefesh", 
-      content: "השתפכות הנפש - Épanchement de l'âme",
-      chapters: "102 passages"
-    },
-    { 
-      title: "Chayei Moharan", 
-      content: "חיי מוהרן - Vie de Rabbi Nahman",
-      chapters: "122 récits"
-    },
-    { 
-      title: "Likutei Tefilot", 
-      content: "ליקוטי תפילות - Recueil de prières",
-      chapters: "304 prières"
-    },
-    { 
-      title: "Sippurei Maasiyot", 
-      content: "ספורי מעשיות - Histoires merveilleuses",
-      chapters: "64 histoires"
-    },
-    { 
-      title: "Sefer HaMiddot", 
-      content: "ספר המידות - Livre des traits",
-      chapters: "43 sections"
-    }
-  ];
+  }, [currentInput, handleQuestion]);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col">
-      
-      {/* HEADER FIXE */}
-      <header className="bg-slate-800 p-4 border-b border-slate-700 flex items-center justify-between">
-        <button
-          onClick={handleMenuToggle}
-          className="text-2xl hover:text-sky-400 transition-colors"
-          aria-label="Menu"
-        >
-          ☰
-        </button>
-        
-        <h1 className="text-xl font-bold text-center flex-1">
-          נח נחמן מאומן - Le Compagnon du Cœur
-        </h1>
-        
-        <div className="flex gap-2">
+    <div className="h-screen bg-slate-950 text-slate-300 flex flex-col">
+
+      {/* Header simplifié */}
+      <div className="bg-slate-900 border-b border-slate-700 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center">
+              <span className="text-white font-bold text-sm">ח</span>
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-amber-400">Chayei Moharan</h1>
+              <p className="text-xs text-slate-400">Mode Bêta - Application en développement</p>
+            </div>
+          </div>
+
           <button
-            onClick={() => window.speechSynthesis?.cancel()}
-            className={`p-2 rounded ${isSpeaking ? 'bg-red-600' : 'bg-slate-700'} hover:bg-slate-600`}
-            aria-label="Arrêter TTS"
+            onClick={() => setShowLibrary(!showLibrary)}
+            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded transition-colors"
           >
-            🔊
+            {showLibrary ? 'Fermer' : 'Chapitres'}
           </button>
         </div>
-      </header>
+      </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        
-        {/* MENU LATERAL STABLE */}
-        <div className={`bg-slate-800 transition-all duration-300 overflow-y-auto border-r border-slate-700 ${
-          isMenuOpen ? 'w-80' : 'w-0'
-        }`}>
-          {isMenuOpen && (
-            <div className="p-4">
-              <div className="mb-4 p-3 bg-amber-900 border border-amber-600 rounded-lg">
-                <div className="text-amber-300 font-bold text-sm">🚧 MODE BÊTA</div>
-                <div className="text-amber-200 text-xs mt-1">
-                  Application en développement - Focus sur Chayei Moharan
-                </div>
-              </div>
-              
-              <h2 className="text-lg font-bold mb-4 text-sky-400">📖 Chayei Moharan</h2>
-              
-              <div className="space-y-3">
-                <div
-                  className="p-4 bg-amber-700 hover:bg-amber-600 rounded-lg transition-colors cursor-pointer border-2 border-amber-500"
-                  onClick={() => setCurrentView('chayei')}
+      <div className="flex-1 flex">
+
+        {/* Navigation des chapitres */}
+        {showLibrary && (
+          <div className="w-80 bg-slate-900 border-r border-slate-700 overflow-y-auto">
+            <ChayeiMoharanViewer 
+              onChapterSelect={(chapter) => {
+                setSelectedChapter(chapter);
+                setShowLibrary(false);
+              }}
+              onQuestionSelect={handleQuestion}
+            />
+          </div>
+        )}
+
+        {/* Zone principale */}
+        <div className="flex-1 flex flex-col p-4 max-w-4xl mx-auto">
+
+          {/* Info chapitre sélectionné */}
+          {selectedChapter && (
+            <div className="mb-4 p-3 bg-amber-900/30 border border-amber-600/50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-amber-400 font-medium">
+                  Chapitre sélectionné: {selectedChapter}
+                </span>
+                <button
+                  onClick={() => setSelectedChapter(null)}
+                  className="text-slate-400 hover:text-red-400"
                 >
-                  <div className="font-bold text-white text-lg mb-2 leading-tight">
-                    חיי מוהרן - Chayei Moharan
-                  </div>
-                  <div className="text-sm text-amber-100 mb-2 leading-relaxed">
-                    Livre principal avec 823 chapitres - Recherche Gemini activée
-                  </div>
-                  <div className="text-xs text-green-300 font-medium">
-                    📖 823 chapitres • 🤖 IA Gemini • 🔊 TTS/STT
-                  </div>
-                </div>
-                
-                {sampleTexts.slice(1).map((text, index) => (
-                  <div
-                    key={index}
-                    className="p-4 bg-slate-600 opacity-50 rounded-lg"
-                  >
-                    <div className="font-bold text-slate-400 text-lg mb-2 leading-tight">
-                      {text.title}
-                    </div>
-                    <div className="text-sm text-slate-400 mb-2 leading-relaxed">
-                      Bientôt disponible...
-                    </div>
-                    <div className="text-xs text-slate-500 font-medium">
-                      🔒 En développement
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 p-3 bg-slate-700 rounded">
-                <h3 className="font-medium text-green-400 mb-2">📊 Statut Système</h3>
-                <div className="text-sm space-y-1">
-                  <div>✅ PostgreSQL: 6909 passages</div>
-                  <div>✅ IA Gemini: Opérationnelle</div>
-                  <div>✅ TTS: Web Speech API</div>
-                  <div>✅ STT: Reconnaissance vocale</div>
-                </div>
+                  ✕
+                </button>
               </div>
             </div>
           )}
-        </div>
 
-        {/* ZONE PRINCIPALE */}
-        <div className="flex-1 flex flex-col">
-          
-          {/* AFFICHAGE CONDITIONNEL */}
-          {currentView === 'chayei' ? (
-            <div className="flex-1 overflow-hidden">
-              <ChayeiMoharanViewer />
-            </div>
-          ) : (
-            <>
-              {/* ZONE MESSAGES */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                
-                {/* MESSAGE D'ACCUEIL */}
-                {messages.length === 0 && (
-                  <div className="bg-slate-800 p-6 rounded-lg text-center">
-                    <h2 className="text-2xl font-bold text-sky-400 mb-4">🕊️ Bienvenue</h2>
-                    <p className="text-slate-300 mb-4">
-                  Posez vos questions sur les enseignements de Rabbi Nahman. 
-                  L'IA utilise exclusivement le contenu de vos 13 livres hébreux.
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto mb-4 space-y-4">
+            {messages.length === 0 && (
+              <div className="text-center text-slate-400 mt-8">
+                <h2 className="text-xl mb-4">🕊️ חיי מוהר"ן</h2>
+                <p>Bienvenue dans l'étude de Chayei Moharan</p>
+                <p className="text-sm mt-2">
+                  Sélectionnez un chapitre ou posez une question générale
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-                  <button
-                    onClick={() => handleSend("Quels enseignements parlent de la joie?")}
-                    className="p-3 bg-sky-700 hover:bg-sky-600 rounded transition-colors text-left"
-                  >
-                    💫 Enseignements sur la joie
-                  </button>
-                  <button
-                    onClick={() => handleSend("Comment méditer selon Rabbi Nahman?")}
-                    className="p-3 bg-amber-700 hover:bg-amber-600 rounded transition-colors text-left"
-                  >
-                    🧘 Méditation et prière
-                  </button>
-                  <button
-                    onClick={() => handleSend("Histoires de Sippurei Maasiyot")}
-                    className="p-3 bg-purple-700 hover:bg-purple-600 rounded transition-colors text-left"
-                  >
-                    📖 Histoires merveilleuses
-                  </button>
-                  <button
-                    onClick={() => handleSend("Conseils pour surmonter les épreuves")}
-                    className="p-3 bg-green-700 hover:bg-green-600 rounded transition-colors text-left"
-                  >
-                    💪 Conseils spirituels
-                  </button>
-                </div>
               </div>
             )}
 
-            {/* MESSAGES */}
             {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`p-4 rounded-lg max-w-4xl ${
-                  message.type === 'user'
-                    ? 'bg-sky-700 ml-auto text-right'
-                    : 'bg-slate-700 mr-auto'
-                }`}
-              >
-                <div className="whitespace-pre-wrap">{message.content}</div>
-                <div className="text-xs text-slate-400 mt-2">
-                  {message.timestamp.toLocaleTimeString()}
+              <div key={message.id} className={`p-4 rounded-lg ${
+                message.type === 'user' 
+                  ? 'bg-sky-900 ml-8' 
+                  : 'bg-slate-800 mr-8'
+              }`}>
+
+                {message.type === 'ai' && message.hebrew && (
+                  <div className="mb-3 p-3 bg-slate-700 rounded border-r-4 border-amber-500">
+                    <h4 className="text-amber-400 text-sm font-medium mb-2">מקור בעברית:</h4>
+                    <div className="text-right font-hebrew leading-relaxed text-slate-200">
+                      {message.hebrew}
+                    </div>
+                  </div>
+                )}
+
+                <div className="leading-relaxed">
+                  {message.content.split('\n').map((line, idx) => (
+                    <p key={idx} className="mb-2 last:mb-0">{line}</p>
+                  ))}
                 </div>
-                
-                {/* BOUTON TTS POUR RÉPONSES IA */}
+
                 {message.type === 'ai' && (
                   <button
                     onClick={() => speak(message.content)}
-                    className="mt-2 px-3 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors"
+                    className="mt-2 text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1"
                   >
                     🔊 Écouter
                   </button>
@@ -344,63 +215,58 @@ export default function AppUltimate() {
               </div>
             ))}
 
-            {/* INDICATEUR CHARGEMENT */}
             {isLoading && (
-              <div className="bg-slate-700 p-4 rounded-lg mr-auto">
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin h-4 w-4 border-2 border-sky-400 border-t-transparent rounded-full"></div>
-                  <span>Rabbi Nahman réfléchit...</span>
-                </div>
+              <div className="p-4 rounded-lg bg-slate-800 mr-8">
+                <div className="animate-pulse">🔍 Recherche dans Chayei Moharan...</div>
               </div>
             )}
           </div>
 
-          {/* ZONE SAISIE */}
-          <div className="p-4 bg-slate-800 border-t border-slate-700">
+          {/* Zone de saisie */}
+          <div className="border-t border-slate-700 pt-4">
             <div className="flex gap-2">
               <textarea
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={(e) => {
+                value={currentInput}
+                onChange={(e) => setCurrentInput(e.target.value)}
+                placeholder="Posez votre question sur Chayei Moharan..."
+                className="flex-1 p-3 bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:border-amber-500"
+                rows={2}
+                disabled={isLoading}
+                onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     handleSend();
                   }
                 }}
-                placeholder="Posez votre question sur les enseignements de Rabbi Nahman..."
-                className="flex-1 p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 resize-none"
-                rows={2}
               />
-              
+
               <div className="flex flex-col gap-2">
                 <button
-                  onClick={startListening}
-                  disabled={isListening}
-                  className={`p-3 rounded-lg transition-colors ${
-                    isListening
-                      ? 'bg-red-600 animate-pulse'
-                      : 'bg-slate-600 hover:bg-slate-500'
+                  onClick={() => askVoice()}
+                  className={`p-3 rounded-lg transition-all ${
+                    isListening 
+                      ? 'bg-red-600 animate-pulse text-white' 
+                      : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
                   }`}
-                  aria-label="Reconnaissance vocale"
+                  title="Question vocale"
                 >
                   🎤
                 </button>
-                
+
                 <button
-                  onClick={() => handleSend()}
-                  disabled={isLoading || !inputValue.trim()}
-                  className="p-3 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-600 disabled:opacity-50 rounded-lg transition-colors"
-                  aria-label="Envoyer"
+                  onClick={handleSend}
+                  disabled={isLoading || !currentInput.trim()}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-slate-600 rounded-lg transition-colors text-black font-medium"
                 >
-                  ➤
+                  {isLoading ? '...' : 'Envoyer'}
                 </button>
               </div>
             </div>
           </div>
-            </>
-          )}
         </div>
       </div>
     </div>
   );
 }
+
+export default AppUltimate;
