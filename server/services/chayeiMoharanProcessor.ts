@@ -122,6 +122,12 @@ export class ChayeiMoharanProcessor {
     answer: string;
     sources: string[];
     relevantSections: ChayeiSection[];
+    translatedCitations: Array<{
+      reference: string;
+      hebrewText: string;
+      frenchTranslation: string;
+      chapterNumber: number;
+    }>;
   }> {
     await this.initialize();
 
@@ -132,56 +138,107 @@ export class ChayeiMoharanProcessor {
     
     // 2. Construire le contexte pour Gemini
     const context = relevantSections.map(section => 
-      `${section.reference}: ${section.hebrewText.substring(0, 400)}`
+      `${section.reference}: ${section.hebrewText.substring(0, 500)}`
     ).join('\n\n');
 
-    // 3. Requête Gemini avec contexte
-    const prompt = `Tu es un expert en enseignements de Rabbi Nahman de Breslov. 
-Réponds à cette question en français en utilisant UNIQUEMENT le texte hébreu de Chayei Moharan fourni ci-dessous.
+    // 3. Requête Gemini avec traduction obligatoire
+    const prompt = `Tu es un expert en enseignements de Rabbi Nahman de Breslov. Tu DOIS répondre en français et traduire INTÉGRALEMENT tous les passages hébreux cités.
 
 Question: ${query}
 
 Contexte de Chayei Moharan:
 ${context}
 
-Instructions:
-1. Réponds en français avec des citations précises
-2. Inclus les références exactes (ex: Chayei Moharan 5:2)
-3. Traduis les passages hébreux pertinents
-4. Donne une réponse détaillée et spirituellement enrichissante
-5. Cite le texte hébreu original avec la traduction française
+INSTRUCTIONS STRICTES:
+1. Réponds UNIQUEMENT en français
+2. Pour CHAQUE citation hébraïque, donne la traduction française complète
+3. Utilise ce format EXACT pour les citations:
 
-Format de réponse:
-**Réponse:** [Ta réponse détaillée]
+**Citation Chayei Moharan X:Y**
+Hébreu: [texte hébreu complet]
+Français: [traduction française complète et fluide]
 
-**Citations:**
-- Chayei Moharan X:Y - [Texte hébreu] → [Traduction française]
+4. Donne une explication spirituelle détaillée
+5. Termine par les références utilisées
 
-**Sources:** [Liste des références]`;
+Format obligatoire:
+**Réponse spirituelle:** [Explication détaillée en français]
+
+**Citations traduites:**
+[Tes citations avec traductions]
+
+**Références:** [Liste des chapitres cités]`;
 
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
+      const response = await ai.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
       });
 
-      const answer = response.text || "Aucune réponse générée";
+      const answer = response.response.text() || "Aucune réponse générée";
       const sources = relevantSections.map(s => s.reference);
+
+      // Traduire individuellement chaque section pour les boutons
+      const translatedCitations = await Promise.all(
+        relevantSections.map(async (section, index) => {
+          const translatePrompt = `Traduis ce passage de Chayei Moharan en français de manière spirituellement appropriée:
+
+Hébreu: ${section.hebrewText}
+
+Réponds UNIQUEMENT avec la traduction française, sans commentaires.`;
+
+          try {
+            const translateResponse = await ai.generateContent({
+              contents: [{ role: 'user', parts: [{ text: translatePrompt }] }],
+            });
+
+            return {
+              reference: section.reference,
+              hebrewText: section.hebrewText,
+              frenchTranslation: translateResponse.response.text() || "Traduction non disponible",
+              chapterNumber: this.getChapterNumberFromReference(section.reference)
+            };
+          } catch (error) {
+            console.error(`[ChayeiMoharan] Erreur traduction section ${index}:`, error);
+            return {
+              reference: section.reference,
+              hebrewText: section.hebrewText,
+              frenchTranslation: "Erreur de traduction",
+              chapterNumber: this.getChapterNumberFromReference(section.reference)
+            };
+          }
+        })
+      );
 
       return {
         answer,
         sources,
-        relevantSections
+        relevantSections,
+        translatedCitations
       };
 
     } catch (error) {
       console.error('[ChayeiMoharan] Erreur Gemini:', error);
+      
+      // Fallback avec traductions manuelles
+      const translatedCitations = relevantSections.map(section => ({
+        reference: section.reference,
+        hebrewText: section.hebrewText,
+        frenchTranslation: "Traduction non disponible (erreur de connexion)",
+        chapterNumber: this.getChapterNumberFromReference(section.reference)
+      }));
+
       return {
-        answer: `Erreur lors de la recherche: ${error}`,
-        sources: [],
-        relevantSections: []
+        answer: `En raison d'une erreur de connexion avec Gemini, voici les passages trouvés dans Chayei Moharan qui correspondent à votre recherche "${query}". Les traductions complètes ne sont pas disponibles pour le moment.`,
+        sources,
+        relevantSections,
+        translatedCitations
       };
     }
+  }
+
+  private getChapterNumberFromReference(reference: string): number {
+    const match = reference.match(/Chayei Moharan (\d+)/);
+    return match ? parseInt(match[1]) : 1;
   }
 
   private findRelevantSections(query: string): ChayeiSection[] {

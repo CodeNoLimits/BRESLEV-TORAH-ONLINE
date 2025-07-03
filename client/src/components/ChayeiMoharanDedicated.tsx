@@ -10,6 +10,12 @@ interface SearchResult {
   answer: string;
   sources: string[];
   relevantSections: any[];
+  translatedCitations?: Array<{
+    reference: string;
+    hebrewText: string;
+    frenchTranslation: string;
+    chapterNumber: number;
+  }>;
 }
 
 interface TranslationChunk {
@@ -32,35 +38,55 @@ export function ChayeiMoharanDedicated() {
 
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // TTS OPTIMISÉ
+  // TTS OPTIMISÉ ET CORRIGÉ
   const speak = (text: string) => {
+    if (!text || !text.trim()) {
+      console.warn('[TTS] Texte vide, pas de lecture');
+      return;
+    }
+
     if ('speechSynthesis' in window) {
       // Arrêter toute parole en cours
       window.speechSynthesis.cancel();
       
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'fr-FR';
-      utterance.rate = 0.8;
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
-      
-      utterance.onstart = () => {
-        setIsTTSActive(true);
-        console.log('[TTS] Démarrage lecture');
-      };
-      
-      utterance.onend = () => {
-        setIsTTSActive(false);
-        console.log('[TTS] Fin lecture');
-      };
-      
-      utterance.onerror = (event) => {
-        setIsTTSActive(false);
-        console.error('[TTS] Erreur:', event);
-      };
+      // Délai pour éviter les conflits
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(text.trim());
+        utterance.lang = 'fr-FR';
+        utterance.rate = 0.85;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        
+        utterance.onstart = () => {
+          setIsTTSActive(true);
+          console.log('[TTS] ✅ Démarrage lecture:', text.substring(0, 50));
+        };
+        
+        utterance.onend = () => {
+          setIsTTSActive(false);
+          console.log('[TTS] ✅ Fin lecture');
+        };
+        
+        utterance.onerror = (event) => {
+          setIsTTSActive(false);
+          console.error('[TTS] ❌ Erreur:', event.error);
+        };
 
-      utteranceRef.current = utterance;
-      window.speechSynthesis.speak(utterance);
+        utteranceRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
+        
+        // Vérification que ça démarre vraiment
+        setTimeout(() => {
+          if (!window.speechSynthesis.speaking) {
+            console.warn('[TTS] ⚠️ TTS ne démarre pas, retry...');
+            window.speechSynthesis.speak(utterance);
+          }
+        }, 100);
+        
+      }, 200);
+    } else {
+      console.error('[TTS] ❌ Speech Synthesis non supporté');
+      alert('La synthèse vocale n\'est pas supportée sur votre navigateur');
     }
   };
 
@@ -84,32 +110,43 @@ export function ChayeiMoharanDedicated() {
       recognition.lang = 'fr-FR';
       recognition.continuous = false;
       recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
         setIsListening(true);
-        console.log('[STT] Écoute démarrée');
+        console.log('[STT] ✅ Écoute démarrée');
       };
       
       recognition.onend = () => {
         setIsListening(false);
-        console.log('[STT] Écoute terminée');
+        console.log('[STT] ✅ Écoute terminée');
       };
       
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
-        console.log('[STT] Transcription:', transcript);
+        console.log('[STT] ✅ Transcription:', transcript);
         setSearchQuery(transcript);
-        handleSearch(transcript);
+        
+        // Délai pour éviter conflits audio
+        setTimeout(() => {
+          handleSearch(transcript);
+        }, 300);
       };
 
       recognition.onerror = (event: any) => {
         setIsListening(false);
-        console.error('[STT] Erreur:', event.error);
+        console.error('[STT] ❌ Erreur:', event.error);
+        
+        if (event.error === 'not-allowed') {
+          alert('Veuillez autoriser l\'accès au microphone');
+        } else if (event.error === 'no-speech') {
+          alert('Aucune parole détectée. Réessayez.');
+        }
       };
 
       recognition.start();
     } else {
-      alert('Reconnaissance vocale non supportée');
+      alert('Reconnaissance vocale non supportée sur votre navigateur');
     }
   };
 
@@ -315,27 +352,76 @@ export function ChayeiMoharanDedicated() {
                     </div>
                   </div>
 
-                  <div className="flex gap-3 mt-4">
+                  <div className="flex flex-wrap gap-3 mt-4">
                     <button
                       onClick={() => speak(searchResult.answer)}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-sm font-medium"
+                      disabled={isTTSActive}
+                      className={`px-4 py-2 rounded text-sm font-medium ${
+                        isTTSActive 
+                          ? 'bg-red-600 hover:bg-red-700 animate-pulse' 
+                          : 'bg-green-600 hover:bg-green-700'
+                      }`}
                     >
-                      🔊 Écouter la réponse
+                      {isTTSActive ? '🔊 Lecture en cours...' : '🔊 Écouter la réponse'}
                     </button>
                     
-                    {searchResult.sources.length > 0 && (
+                    {isTTSActive && (
                       <button
-                        onClick={() => speak(`Sources: ${searchResult.sources.join(', ')}`)}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium"
+                        onClick={stopSpeaking}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm font-medium"
                       >
-                        📚 Écouter les sources
+                        ⏹️ Arrêter
                       </button>
                     )}
                   </div>
 
+                  {/* Citations traduites avec boutons pour chapitres */}
+                  {searchResult.translatedCitations && searchResult.translatedCitations.length > 0 && (
+                    <div className="mt-6 space-y-4">
+                      <h4 className="text-md font-bold text-amber-400">📖 Citations avec traductions:</h4>
+                      
+                      {searchResult.translatedCitations.map((citation, i) => (
+                        <div key={i} className="bg-slate-700 p-4 rounded-lg border-l-4 border-amber-500">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="font-semibold text-amber-300">{citation.reference}</div>
+                            <button
+                              onClick={() => loadTranslation(citation.chapterNumber)}
+                              className="px-3 py-1 bg-sky-600 hover:bg-sky-700 rounded text-xs font-medium"
+                            >
+                              📖 Voir chapitre complet
+                            </button>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <div>
+                              <div className="text-xs text-slate-400 mb-1">עברית (Hébreu):</div>
+                              <div className="text-right font-serif text-sm text-slate-200" dir="rtl">
+                                {citation.hebrewText}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <div className="text-xs text-slate-400 mb-1">Français:</div>
+                              <div className="text-sm text-slate-100 leading-relaxed">
+                                {citation.frenchTranslation}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <button
+                            onClick={() => speak(citation.frenchTranslation)}
+                            className="mt-2 px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-xs font-medium"
+                          >
+                            🔊 Écouter traduction
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {searchResult.sources.length > 0 && (
                     <div className="mt-4 p-3 bg-slate-700 rounded">
-                      <div className="text-sm text-slate-300 mb-2">Sources dans Chayei Moharan:</div>
+                      <div className="text-sm text-slate-300 mb-2">Références dans Chayei Moharan:</div>
                       {searchResult.sources.map((source, i) => (
                         <div key={i} className="text-xs text-amber-400 mb-1">• {source}</div>
                       ))}
