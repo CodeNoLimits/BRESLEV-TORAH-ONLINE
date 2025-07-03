@@ -132,11 +132,11 @@ app.post("/gemini/chat", async (req, res) => {
   try {
     const { prompt } = req.body;
     console.log("[Gemini Proxy] Processing request:", prompt?.substring(0, 100) + "...");
-    
+
     if (!prompt || prompt.trim().length === 0) {
       return res.status(400).json({ error: "Prompt vide" });
     }
-    
+
     if (!process.env.GEMINI_API_KEY) {
       console.error("[Gemini Error] API Key missing");
       return res.status(500).json({ error: "Configuration manquante. Vérifiez la clé API." });
@@ -152,7 +152,7 @@ app.post("/gemini/chat", async (req, res) => {
 
     let hasContent = false;
     let contentLength = 0;
-    
+
     for await (const chunk of result.stream) {
       const text = chunk.text();
       if (text) {
@@ -161,18 +161,18 @@ app.post("/gemini/chat", async (req, res) => {
         contentLength += text.length;
       }
     }
-    
+
     if (!hasContent) {
       const fallbackMessage = "נ נח נחמ נחמן מאומן\n\nGuide spirituel à votre service. Comment puis-je vous accompagner dans votre étude spirituelle ?";
       res.write(fallbackMessage);
     }
-    
+
     console.log(`[Gemini Proxy] ✅ Response sent (${contentLength} chars)`);
     res.end();
-    
+
   } catch (e) {
     console.error("[Gemini Error] Full error:", e);
-    
+
     // Check if response headers have been sent
     if (!res.headersSent) {
       res.status(500).json({ 
@@ -191,7 +191,7 @@ app.post("/gemini/chat", async (req, res) => {
 app.post("/api/gemini/quick", async (req, res) => {
   try {
     const { prompt, maxTokens = 50 } = req.body;
-    
+
     const quickPrompt = `Réponds en français en maximum 15 mots. Sois direct et pratique comme un guide breslov.
 
 Question: "${prompt}"
@@ -204,7 +204,7 @@ Exemples de réponses courtes:
     const chat = model.startChat();
     const result = await chat.sendMessage(quickPrompt);
     const response = result.response.text().trim();
-    
+
     res.json({ response: response || "Reformulez votre question" });
   } catch (e) {
     console.error("[Gemini Quick Error]", e);
@@ -333,6 +333,7 @@ app.use('/attached_assets', express.static(path.join(process.cwd(), 'attached_as
 
   server.listen(port, host, () => {
     log(`serving on port ${port}`);
-    console.log(`🚀 Le Compagnon du Cœur is running on http://${host}:${port}`);
+    console.log("🚀 Le Compagnon du Cœur is running on http://0.0.0.0:5000");
+    console.log("📖 Chayei Moharan dédié - Prêt pour l'investisseur");
   });
 })();

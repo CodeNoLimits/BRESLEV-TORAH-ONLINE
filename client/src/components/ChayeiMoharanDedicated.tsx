@@ -158,6 +158,10 @@ export function ChayeiMoharanDedicated() {
     loadChapters();
   }, []);
 
+  // Protection contre les erreurs de longueur
+  const safeChapters = chapters || [];
+  const safeOpenTabs = openTabs || [];
+
   const loadChapters = async () => {
     try {
       const response = await fetch('/api/chayei-moharan/chapters');
@@ -222,10 +226,10 @@ export function ChayeiMoharanDedicated() {
 
   // GESTION DES ONGLETS
   const openChapterTab = (chapterNum: number) => {
-    const chapter = chapters.find(c => c.number === chapterNum);
+    const chapter = safeChapters.find(c => c.number === chapterNum);
     if (!chapter) return;
     
-    const existingTab = openTabs.find(tab => tab.chapter === chapterNum);
+    const existingTab = safeOpenTabs.find(tab => tab.chapter === chapterNum);
     if (existingTab) {
       setActiveTab(existingTab.id);
       return;
@@ -244,11 +248,13 @@ export function ChayeiMoharanDedicated() {
   };
 
   const closeTab = (tabId: number) => {
-    setOpenTabs(prev => prev.filter(tab => tab.id !== tabId));
-    if (activeTab === tabId) {
-      const remaining = openTabs.filter(tab => tab.id !== tabId);
-      setActiveTab(remaining.length > 0 ? remaining[0].id : null);
-    }
+    setOpenTabs(prev => {
+      const newTabs = prev.filter(tab => tab.id !== tabId);
+      if (activeTab === tabId) {
+        setActiveTab(newTabs.length > 0 ? newTabs[0].id : null);
+      }
+      return newTabs;
+    });
   };
 
   // TRADUCTION LAZY d'un chapitre
@@ -343,7 +349,7 @@ export function ChayeiMoharanDedicated() {
               view === 'chapters' ? 'bg-sky-600' : 'bg-slate-700 hover:bg-slate-600'
             }`}
           >
-            📚 Chapitres ({chapters.length})
+            📚 Chapitres ({safeChapters.length})
           </button>
           
           {selectedChapter && (
@@ -357,7 +363,7 @@ export function ChayeiMoharanDedicated() {
             </button>
           )}
           
-          {openTabs.map(tab => (
+          {safeOpenTabs.map(tab => (
             <div key={tab.id} className="flex items-center bg-slate-700 rounded">
               <button
                 onClick={() => setActiveTab(tab.id)}
@@ -537,11 +543,11 @@ export function ChayeiMoharanDedicated() {
         {view === 'chapters' && (
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold mb-6 text-sky-400">
-              📚 Tous les chapitres de Chayei Moharan ({chapters.length})
+              📚 Tous les chapitres de Chayei Moharan ({safeChapters.length})
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {chapters.map((chapter) => (
+              {safeChapters.map((chapter) => (
                 <button
                   key={chapter.number}
                   onClick={() => openChapterTab(chapter.number)}

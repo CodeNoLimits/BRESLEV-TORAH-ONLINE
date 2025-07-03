@@ -48,8 +48,12 @@ export const useTTS = () => {
 
         setTimeout(() => {
           const utterance = new SpeechSynthesisUtterance(text.trim());
-          utterance.lang = language;
-          utterance.rate = 0.9;
+          
+          // Détection automatique hébreu vs français
+          const isHebrew = /[\u0590-\u05FF]/.test(text);
+          utterance.lang = isHebrew ? 'he-IL' : language;
+          
+          utterance.rate = isHebrew ? 0.8 : 0.9; // Plus lent pour l'hébreu
           utterance.pitch = 1.0;
           utterance.volume = 1.0;
 
