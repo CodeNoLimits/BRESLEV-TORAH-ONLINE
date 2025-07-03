@@ -17,6 +17,7 @@ export default function AppUltimate() {
   const [selectedText, setSelectedText] = useState<string>('');
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [currentView, setCurrentView] = useState<'chat' | 'chayei'>('chat');
   
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<any>(null);
@@ -210,23 +211,44 @@ export default function AppUltimate() {
         }`}>
           {isMenuOpen && (
             <div className="p-4">
-              <h2 className="text-lg font-bold mb-4 text-sky-400">📚 Vos Livres</h2>
+              <div className="mb-4 p-3 bg-amber-900 border border-amber-600 rounded-lg">
+                <div className="text-amber-300 font-bold text-sm">🚧 MODE BÊTA</div>
+                <div className="text-amber-200 text-xs mt-1">
+                  Application en développement - Focus sur Chayei Moharan
+                </div>
+              </div>
+              
+              <h2 className="text-lg font-bold mb-4 text-sky-400">📖 Chayei Moharan</h2>
               
               <div className="space-y-3">
-                {sampleTexts.map((text, index) => (
+                <div
+                  className="p-4 bg-amber-700 hover:bg-amber-600 rounded-lg transition-colors cursor-pointer border-2 border-amber-500"
+                  onClick={() => setCurrentView('chayei')}
+                >
+                  <div className="font-bold text-white text-lg mb-2 leading-tight">
+                    חיי מוהרן - Chayei Moharan
+                  </div>
+                  <div className="text-sm text-amber-100 mb-2 leading-relaxed">
+                    Livre principal avec 823 chapitres - Recherche Gemini activée
+                  </div>
+                  <div className="text-xs text-green-300 font-medium">
+                    📖 823 chapitres • 🤖 IA Gemini • 🔊 TTS/STT
+                  </div>
+                </div>
+                
+                {sampleTexts.slice(1).map((text, index) => (
                   <div
                     key={index}
-                    className="p-4 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors cursor-pointer"
-                    onClick={() => handleMenuItemClick(text.content)}
+                    className="p-4 bg-slate-600 opacity-50 rounded-lg"
                   >
-                    <div className="font-bold text-amber-400 text-lg mb-2 leading-tight">
+                    <div className="font-bold text-slate-400 text-lg mb-2 leading-tight">
                       {text.title}
                     </div>
-                    <div className="text-sm text-slate-300 mb-2 leading-relaxed">
-                      {text.content}
+                    <div className="text-sm text-slate-400 mb-2 leading-relaxed">
+                      Bientôt disponible...
                     </div>
-                    <div className="text-xs text-green-400 font-medium">
-                      📖 {text.chapters}
+                    <div className="text-xs text-slate-500 font-medium">
+                      🔒 En développement
                     </div>
                   </div>
                 ))}
@@ -248,14 +270,21 @@ export default function AppUltimate() {
         {/* ZONE PRINCIPALE */}
         <div className="flex-1 flex flex-col">
           
-          {/* ZONE MESSAGES */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            
-            {/* MESSAGE D'ACCUEIL */}
-            {messages.length === 0 && (
-              <div className="bg-slate-800 p-6 rounded-lg text-center">
-                <h2 className="text-2xl font-bold text-sky-400 mb-4">🕊️ Bienvenue</h2>
-                <p className="text-slate-300 mb-4">
+          {/* AFFICHAGE CONDITIONNEL */}
+          {currentView === 'chayei' ? (
+            <div className="flex-1 overflow-hidden">
+              <ChayeiMoharanViewer />
+            </div>
+          ) : (
+            <>
+              {/* ZONE MESSAGES */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                
+                {/* MESSAGE D'ACCUEIL */}
+                {messages.length === 0 && (
+                  <div className="bg-slate-800 p-6 rounded-lg text-center">
+                    <h2 className="text-2xl font-bold text-sky-400 mb-4">🕊️ Bienvenue</h2>
+                    <p className="text-slate-300 mb-4">
                   Posez vos questions sur les enseignements de Rabbi Nahman. 
                   L'IA utilise exclusivement le contenu de vos 13 livres hébreux.
                 </p>
@@ -368,6 +397,8 @@ export default function AppUltimate() {
               </div>
             </div>
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>
