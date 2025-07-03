@@ -1,9 +1,7 @@
 import express from "express";
-import { Pool } from 'pg';
 
 const router = express.Router();
 
-// SYSTÈME ULTRA-SIMPLE SANS GEMINI POUR TESTER
 router.post("/", async (req, res) => {
   try {
     const { question } = req.body;
@@ -14,71 +12,52 @@ router.post("/", async (req, res) => {
 
     console.log(`[SmartQuery] Question reçue: ${question}`);
 
-    // ACCÈS DIRECT À VOS LIVRES dans PostgreSQL
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    
+    // ACCÈS DIRECT à vos 13 livres via localBooksProcessor
     try {
-      // Test simple d'abord
-      const countResult = await pool.query('SELECT COUNT(*) FROM book_embeddings');
-      console.log(`[SmartQuery] Total passages disponibles: ${countResult.rows[0].count}`);
+      const { localBooksProcessor } = await import('../services/localBooksProcessor.js');
       
-      // Recherche intelligente dans VOS livres
-      const searchPattern = `%${question.toLowerCase()}%`;
+      // RECHERCHE INTELLIGENTE dans vos livres Breslov
+      console.log(`[SmartQuery] Recherche dans vos 13 livres Breslov...`);
       
-      const { rows } = await pool.query(`
-        SELECT book_title, content, hebrew_content, chapter_number, section_number
-        FROM book_embeddings 
-        WHERE content IS NOT NULL 
-        AND LENGTH(content) > 200
-        AND (
-          LOWER(content) LIKE $1
-          OR LOWER(book_title) LIKE $1
-        )
-        ORDER BY 
-          CASE 
-            WHEN LOWER(content) LIKE $1 THEN 1
-            ELSE 2
-          END,
-          RANDOM()
-        LIMIT 5
-      `, [searchPattern]);
+      const relevantChunks = await localBooksProcessor.searchRelevantContent(question, 6);
       
-      console.log(`[SmartQuery] ${rows.length} passages trouvés dans VOS livres`);
+      console.log(`[SmartQuery] ${relevantChunks.length} passages pertinents trouvés`);
       
-      if (rows.length === 0) {
-        // Fallback - prendre du contenu aléatoire de VOS livres
-        const fallbackQuery = await pool.query(`
-          SELECT book_title, content, hebrew_content, chapter_number, section_number
-          FROM book_embeddings 
-          WHERE content IS NOT NULL AND LENGTH(content) > 300
-          ORDER BY RANDOM()
-          LIMIT 3
-        `);
+      if (relevantChunks.length === 0) {
+        // Fallback - du contenu général de vos livres
+        const allBooks = localBooksProcessor.getAvailableBooks();
+        console.log(`[SmartQuery] Aucun résultat - fallback sur vos ${allBooks.length} livres`);
         
-        console.log(`[SmartQuery] Fallback: ${fallbackQuery.rows.length} passages aléatoires`);
-        rows.push(...fallbackQuery.rows);
+        const randomBook = allBooks[Math.floor(Math.random() * allBooks.length)];
+        const bookContent = await localBooksProcessor.getBookContent(randomBook);
+        
+        if (bookContent) {
+          const chunk = bookContent.substring(0, 1200);
+          relevantChunks.push(`${randomBook}: ${chunk}`);
+        }
       }
       
-      // CONSTRUCTION RÉPONSE DIRECTE SANS IA
+      // CONSTRUCTION RÉPONSE AVEC VOS LIVRES
       let answer = `📚 **Voici ce que j'ai trouvé dans vos livres de Rabbi Nahman :**\n\n`;
       
-      rows.forEach((row, index) => {
-        answer += `**${index + 1}. ${row.book_title} - Chapitre ${row.chapter_number}:${row.section_number}**\n`;
-        answer += `${row.content.substring(0, 500)}...\n\n`;
-        if (row.hebrew_content) {
-          answer += `*Texte hébreu :* ${row.hebrew_content.substring(0, 200)}...\n\n`;
-        }
-        answer += `[Source: ${row.book_title}]\n\n---\n\n`;
+      relevantChunks.forEach((chunk, index) => {
+        const parts = chunk.split(': ');
+        const bookTitle = parts[0] || 'Livre Breslov';
+        const content = parts.slice(1).join(': ') || chunk;
+        
+        answer += `**${index + 1}. ${bookTitle}**\n`;
+        answer += `${content.substring(0, 500)}...\n\n`;
+        answer += `[Source: ${bookTitle}]\n\n---\n\n`;
       });
       
-      answer += `✅ **${rows.length} passages authentiques trouvés dans votre bibliothèque personnelle**`;
+      answer += `✅ **${relevantChunks.length} passages authentiques de votre bibliothèque personnelle**`;
       
       res.json({ answer });
       
-    } catch (dbError) {
-      console.error('[SmartQuery] Erreur PostgreSQL:', dbError);
+    } catch (booksError) {
+      console.error('[SmartQuery] Erreur accès livres:', booksError);
       res.json({ 
-        answer: `❌ Erreur d'accès à vos livres : ${dbError.message}` 
+        answer: `❌ Erreur lors de la recherche dans vos livres : ${booksError}` 
       });
     }
     
