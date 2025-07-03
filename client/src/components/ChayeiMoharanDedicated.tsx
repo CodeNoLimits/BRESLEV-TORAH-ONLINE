@@ -29,12 +29,15 @@ export function ChayeiMoharanDedicated() {
   const [chapters, setChapters] = useState<ChayeiChapter[]>([]);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
   const [currentTranslation, setCurrentTranslation] = useState<TranslationChunk | null>(null);
+  const [openTabs, setOpenTabs] = useState<Array<{id: number, chapter: number, title: string, translation: TranslationChunk | null}>>([]);
+  const [activeTab, setActiveTab] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isTTSActive, setIsTTSActive] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [view, setView] = useState<'search' | 'chapters' | 'reader'>('search');
+  const [error, setError] = useState<string | null>(null);
 
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -172,6 +175,7 @@ export function ChayeiMoharanDedicated() {
 
     setIsLoading(true);
     setSearchResult(null);
+    setError(null);
     
     try {
       console.log(`[ChayeiMoharan] Recherche Gemini: "${query}"`);
@@ -185,18 +189,28 @@ export function ChayeiMoharanDedicated() {
       const result = await response.json();
       console.log(`[ChayeiMoharan] Résultat:`, result);
       
-      setSearchResult(result);
-      setView('search');
-      
-      // TTS automatique de la réponse
-      if (result.answer) {
-        setTimeout(() => {
-          speak(result.answer);
-        }, 500);
+      if (result.error) {
+        setError(result.error);
+        setSearchResult({
+          answer: `Erreur lors de la recherche: ${result.error}`,
+          sources: [],
+          relevantSections: []
+        });
+      } else {
+        setSearchResult(result);
+        setView('search');
+        
+        // TTS automatique de la réponse
+        if (result.answer) {
+          setTimeout(() => {
+            speak(result.answer);
+          }, 500);
+        }
       }
 
     } catch (error) {
       console.error('Erreur recherche:', error);
+      setError('Erreur de connexion');
       setSearchResult({
         answer: 'Erreur de connexion lors de la recherche dans Chayei Moharan.',
         sources: [],
@@ -206,8 +220,39 @@ export function ChayeiMoharanDedicated() {
     setIsLoading(false);
   };
 
+  // GESTION DES ONGLETS
+  const openChapterTab = (chapterNum: number) => {
+    const chapter = chapters.find(c => c.number === chapterNum);
+    if (!chapter) return;
+    
+    const existingTab = openTabs.find(tab => tab.chapter === chapterNum);
+    if (existingTab) {
+      setActiveTab(existingTab.id);
+      return;
+    }
+    
+    const newTab = {
+      id: Date.now(),
+      chapter: chapterNum,
+      title: `Ch. ${chapterNum}`,
+      translation: null
+    };
+    
+    setOpenTabs(prev => [...prev.slice(-4), newTab]); // Max 5 onglets
+    setActiveTab(newTab.id);
+    loadTranslation(chapterNum, 0, newTab.id);
+  };
+
+  const closeTab = (tabId: number) => {
+    setOpenTabs(prev => prev.filter(tab => tab.id !== tabId));
+    if (activeTab === tabId) {
+      const remaining = openTabs.filter(tab => tab.id !== tabId);
+      setActiveTab(remaining.length > 0 ? remaining[0].id : null);
+    }
+  };
+
   // TRADUCTION LAZY d'un chapitre
-  const loadTranslation = async (chapterNum: number, startChar = 0) => {
+  const loadTranslation = async (chapterNum: number, startChar = 0, tabId?: number) => {
     setIsLoading(true);
     
     try {
@@ -226,9 +271,15 @@ export function ChayeiMoharanDedicated() {
       const data = await response.json();
       console.log(`[ChayeiMoharan] Traduction reçue:`, data);
       
-      setCurrentTranslation(data);
-      setSelectedChapter(chapterNum);
-      setView('reader');
+      if (tabId) {
+        setOpenTabs(prev => prev.map(tab => 
+          tab.id === tabId ? { ...tab, translation: data } : tab
+        ));
+      } else {
+        setCurrentTranslation(data);
+        setSelectedChapter(chapterNum);
+        setView('reader');
+      }
 
     } catch (error) {
       console.error('Erreur traduction:', error);
@@ -305,6 +356,25 @@ export function ChayeiMoharanDedicated() {
               📖 Chapitre {selectedChapter}
             </button>
           )}
+          
+          {openTabs.map(tab => (
+            <div key={tab.id} className="flex items-center bg-slate-700 rounded">
+              <button
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-3 py-2 rounded-l ${
+                  activeTab === tab.id ? 'bg-amber-600' : 'hover:bg-slate-600'
+                }`}
+              >
+                📖 {tab.title}
+              </button>
+              <button
+                onClick={() => closeTab(tab.id)}
+                className="px-2 py-2 hover:bg-red-600 rounded-r text-xs"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
         </div>
 
         {/* Barre de recherche */}
@@ -329,6 +399,22 @@ export function ChayeiMoharanDedicated() {
 
       {/* Contenu principal */}
       <div className="p-4">
+        {/* Affichage d'erreur */}
+        {error && (
+          <div className="max-w-4xl mx-auto mb-4">
+            <div className="bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded">
+              <div className="font-bold">Erreur</div>
+              <div className="text-sm">{error}</div>
+              <button 
+                onClick={() => setError(null)}
+                className="mt-2 px-3 py-1 bg-red-700 hover:bg-red-600 rounded text-xs"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        )}
+        
         {/* Vue Recherche */}
         {view === 'search' && (
           <div className="max-w-4xl mx-auto">
@@ -458,7 +544,7 @@ export function ChayeiMoharanDedicated() {
               {chapters.map((chapter) => (
                 <button
                   key={chapter.number}
-                  onClick={() => loadTranslation(chapter.number)}
+                  onClick={() => openChapterTab(chapter.number)}
                   className={`p-4 rounded-lg text-left transition-colors ${
                     selectedChapter === chapter.number
                       ? 'bg-amber-600 hover:bg-amber-700'

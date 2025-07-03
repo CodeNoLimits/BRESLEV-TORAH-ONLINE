@@ -170,9 +170,7 @@ Format obligatoire:
 **Références:** [Liste des chapitres cités]`;
 
     try {
-      const response = await ai.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      });
+      const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent(prompt);
 
       const answer = response.response.text() || "Aucune réponse générée";
       const sources = relevantSections.map(s => s.reference);
@@ -187,9 +185,7 @@ Hébreu: ${section.hebrewText}
 Réponds UNIQUEMENT avec la traduction française, sans commentaires.`;
 
           try {
-            const translateResponse = await ai.generateContent({
-              contents: [{ role: 'user', parts: [{ text: translatePrompt }] }],
-            });
+            const translateResponse = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent(translatePrompt);
 
             return {
               reference: section.reference,
@@ -227,6 +223,8 @@ Réponds UNIQUEMENT avec la traduction française, sans commentaires.`;
         chapterNumber: this.getChapterNumberFromReference(section.reference)
       }));
 
+      const sources = relevantSections.map(s => s.reference);
+      
       return {
         answer: `En raison d'une erreur de connexion avec Gemini, voici les passages trouvés dans Chayei Moharan qui correspondent à votre recherche "${query}". Les traductions complètes ne sont pas disponibles pour le moment.`,
         sources,
@@ -318,14 +316,11 @@ Instructions:
 - Format: traduction directe sans commentaires`;
 
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-      });
+      const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent(prompt);
 
       return {
         hebrewText: hebrewChunk,
-        frenchTranslation: response.text || "Traduction non disponible",
+        frenchTranslation: response.response.text() || "Traduction non disponible",
         hasMore,
         nextStart: startChar + length
       };
