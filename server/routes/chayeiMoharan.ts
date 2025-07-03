@@ -18,11 +18,12 @@ router.post("/search", async (req, res) => {
     
     res.json(result);
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[ChayeiMoharan] Erreur recherche:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
     res.status(500).json({ 
       error: "Erreur lors de la recherche dans Chayei Moharan",
-      details: error.message 
+      details: errorMessage 
     });
   }
 });
@@ -42,11 +43,12 @@ router.post("/translate", async (req, res) => {
     
     res.json(result);
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[ChayeiMoharan] Erreur traduction:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
     res.status(500).json({ 
       error: "Erreur lors de la traduction",
-      details: error.message 
+      details: errorMessage 
     });
   }
 });

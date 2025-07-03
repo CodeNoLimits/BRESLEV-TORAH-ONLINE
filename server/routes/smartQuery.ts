@@ -34,7 +34,7 @@ router.post("/", async (req, res) => {
 
       // Construire le contexte pour Gemini
       let hebrewContext = '';
-      let contextSources = [];
+      let contextSources: string[] = [];
       
       chayeiContent.forEach((chunk, index) => {
         const parts = chunk.split(': ');
@@ -90,11 +90,12 @@ Réponds maintenant:`;
       
       res.json(finalResponse);
       
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[SmartQuery] Erreur Gemini:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
       res.json({ 
-        answer: `❌ Erreur lors de l'analyse avec Gemini: ${error.message}`,
-        french: `❌ Erreur lors de l'analyse avec Gemini: ${error.message}`
+        answer: `❌ Erreur lors de l'analyse avec Gemini: ${errorMessage}`,
+        french: `❌ Erreur lors de l'analyse avec Gemini: ${errorMessage}`
       });
     }
     

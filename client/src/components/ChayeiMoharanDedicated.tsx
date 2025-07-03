@@ -26,17 +26,11 @@ interface TranslationChunk {
 }
 
 export function ChayeiMoharanDedicated() {
-  const [chapters, setChapters] = useState<ChayeiChapter[]>([]);
-  const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
-  const [currentTranslation, setCurrentTranslation] = useState<TranslationChunk | null>(null);
-  const [openTabs, setOpenTabs] = useState<Array<{id: number, chapter: number, title: string, translation: TranslationChunk | null}>>([]);
-  const [activeTab, setActiveTab] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isTTSActive, setIsTTSActive] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [view, setView] = useState<'search' | 'chapters' | 'reader'>('search');
   const [error, setError] = useState<string | null>(null);
 
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -153,25 +147,7 @@ export function ChayeiMoharanDedicated() {
     }
   };
 
-  // Charger les chapitres au démarrage
-  useEffect(() => {
-    loadChapters();
-  }, []);
 
-  // Protection contre les erreurs de longueur
-  const safeChapters = chapters || [];
-  const safeOpenTabs = openTabs || [];
-
-  const loadChapters = async () => {
-    try {
-      const response = await fetch('/api/chayei-moharan/chapters');
-      const data = await response.json();
-      setChapters(data.chapters || []);
-      console.log(`[ChayeiMoharan] ${data.chapters?.length || 0} chapitres chargés`);
-    } catch (error) {
-      console.error('Erreur chargement chapitres:', error);
-    }
-  };
 
   // RECHERCHE avec Gemini dans Chayei Moharan UNIQUEMENT
   const handleSearch = async (query: string = searchQuery) => {
@@ -332,56 +308,7 @@ export function ChayeiMoharanDedicated() {
           </div>
         </div>
 
-        {/* Navigation */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setView('search')}
-            className={`px-4 py-2 rounded ${
-              view === 'search' ? 'bg-sky-600' : 'bg-slate-700 hover:bg-slate-600'
-            }`}
-          >
-            🔍 Recherche
-          </button>
-          
-          <button
-            onClick={() => setView('chapters')}
-            className={`px-4 py-2 rounded ${
-              view === 'chapters' ? 'bg-sky-600' : 'bg-slate-700 hover:bg-slate-600'
-            }`}
-          >
-            📚 Chapitres ({safeChapters.length})
-          </button>
-          
-          {selectedChapter && (
-            <button
-              onClick={() => setView('reader')}
-              className={`px-4 py-2 rounded ${
-                view === 'reader' ? 'bg-sky-600' : 'bg-slate-700 hover:bg-slate-600'
-              }`}
-            >
-              📖 Chapitre {selectedChapter}
-            </button>
-          )}
-          
-          {safeOpenTabs.map(tab => (
-            <div key={tab.id} className="flex items-center bg-slate-700 rounded">
-              <button
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-2 rounded-l ${
-                  activeTab === tab.id ? 'bg-amber-600' : 'hover:bg-slate-600'
-                }`}
-              >
-                📖 {tab.title}
-              </button>
-              <button
-                onClick={() => closeTab(tab.id)}
-                className="px-2 py-2 hover:bg-red-600 rounded-r text-xs"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-        </div>
+
 
         {/* Barre de recherche */}
         <div className="flex gap-2">
