@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './index.css';
-import { ChayeiMoharanViewer } from './components/ChayeiMoharanViewer';
+import { ChayeiMoharanDedicated } from './components/ChayeiMoharanDedicated';
 
 interface Message {
   id: string;
@@ -261,7 +261,7 @@ export default function AppFixed() {
           {/* AFFICHAGE CONDITIONNEL */}
           {currentView === 'chayei' ? (
             <div className="flex-1 overflow-hidden">
-              <ChayeiMoharanViewer />
+              <ChayeiMoharanDedicated />
             </div>
           ) : (
             <>

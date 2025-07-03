@@ -5,7 +5,7 @@ import { Switch, Route } from "wouter";
 import "./index.css";
 import { Toaster } from "@/components/ui/toaster";
 import { toast } from "@/hooks/use-toast";
-import AppFixed from "./AppFixed";
+import ChayeiMoharanMain from "./ChayeiMoharanMain";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,8 +31,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Switch>
-        <Route path="/" component={AppFixed} />
-        <Route component={AppFixed} />
+        <Route path="/" component={ChayeiMoharanMain} />
+        <Route component={ChayeiMoharanMain} />
       </Switch>
       <Toaster />
     </QueryClientProvider>

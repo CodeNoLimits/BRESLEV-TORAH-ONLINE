@@ -132,6 +132,11 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 
 ## Recent Changes
 
+- ✓ CHAYEI MOHARAN DEDICATED SYSTEM: Complete focus on single book with 823 chapters (July 3, 2025)
+- ✓ Gemini AI integration for Chayei Moharan with Hebrew text + French translation (July 3, 2025)
+- ✓ TTS/STT optimized - automatic stop on microphone activation, clear audio output (July 3, 2025)
+- ✓ Chapter-by-chapter navigation with lazy translation (1000 char chunks) (July 3, 2025)
+- ✓ Interface focused solely on Chayei Moharan - search, chapters, reader views (July 3, 2025)
 - ✓ EMERGENCY REBUILD COMPLETE: Application fully reconstructed according to user requirements (July 2, 2025)
 - ✓ AppUltimate interface deployed with stable mobile menu and reliable TTS/STT functionality (July 2, 2025)
 - ✓ Backend completely rewritten to access user's 13 Hebrew books exclusively from PostgreSQL (6909 passages) (July 2, 2025)

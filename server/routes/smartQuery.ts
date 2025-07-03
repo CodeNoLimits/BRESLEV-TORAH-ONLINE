@@ -12,47 +12,24 @@ router.post("/", async (req, res) => {
 
     console.log(`[SmartQuery] Question reçue: ${question}`);
 
-    // ACCÈS DIRECT à vos 13 livres via localBooksProcessor
+    // REDIRECTION VERS CHAYEI MOHARAN UNIQUEMENT
     try {
-      const { localBooksProcessor } = await import('../services/localBooksProcessor.js');
+      console.log(`[SmartQuery] Redirection vers Chayei Moharan pour: "${question}"`);
       
-      // RECHERCHE INTELLIGENTE dans vos livres Breslov
-      console.log(`[SmartQuery] Recherche dans vos 13 livres Breslov...`);
-      
-      const relevantChunks = await localBooksProcessor.searchRelevantContent(question, 6);
-      
-      console.log(`[SmartQuery] ${relevantChunks.length} passages pertinents trouvés`);
-      
-      if (relevantChunks.length === 0) {
-        // Fallback - du contenu général de vos livres
-        const allBooks = localBooksProcessor.getAvailableBooks();
-        console.log(`[SmartQuery] Aucun résultat - fallback sur vos ${allBooks.length} livres`);
-        
-        const randomBook = allBooks[Math.floor(Math.random() * allBooks.length)];
-        const bookContent = await localBooksProcessor.getBookContent(randomBook);
-        
-        if (bookContent) {
-          const chunk = bookContent.substring(0, 1200);
-          relevantChunks.push(`${randomBook}: ${chunk}`);
-        }
-      }
-      
-      // CONSTRUCTION RÉPONSE AVEC VOS LIVRES
-      let answer = `📚 **Voici ce que j'ai trouvé dans vos livres de Rabbi Nahman :**\n\n`;
-      
-      relevantChunks.forEach((chunk, index) => {
-        const parts = chunk.split(': ');
-        const bookTitle = parts[0] || 'Livre Breslov';
-        const content = parts.slice(1).join(': ') || chunk;
-        
-        answer += `**${index + 1}. ${bookTitle}**\n`;
-        answer += `${content.substring(0, 500)}...\n\n`;
-        answer += `[Source: ${bookTitle}]\n\n---\n\n`;
+      // Faire la recherche via Chayei Moharan avec Gemini
+      const chayeiResponse = await fetch('http://127.0.0.1:5000/api/chayei-moharan/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
       });
       
-      answer += `✅ **${relevantChunks.length} passages authentiques de votre bibliothèque personnelle**`;
+      if (chayeiResponse.ok) {
+        const chayeiData = await chayeiResponse.json();
+        res.json({ answer: chayeiData.answer || "Aucune réponse trouvée dans Chayei Moharan." });
+      } else {
+        throw new Error('Erreur API Chayei Moharan');
+      }
       
-      res.json({ answer });
       
     } catch (booksError) {
       console.error('[SmartQuery] Erreur accès livres:', booksError);
