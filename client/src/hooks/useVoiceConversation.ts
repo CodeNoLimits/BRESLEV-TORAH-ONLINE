@@ -155,9 +155,11 @@ export const useVoiceConversation = () => {
     }, 10000);
   }, [isListening]);
 
-  // Fonction pour envoyer une question à Gemini
+  // Fonction pour envoyer une question à Gemini avec debug amélioré
   const queryGemini = useCallback(async (question: string): Promise<string> => {
     try {
+      console.log('🔍 [Client] Envoi question à Gemini:', question);
+      
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -169,15 +171,41 @@ export const useVoiceConversation = () => {
         }),
       });
 
+      console.log('📡 [Client] Réponse status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ [Client] Erreur API:', { 
+          status: response.status, 
+          statusText: response.statusText,
+          error: errorData 
+        });
+        
+        // Messages d'erreur plus spécifiques
+        if (response.status === 503) {
+          return errorData.response || 'Le service IA est temporairement indisponible. Veuillez réessayer dans quelques instants.';
+        } else if (response.status === 400) {
+          return 'Veuillez reformuler votre question plus clairement.';
+        } else {
+          return `Erreur de connexion (${response.status}). Veuillez réessayer.`;
+        }
       }
 
       const data = await response.json();
+      console.log('✅ [Client] Réponse reçue:', { 
+        hasResponse: !!data.response, 
+        length: data.response?.length || 0,
+        metadata: data.metadata 
+      });
+      
       return data.response || 'Désolé, je n\'ai pas pu traiter votre question.';
     } catch (error) {
-      console.error('Erreur Gemini:', error);
-      return 'Désolé, une erreur est survenue lors du traitement de votre question.';
+      console.error('❌ [Client] Erreur Gemini:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
+      return 'Désolé, une erreur de connexion est survenue. Vérifiez votre connexion internet et réessayez.';
     }
   }, []);
 

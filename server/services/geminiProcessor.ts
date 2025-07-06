@@ -2,19 +2,30 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import fs from 'fs/promises';
 import path from 'path';
 
-// Initialisation Gemini avec gestion d'erreur
+// Initialisation Gemini avec gestion d'erreur robuste
 let genAI: GoogleGenerativeAI | null = null;
 
-try {
+const initializeGemini = () => {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY non définie dans les variables d\'environnement');
+  
+  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+    console.error('⚠️ GEMINI_API_KEY non configurée ou invalide');
+    console.error('👉 Configurez votre clé API Gemini dans les variables d\'environnement');
+    return false;
   }
-  genAI = new GoogleGenerativeAI(apiKey);
-  console.log('✅ Gemini AI initialisé avec succès');
-} catch (error) {
-  console.error('❌ Erreur initialisation Gemini:', error);
-}
+
+  try {
+    genAI = new GoogleGenerativeAI(apiKey);
+    console.log('✅ Gemini AI initialisé avec succès');
+    return true;
+  } catch (error) {
+    console.error('❌ Erreur initialisation Gemini:', error);
+    return false;
+  }
+};
+
+// Initialiser au démarrage
+const isGeminiInitialized = initializeGemini();
 
 interface BookContent {
   title: string;
@@ -194,7 +205,11 @@ export const processBookQuery = async (
 }> => {
   
   if (!genAI) {
-    throw new Error('Gemini AI non initialisé. Vérifiez votre clé API.');
+    console.error('❌ Gemini AI non initialisé');
+    return {
+      response: "Désolé, le service d'intelligence artificielle n'est pas disponible pour le moment. Veuillez vérifier la configuration de l'API Gemini dans les variables d'environnement.",
+      sources: []
+    };
   }
 
   try {
@@ -302,14 +317,17 @@ TRADUCTION FRANÇAISE:`;
   }
 };
 
-// Test de santé de l'API
+// Test de santé de l'API avec retry
 export const testGeminiConnection = async (): Promise<boolean> => {
-  if (!genAI) {
-    return false;
+  if (!genAI || !isGeminiInitialized) {
+    console.log('🔍 Gemini non initialisé, tentative de réinitialisation...');
+    if (!initializeGemini()) {
+      return false;
+    }
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+    const model = genAI!.getGenerativeModel({ model: 'gemini-1.5-pro' });
     const result = await model.generateContent('Test de connexion - réponds simplement "OK"');
     const response = await result.response;
     return response.text().includes('OK');
