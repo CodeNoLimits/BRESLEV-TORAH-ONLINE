@@ -2,3 +2,4 @@ node_modules/
 dist/
 .env
 .replit_history
+cache.db
