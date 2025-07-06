@@ -74,22 +74,45 @@ router.post('/chat', async (req, res) => {
   }
 });
 
-// Route de santé pour vérifier l'état des services
+// Route de santé optimisée pour Replit
 router.get('/health', async (req, res) => {
   try {
+    console.log('🏥 [Health] Check demandé');
     const geminiStatus = await testGeminiConnection();
     
-    res.json({
-      status: 'healthy',
-      services: {
-        gemini: geminiStatus ? 'connected' : 'error',
-        timestamp: new Date().toISOString()
+    const healthData = {
+      status: 'ok',
+      geminiConfigured: !!process.env.GEMINI_API_KEY,
+      geminiConnected: geminiStatus,
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString(),
+      server: 'Breslev Torah Online',
+      version: '1.0.0',
+      endpoints: {
+        chat: '/api/chat',
+        health: '/api/health', 
+        test: '/api/test',
+        books: '/api/books'
+      },
+      replit: {
+        slug: process.env.REPL_SLUG || 'unknown',
+        owner: process.env.REPL_OWNER || 'unknown'
       }
+    };
+
+    console.log('✅ [Health] Status OK:', { 
+      geminiConfigured: healthData.geminiConfigured,
+      geminiConnected: healthData.geminiConnected 
     });
+    
+    res.json(healthData);
   } catch (error) {
+    console.error('❌ [Health] Erreur:', error);
     res.status(503).json({
-      status: 'unhealthy',
-      error: 'Services non disponibles',
+      status: 'error',
+      message: 'Service indisponible',
+      geminiConfigured: !!process.env.GEMINI_API_KEY,
+      timestamp: new Date().toISOString(),
       details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
     });
   }
