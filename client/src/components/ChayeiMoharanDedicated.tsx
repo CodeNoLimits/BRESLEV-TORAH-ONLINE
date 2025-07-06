@@ -167,6 +167,56 @@ export function ChayeiMoharanDedicated() {
     setIsLoading(false);
   };
 
+  const speakText = useCallback((text: string, language: 'fr' | 'he' = 'fr') => {
+    if (!text || text.trim().length === 0) return;
+
+    const cleanText = text.replace(/[*#]/g, '').trim();
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+
+      // Amélioration des voix
+      const voices = window.speechSynthesis.getVoices();
+      let selectedVoice = null;
+
+      if (language === 'he') {
+        selectedVoice = voices.find(voice => 
+          voice.lang.includes('he') || voice.name.includes('Hebrew')
+        );
+        utterance.lang = 'he-IL';
+      } else {
+        selectedVoice = voices.find(voice => 
+          voice.lang.includes('fr') || voice.name.includes('French')
+        );
+        utterance.lang = 'fr-FR';
+      }
+
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+
+      utterance.rate = 0.85;
+      utterance.pitch = 1.1;
+      utterance.volume = 1;
+
+      utterance.onstart = () => {
+        console.log(`🔊 TTS démarré: ${language.toUpperCase()}`);
+      };
+
+      utterance.onend = () => {
+        console.log('🔊 TTS terminé');
+      };
+
+      utterance.onerror = (error) => {
+        console.error('❌ Erreur TTS:', error);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white">
       {/* Header */}

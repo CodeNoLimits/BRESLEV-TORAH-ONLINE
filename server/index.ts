@@ -68,21 +68,32 @@ app.post('/api/chat', async (req, res) => {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
-    const prompt = `Tu es un assistant spirituel expert des enseignements de Rabbi Nahman de Breslev. 
-    Réponds en français de manière claire et spirituelle.
+    // Prompt spécialisé pour Chayei Moharan et Rabbi Nahman
+    const prompt = `Tu es un assistant spirituel expert des enseignements de Rabbi Nahman de Breslev et spécialiste du livre "Chayei Moharan" (la biographie de Rabbi Nahman).
 
-    Question: ${userQuery}`;
+    Contexte : Chayei Moharan raconte la vie de Rabbi Nahman de Breslev, incluant ses voyages, ses enseignements et ses expériences spirituelles. Le livre contient des récits sur Lemberg, ses déplacements, et sa sagesse.
+
+    Réponds en français de manière claire, spirituelle et détaillée. Si la question concerne des lieux géographiques comme Lemberg, fournis des informations précises sur les voyages de Rabbi Nahman.
+
+    Question: ${userQuery}
+
+    Réponse:`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
 
+    if (!text || text.trim().length === 0) {
+      throw new Error('Réponse vide de Gemini');
+    }
+
     console.log(`[Gemini] Réponse générée: ${text.length} caractères`);
 
     res.json({
       response: text,
-      sources: ['Gemini Pro'],
-      timestamp: new Date().toISOString()
+      sources: ['Gemini Pro - Chayei Moharan'],
+      timestamp: new Date().toISOString(),
+      query: userQuery
     });
 
   } catch (error) {
