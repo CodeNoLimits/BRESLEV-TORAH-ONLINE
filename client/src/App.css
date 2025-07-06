@@ -1,0 +1,199 @@
+/* Global styles */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom base styles */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Custom component styles */
+@layer components {
+  /* Smooth animations */
+  .animate-in {
+    animation-fill-mode: both;
+  }
+  
+  .slide-in-from-right-full {
+    transform: translateX(100%);
+    animation: slide-in-from-right 0.3s ease-out forwards;
+  }
+  
+  /* Prose styles for text content */
+  .prose-slate {
+    @apply text-slate-100;
+  }
+  
+  .prose-slate h1,
+  .prose-slate h2,
+  .prose-slate h3,
+  .prose-slate h4 {
+    @apply text-sky-400;
+  }
+  
+  .prose-slate strong {
+    @apply text-amber-300;
+  }
+  
+  .prose-slate em {
+    @apply text-slate-300 italic;
+  }
+  
+  /* Hebrew text styling */
+  .text-hebrew {
+    font-family: 'Noto Sans Hebrew', 'SBL Hebrew', 'David', serif;
+    direction: rtl;
+    text-align: right;
+    line-height: 1.8;
+  }
+  
+  /* English text styling */
+  .text-english {
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    line-height: 1.7;
+  }
+  
+  /* French text styling */
+  .text-french {
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    line-height: 1.7;
+  }
+  
+  /* Custom scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(71, 85, 105) rgb(15, 23, 42);
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: rgb(15, 23, 42);
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(71, 85, 105);
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(100, 116, 139);
+  }
+  
+  /* Loading skeleton */
+  .skeleton {
+    @apply animate-pulse bg-slate-700;
+  }
+  
+  /* Button variants */
+  .btn-primary {
+    @apply bg-sky-600 hover:bg-sky-700 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium py-2 px-4 rounded-lg transition-colors;
+  }
+  
+  .btn-destructive {
+    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+  }
+  
+  /* Input styles */
+  .input {
+    @apply bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm placeholder-slate-400 focus:border-sky-500 focus:outline-none;
+  }
+  
+  /* Card styles */
+  .card {
+    @apply bg-slate-900 border border-slate-800 rounded-lg;
+  }
+  
+  /* Status indicators */
+  .status-online {
+    @apply bg-green-500;
+  }
+  
+  .status-offline {
+    @apply bg-red-500;
+  }
+  
+  .status-idle {
+    @apply bg-yellow-500;
+  }
+}
+
+/* Custom animations */
+@keyframes slide-in-from-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Utilities */
+@layer utilities {
+  .animation-delay-75 {
+    animation-delay: 75ms;
+  }
+  
+  .animation-delay-150 {
+    animation-delay: 150ms;
+  }
+  
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+  
+  /* Text selection */
+  .select-none {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Focus styles */
+  .focus-visible {
+    @apply focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-900;
+  }
+}

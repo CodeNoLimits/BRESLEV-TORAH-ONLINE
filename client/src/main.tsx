@@ -1,18 +1,30 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { ChayeiMoharanDedicated } from './components/ChayeiMoharanDedicated';
-import './index.css';
+import App from './App';
+import './App.css';
 
-console.log('🕊️ Chayei Moharan - Initialisation...');
+console.log('🕊️ Torah de Breslev - Initialisation...');
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
+// Global error handler
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason);
+});
 
+window.addEventListener('error', (event) => {
+  console.error('Global error:', event.error);
+});
+
+// Render app
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error('Root element not found');
+}
+
+const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <ChayeiMoharanDedicated />
+    <App />
   </React.StrictMode>
 );
 
-console.log('✅ Application Chayei Moharan chargée');
+console.log('✅ Application Torah de Breslev chargée');

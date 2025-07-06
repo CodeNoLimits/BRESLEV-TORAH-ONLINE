@@ -1,7 +1,4 @@
-import { BRESLOV_BOOKS } from '@shared/data/BRESLOV_BOOKS';
-import { BreslovBookConfig } from '@shared/types';
-
-export interface BreslovReference {
+export interface Reference {
   ref: string;
   title: string;
   book: string;
@@ -11,123 +8,84 @@ export interface BreslovReference {
   verified: boolean;
 }
 
-const CACHE_VERSION = 2; // Increment to clear obsolete cache
-const CACHE_KEY = `breslov_references_v${CACHE_VERSION}`;
+// Book definitions with their section counts
+const BOOKS = {
+  'Sefer HaMiddot': {
+    maxSections: 31,
+    verified: true,
+    hebrewTitle: 'ספר המידות',
+    category: 'Sefer HaMiddot'
+  },
+  'Chayei Moharan': {
+    maxSections: 14,
+    verified: true,
+    hebrewTitle: 'חיי מוהר"ן',
+    category: 'Chayei Moharan'
+  },
+  'Likutei Moharan I': {
+    maxSections: 282,
+    verified: true,
+    hebrewTitle: 'ליקוטי מוהר"ן א',
+    category: 'Likutei Moharan'
+  },
+  'Likutei Moharan II': {
+    maxSections: 125,
+    verified: true,
+    hebrewTitle: 'ליקוטי מוהר"ן ב',
+    category: 'Likutei Moharan'
+  },
+  'Likutei Tefilot': {
+    maxSections: 210,
+    verified: false,
+    hebrewTitle: 'ליקוטי תפילות',
+    category: 'Likutei Tefilot'
+  },
+  'Sipurei Maasiyot': {
+    maxSections: 13,
+    verified: true,
+    hebrewTitle: 'סיפורי מעשיות',
+    category: 'Sipurei Maasiyot'
+  },
+  'Likutei Etzot': {
+    maxSections: 150,
+    verified: true,
+    hebrewTitle: 'ליקוטי עצות',
+    category: 'Likutei Etzot'
+  },
+  'Alim LiTrufa': {
+    maxSections: 45,
+    verified: true,
+    hebrewTitle: 'עלים לתרופה',
+    category: 'Alim LiTrufa'
+  },
+  'Kitzur Likutei Moharan': {
+    maxSections: 407,
+    verified: true,
+    hebrewTitle: 'קיצור ליקוטי מוהר"ן',
+    category: 'Kitzur Likutei Moharan'
+  }
+};
 
-export function generateAllReferences(): BreslovReference[] {
-  // Clear obsolete localStorage cache
-  clearObsoleteCache();
+export function generateAllReferences(): Reference[] {
+  const references: Reference[] = [];
   
-  const allReferences: BreslovReference[] = [];
-  
-  Object.entries(BRESLOV_BOOKS).forEach(([bookTitle, book]) => {
-    // Only generate references for verified books to avoid 404s
-    if (!book.verified) {
-      console.log(`[generateAllReferences] Skipping unverified book: ${bookTitle}`);
-      return;
-    }
-    
-    for (let section = 1; section <= book.maxSections; section++) {
-      const ref = `${book.baseRef}.${section}`;
-      
-      allReferences.push({
-        ref,
+  Object.entries(BOOKS).forEach(([bookTitle, bookData]) => {
+    for (let section = 1; section <= bookData.maxSections; section++) {
+      references.push({
+        ref: `${bookTitle} ${section}`,
         title: `${bookTitle} ${section}`,
         book: bookTitle,
         section,
-        hebrewTitle: `${book.hebrewTitle} ${section}`,
-        category: book.category,
-        verified: book.verified
+        hebrewTitle: bookData.hebrewTitle,
+        category: bookData.category,
+        verified: bookData.verified
       });
     }
   });
   
-  console.log(`[generateAllReferences] Generated ${allReferences.length} references from ${Object.keys(BRESLOV_BOOKS).length} books`);
-  
-  // Cache the generated references
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({
-      version: CACHE_VERSION,
-      timestamp: Date.now(),
-      references: allReferences
-    }));
-    console.log(`[generateAllReferences] Cached ${allReferences.length} references`);
-  } catch (error) {
-    console.warn('[generateAllReferences] Failed to cache references:', error);
-  }
-  
-  return allReferences;
-}
-
-export function getCachedReferences(): BreslovReference[] | null {
-  try {
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (!cached) return null;
-    
-    const data = JSON.parse(cached);
-    if (data.version !== CACHE_VERSION) {
-      console.log('[getCachedReferences] Cache version mismatch, invalidating');
-      localStorage.removeItem(CACHE_KEY);
-      return null;
-    }
-    
-    // Cache is valid for 24 hours
-    const age = Date.now() - data.timestamp;
-    if (age > 24 * 60 * 60 * 1000) {
-      console.log('[getCachedReferences] Cache expired');
-      localStorage.removeItem(CACHE_KEY);
-      return null;
-    }
-    
-    return data.references;
-  } catch (error) {
-    console.warn('[getCachedReferences] Failed to read cache:', error);
-    return null;
-  }
-}
-
-export function getAllReferences(): BreslovReference[] {
-  const cached = getCachedReferences();
-  if (cached) {
-    console.log(`[getAllReferences] Using cached references: ${cached.length} items`);
-    return cached;
-  }
-  
-  return generateAllReferences();
-}
-
-function clearObsoleteCache() {
-  const keysToRemove: string[] = [];
-  
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key?.startsWith('breslov_references_v') && key !== CACHE_KEY) {
-      keysToRemove.push(key);
-    }
-  }
-  
-  keysToRemove.forEach(key => {
-    localStorage.removeItem(key);
-    console.log(`[clearObsoleteCache] Removed obsolete cache: ${key}`);
-  });
-  
-  if (keysToRemove.length > 0) {
-    console.log(`[clearObsoleteCache] Cleared ${keysToRemove.length} obsolete cache entries`);
-  }
-}
-
-export function getBookStatistics(): Record<string, number> {
-  const stats: Record<string, number> = {};
-  
-  Object.entries(BRESLOV_BOOKS).forEach(([bookTitle, book]) => {
-    stats[bookTitle] = book.maxSections;
-  });
-  
-  return stats;
+  return references;
 }
 
 export function getTotalReferenceCount(): number {
-  return Object.values(BRESLOV_BOOKS)
-    .filter(book => book.verified)
-    .reduce((total, book) => total + book.maxSections, 0);
+  return Object.values(BOOKS).reduce((total, book) => total + book.maxSections, 0);
 }
