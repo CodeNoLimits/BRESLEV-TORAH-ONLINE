@@ -1,10 +1,10 @@
 #!/bin/bash
 
-echo "🚀 Démarrage de l'application Breslev sur Replit..."
+echo "🚀 Démarrage de Chayei Moharan..."
 
 # Vérifier Node.js
 if ! command -v node &> /dev/null; then
-    echo "❌ Node.js non trouvé"
+    echo "❌ Node.js n'est pas installé"
     exit 1
 fi
 
@@ -19,7 +19,7 @@ else
     echo "✅ GEMINI_API_KEY configurée"
 fi
 
-# Installation des dépendances si nécessaire
+# Installation des dépendances
 if [ ! -d "node_modules" ] || [ ! -f "node_modules/.installed" ]; then
     echo "📦 Installation des dépendances..."
     npm ci --production=false --silent
@@ -34,8 +34,8 @@ else
     echo "✅ Dépendances déjà installées"
 fi
 
-# Build si nécessaire ou en mode développement
-if [ ! -d "dist" ] || [ "$NODE_ENV" = "development" ]; then
+# Build si nécessaire
+if [ ! -d "dist" ] ; then
     echo "🔨 Build de l'application..."
     npm run build
     if [ $? -eq 0 ]; then
@@ -55,16 +55,10 @@ if [ ! -f "dist/index.js" ]; then
 fi
 
 # Démarrer le serveur
-echo "🎯 Lancement du serveur..."
-echo "📍 Port: ${PORT:-3001}"
+echo "🏃 Démarrage du serveur..."
+echo "📍 Port: ${PORT:-5000}"
 echo "🌐 URL: https://$REPL_SLUG.$REPL_OWNER.repl.co"
-
-# Export des variables pour le runtime
-export NODE_ENV=${NODE_ENV:-production}
-export PORT=${PORT:-3001}
-
-# Démarrage avec gestion d'erreur
-npm run start
+NODE_ENV=production PORT=${PORT:-5000} node dist/index.js
 
 # Si le serveur s'arrête, afficher les informations de debug
 if [ $? -ne 0 ]; then
