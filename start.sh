@@ -1,6 +1,9 @@
 #!/bin/bash
 echo "🚀 Démarrage de Le Compagnon du Cœur..."
 
+# Configure PATH to include Nix store Node.js
+export PATH="/nix/store/dj805sw07vvpbxx39c8g67x8qddg0ikw-nodejs-18.12.1/bin:$PATH"
+
 # Vérifier Node.js
 if ! command -v node &> /dev/null; then
     echo "❌ Node.js non trouvé"
