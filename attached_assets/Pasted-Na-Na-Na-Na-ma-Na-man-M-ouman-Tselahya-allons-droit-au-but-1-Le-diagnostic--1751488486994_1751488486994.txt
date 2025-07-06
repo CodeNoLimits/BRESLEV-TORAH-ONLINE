@@ -1,0 +1,130 @@
+Na Naḥ Na Naḥma Naḥman Méouman 🕊️
+
+**Tselahya**, allons droit au but :
+
+---
+
+## 1. Le diagnostic : la réponse ne correspond pas au texte fourni
+
+| Aspect             | Ce que dit **le texte source** (extraits)                                                                                                             | Ce que renvoie **l’IA**                                                                     | Verdict                        |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------ |
+| Sujet dominant     | *Briser l’avidité d’argent* → charité, ruaḥ refroidissant le « feu » du désir ; Lévi & chant lévitique ; encens ; guéoula & Mashiaḥ ; ruaḥ→providence | *Obscurité spirituelle* ; impossibilité de prier ; rôle des Tsadikim pour ranimer la prière | **Quitte totalement le thème** |
+| Sources citées     | Zohar III 224a, Ps 76 13, Dt 33 10, Is 2 20…                                                                                                          | Hishtapchut HaNefesh §90 (un tout autre livre de Reb Noson)                                 | **Mauvais corpus**             |
+| Structure demandée | 10 points résumant « toute la Torah » du passage                                                                                                      | 10 points, mais sur *un autre passage* (prière / désespoir)                                 | **Hors-sujet**                 |
+| Citations          | Devaient provenir du texte fourni (Ps 89 16, 76 13, etc.)                                                                                             | Aucune de ces citations, uniquement Hishtapchut                                             | **0 / 20**                     |
+
+### Conclusion
+
+La réponse de l’IA **n’exploite pas du tout** le passage que tu as donné ; elle répond depuis une entrée générique de *Hishtapchut HaNefesh*. Elle n’a donc **ni cité le bon livre, ni traité le bon thème**.
+
+---
+
+## 2. Pourquoi l’IA s’est trompée — défaillances techniques
+
+1. **Mauvais endpoint** : le front appelle encore `/api/gemini/quick` (modèle général) au lieu de `/api/chat` (RAG local).
+2. **Index vectoriel absent** : les 1 628 chunks importés n’ont pas été insérés dans pgvector ; la recherche retombe sur un simple `includes()` en RAM → elle « voit » *Hishtapchut* mais pas *Likouté Moharan* car les deux sont mélangés dans le même dossier.
+3. **Prompt non contraignant** : rien n’oblige le modèle à citer une source ni à refuser si aucune source pertinente.
+4. **Validation manquante** : la route renvoie la première réponse du LLM sans vérifier qu’elle contient `[Source: …]`.
+5. **Nom mal orthographié** : la question contient « Rabbi Darman » – l’embedder ne fait pas le lien immédiat avec *Rabbi Naḥman* → scoring vectoriel en berne.
+6. **Redémarrage Replit** : les correctifs “triple kill” sont dans un fork non exécuté ; le conteneur courant n’a jamais rechargé les nouveaux fichiers.
+
+---
+
+## 3. Ce que **devrait** faire l’application pour chaque question
+
+1. **Classifier la question**
+
+   * repère : *nom de livre*, *concept*, *citation* → choisit RAG local.
+2. **Recherche vectorielle + lexicale** dans **tes** livres uniquement.
+3. **Valide** : si aucun chunk ≥ 0 .28 de score → répond : « Aucun passage trouvé dans les textes fournis ».
+4. **Génère** la réponse au format :
+
+   > **Citation** (hébreu ou FR)
+   > \[Source : Livre, §]
+   > **Explication** (≤ 150 mots)
+   > **Application pratique**
+5. **Post-filtre** : refuse toute réponse sans `[Source:`.
+6. **TTS** : lit uniquement `answer` après sa validation, via une seule queue.
+
+---
+
+## 4. Plan de correctif ciblé (sans re-écrire 10 pages de code)
+
+### 4.1 Rebrancher le front
+
+```tsx
+// useAsk.ts
+export const ask = async (q:string)=>
+ fetch("/api/smart-query",{method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({question:q})}).then(r=>r.json());
+```
+
+### 4.2 Indexer vraiment
+
+```sql
+-- psql
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE TABLE IF NOT EXISTS texts(
+ id serial primary key,
+ book text, section text, chunk text,
+ embedding vector(768));
+```
+
+Puis, côté Node : `INSERT ...` avec `embedding = embeddings.embedQuery(chunk)`.
+
+### 4.3 Prompt contraignant
+
+```ts
+const prompt = `
+Tu réponds UNIQUEMENT à partir des textes fournis.
+Règles :
+1️⃣ CITE la phrase exacte puis [Source: Livre, §].
+2️⃣ Si pas de passage pertinent -> "Aucun passage..."
+3️⃣ Format : Citation • Source • Explication • Application.
+CONTEXTE ↓↓↓
+${context}
+QUESTION : ${question}`;
+```
+
+### 4.4 Validation de sortie
+
+```ts
+if(!/Source:/i.test(answer)) answer="Aucun passage pertinent...";
+```
+
+### 4.5 Single TTS queue
+
+```tsx
+// global unique
+const speak = (txt)=>{ const u=new SpeechSynthesisUtterance(txt);
+  speechSynthesis.cancel(); speechSynthesis.speak(u); };
+```
+
+### 4.6 Restart conteneur
+
+```bash
+kill 1   # depuis la console Replit
+```
+
+---
+
+## 5. Vérifie maintenant : procédure de test
+
+1. **Hard-refresh** (⌘⇧R).
+2. Pose : « Où Rabbénou parle-t-il de l’avidité d’argent ? »
+
+   * **Attendu** : citation *Likouté Moharan 4:*, “\[Source: LM 4]”, explication, application.
+3. Écoute le TTS — doit lire tout le bloc.
+
+Si l’un des trois points faillit, copie la trace **Network** et on corrige la ligne fautive.
+
+---
+
+## 6. En un mot
+
+La réponse reçue **ne reflète pas** ton texte ; c’est un problème de routage + index manquant. En rebranchant `/api/smart-query`, en bâtissant l’index pgvector et en imposant le format `[Source:…]`, l’IA sera contrainte d’exploiter **exactement** tes livres – ou de dire honnêtement qu’elle n’a rien trouvé.
+
+Je reste prêt à déboguer ligne par ligne dès que tu me confirmes le résultat du test.
+
+Na Naḥ Na Naḥma Naḥman Méouman 🌟

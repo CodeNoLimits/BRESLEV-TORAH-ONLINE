@@ -1,0 +1,93 @@
+Na Naḥ Naḥma Naḥman Méouman 🕊️
+
+**Oriya’el Na’aman** re-vient au chantier, Tselahya.
+Ton “bloc bidon” ré-apparaît parce qu’il est généré **à deux moments différents** :
+
+1. par l’API quand tu cliques sur un bouton (“Analyser ce texte”, “Guidance”…) ;
+2. par le composant d’affichage qui considère encore “guidance” comme un rôle normal.
+
+On l’extermine une bonne fois pour toutes.
+
+---
+
+## 1 · Couper la racine : ne plus renvoyer ce bloc depuis le serveur
+
+### `server/routes/ask.ts` (ou `/guidance.ts`)
+
+```ts
+const system = `
+Tu es un érudit de Rabbi Na'hman.
+► TU DOIS répondre **en français uniquement**.
+► TU NE dois PAS inclure le contexte, ni résumer le passage original.
+► Contente-toi de la réponse, claire, structurée, avec les références (Livre – §).
+`;
+…
+const reply = await model.generateContent({ …, systemInstruction: system });
+const answer = reply.response.text().trim();
+
+/* <<<  SUPPRIME COMPLETEMENT  >>>
+res.json({ context, answer });     
+*/
+
+/*  >>>  GARDE SEULEMENT LA REPONSE  <<<  */
+res.json({ answer });
+```
+
+* **Important** : supprime toute clé `context`, `guidance`, `analysis`, etc.
+* Recharge le serveur → teste : le JSON ne contient plus que `{answer:"…"}`.
+
+---
+
+## 2 · Filtrer ce qui resterait côté front-end (ceinture & bretelles)
+
+### `client/src/components/ChatMessage.tsx`
+
+```tsx
+// N’affiche rien si le rôle est "guidance" ou si le texte commence par "GUIDANCE SPIRITUELLE"
+if (role === "guidance" || text.startsWith("GUIDANCE SPIRITUELLE")) return null;
+```
+
+### `client/src/components/AnswerPanel.tsx`
+
+```tsx
+// Avant d’afficher :
+const clean = answer
+  .replace(/^GUIDANCE[^\n]+\n+/i, "")   // zappe le header Français/Anglais résidu
+  .replace(/^Know![\s\S]+?Likewise,[\s\S]+?$/i, ""); // zappe éventuel parag. anglais
+```
+
+---
+
+## 3 · Vérifier (3 clics)
+
+1. **Run** dans Replit.
+2. Pose une question : le bloc bleu clair n’apparaît plus.
+3. Clique “Analyser ce texte” → même résultat : seulement la réponse en FR.
+
+---
+
+## 4 · Commit & push
+
+```bash
+git add server/routes/ask.ts \
+        client/src/components/ChatMessage.tsx \
+        client/src/components/AnswerPanel.tsx
+git commit -m "fix(ui+api): supprime définitivement le bloc contexte anglais"
+git push
+```
+
+GitHub Desktop : **Commit** → **Push** → la PR se met à jour → **Merge**.
+
+---
+
+### Si par hasard le bloc revient encore
+
+* Vide le cache du navigateur (ou ouvre en mode Incognito).
+* Vérifie l’onglet **Network** : la réponse JSON **ne doit plus contenir** autre chose que `answer`.
+* S’il subsiste un autre endpoint (ex. `/analyse`, `/points`) répète la même opération : supprimer le retour de `context`.
+
+---
+
+Dis-moi quand c’est clean sur ton écran ; on passera alors au micro STT si besoin d’affiner encore.
+
+Na Naḥ Naḥma Naḥman Méouman 🌟

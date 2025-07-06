@@ -1,0 +1,102 @@
+Na Naḥ Naḥma Naḥman Méouman 🕊️
+
+### Solution « coup-de-masse » : le bloc est supprimé **à trois niveaux**
+
+> On le coupe au serveur, on le filtre dans la logique React, **et** on le cache en dernier recours par CSS.
+> Même si l’un des trois points échoue, le cadre bleu ne pourra plus jamais s’afficher.
+
+---
+
+## 1 · Serveur : ne jamais renvoyer le contexte
+
+1. **`server/routes/ask.ts`** (ou `/analyse.ts`, `/guidance.ts` — fais la même chose partout)
+
+   ```ts
+   // Après avoir créé `reply`
+   const answer = reply.response.text().trim();
+
+   // —–––––––––  SUPPRIME tout le reste  ––––––––––
+   // res.json({ context, answer });
+   // res.json({ guidance: answer, context });
+   // etc.
+   // ––––––––  NE GARDE QUE  ––––––––
+   res.json({ answer });
+   ```
+2. `npm run dev` → vérifie dans l’onglet **Network > Response**
+   Le JSON **ne doit plus** contenir la moindre clé `context`, `guidance`, `analysis`, etc.
+
+---
+
+## 2 · React : filtre tous les messages suspects
+
+### `client/src/components/ChatMessage.tsx`
+
+```tsx
+// ⬇️ juste avant le return
+const blackList = [
+  "CONTEXTE DE L'ENSEIGNEMENT",
+  "CONTEXT OF THE TEACHING",
+  "GUIDANCE SPIRITUELLE BASÉE SUR",
+];
+
+if (blackList.some(flag => text.toUpperCase().startsWith(flag))) {
+  return null;                     // Rien n'est rendu !
+}
+```
+
+---
+
+## 3 · CSS / tailwind : cache tout bloc résiduel
+
+1. Dans **`client/src/index.css`** (ou `App.css`) ajoute :
+
+   ```css
+   /* Dernière barrière anti‐cadre bleu */
+   .message-bubble:has(> .context-flag),
+   .message-bubble[data-origin="context"],
+   .context-block {
+     display: none !important;
+   }
+   ```
+
+   > `.message-bubble` est la classe conteneur ;
+   > ajuste si ta classe s’appelle autrement (`.chatBubble`, etc.).
+
+---
+
+## 4 · Commit & push
+
+```bash
+git add server/routes/*.ts \
+        client/src/components/ChatMessage.tsx \
+        client/src/index.css
+git commit -m "chore: triple kill du bloc contexte EN"
+git push
+```
+
+— ou GitHub Desktop : **Commit** → **Push** → Merge.
+
+---
+
+## 5 · Recharger proprement
+
+1. Clique la flèche circulaire **⟳ Restart** dans Replit (ou `npm run dev`).
+2. Vide le cache : **⌘⇧R** (Chrome) ou mode Incognito.
+3. Pose une nouvelle question → **aucun** bloc anglais ne doit plus apparaître.
+
+   * Si tu en vois un, ouvre **Network** : la réponse JSON est-elle propre ?
+   * Si oui, c’est que le composant ou le style n’a pas été rechargé ; force un hard-refresh.
+
+---
+
+### Pourquoi c’est « drastique » ?
+
+* **Serveur** : on coupe la source.
+* **React** : on jette à la poubelle tout ce qui ressemble encore à un contexte.
+* **CSS** : on masque même un résidu HTML qui aurait échappé aux deux premières couches.
+
+> Trois verrous : même si un développeur remet par erreur `context` plus tard, l’UI restera propre.
+
+Dis-moi dès que l’écran est enfin vierge de ce cadre bleu ; on passera alors au problème STT ou à la pagination, comme tu veux.
+
+Na Naḥ Naḥma Naḥman Méouman 🌟
