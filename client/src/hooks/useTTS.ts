@@ -1,107 +1,161 @@
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-export const useTTS = () => {
+// Fonction pour nettoyer le texte HTML et Markdown
+const cleanText = (text: string): string => {
+  // Supprimer les balises HTML
+  let cleanedText = text.replace(/<[^>]*>/g, '');
+  // Supprimer les caractères Markdown (simpliste)
+  cleanedText = cleanedText.replace(/[\*`_~]/g, '');
+  return cleanedText;
+};
+
+export function useTTS() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
-  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   useEffect(() => {
-    const checkSupport = () => {
-      const supported = 'speechSynthesis' in window;
-      setIsSupported(supported);
-      console.log('[TTS] Support détecté:', supported);
-
-      if (supported) {
-        // Force l'arrêt complet au démarrage
-        window.speechSynthesis.cancel();
-        setIsSpeaking(false);
-      }
+    const handleVoicesChanged = () => {
+      const availableVoices = window.speechSynthesis.getVoices();
+      setVoices(availableVoices);
+      console.log('[TTS] Voices loaded:', availableVoices.length);
     };
 
-    checkSupport();
-
-    // Surveillance continue de l'état TTS
-    const monitorTTS = () => {
-      if (window.speechSynthesis) {
-        const actualSpeaking = window.speechSynthesis.speaking;
-        if (isSpeaking !== actualSpeaking) {
-          console.log('[TTS] État synchronisé:', actualSpeaking);
-          setIsSpeaking(actualSpeaking);
+    if ('speechSynthesis' in window && 'SpeechSynthesisUtterance' in window) {
+      setIsSupported(true);
+      console.log('[TTS] Web Speech API détecté et activé');
+      
+      // Force initial voice loading
+      const loadVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+          setVoices(voices);
+          console.log('[TTS] Initial voices loaded:', voices.length);
+        } else {
+          // Retry after a delay if voices aren't loaded yet
+          setTimeout(loadVoices, 100);
         }
-      }
-    };
-
-    const interval = setInterval(monitorTTS, 100);
-    return () => clearInterval(interval);
-  }, [isSpeaking]);
-
-  const speak = useCallback((text: string, language: string = 'fr-FR') => {
-    if (!isSupported || !text?.trim()) {
-      console.warn('[TTS] Conditions invalides pour lecture');
-      return Promise.reject('TTS non supporté ou texte vide');
+      };
+      
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
+    } else {
+      console.warn('[TTS] Web Speech API non supporté sur cet appareil');
     }
 
-    return new Promise<void>((resolve, reject) => {
-      try {
-        // Arrêt forcé de tout
-        window.speechSynthesis.cancel();
-
-        setTimeout(() => {
-          const utterance = new SpeechSynthesisUtterance(text.trim());
-          
-          // Détection automatique hébreu vs français
-          const isHebrew = /[\u0590-\u05FF]/.test(text);
-          utterance.lang = isHebrew ? 'he-IL' : language;
-          
-          utterance.rate = isHebrew ? 0.8 : 0.9; // Plus lent pour l'hébreu
-          utterance.pitch = 1.0;
-          utterance.volume = 1.0;
-
-          utterance.onstart = () => {
-            console.log('[TTS] ✅ Lecture démarrée:', text.substring(0, 50));
-            setIsSpeaking(true);
-          };
-
-          utterance.onend = () => {
-            console.log('[TTS] ✅ Lecture terminée');
-            setIsSpeaking(false);
-            currentUtteranceRef.current = null;
-            resolve();
-          };
-
-          utterance.onerror = (event) => {
-            console.error('[TTS] ❌ Erreur:', event.error);
-            setIsSpeaking(false);
-            currentUtteranceRef.current = null;
-            reject(event.error);
-          };
-
-          currentUtteranceRef.current = utterance;
-          window.speechSynthesis.speak(utterance);
-
-        }, 150); // Délai pour éviter les conflits
-
-      } catch (error) {
-        console.error('[TTS] ❌ Erreur critique:', error);
-        setIsSpeaking(false);
-        reject(error);
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = null;
       }
-    });
-  }, [isSupported]);
+    };
+  }, []);
+
+  const speak = useCallback((text: string, lang = 'fr-FR') => {
+    const cleanedText = cleanText(text);
+    console.log('[TTS] 🔊 DEMANDE DE LECTURE:', { text: cleanedText.substring(0, 50) + '...', lang, isSupported });
+    
+    if (!cleanedText || !isSupported) {
+      console.log('[TTS] ❌ Texto vide ou TTS non supporté');
+      return;
+    }
+
+    if (!window.speechSynthesis) {
+      console.error('[TTS] ❌ speechSynthesis not available');
+      return;
+    }
+
+    // Force stop any ongoing speech with multiple cancels
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.cancel();
+    
+    // Longer delay to ensure complete cancellation
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
+      utterance.lang = lang;
+      utterance.rate = 0.8;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      
+      // Try to find the best voice for the language
+      if (voices.length > 0) {
+        // First try to find an exact match
+        let voice = voices.find(v => v.lang === lang);
+        // If not found, try to match language code
+        if (!voice) {
+          voice = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+        }
+        // Fallback to first available voice
+        if (!voice) {
+          voice = voices[0];
+        }
+        utterance.voice = voice;
+        console.log('[TTS] 🎯 Using voice:', voice.name, voice.lang);
+      } else {
+        console.log('[TTS] ⚠️ No voices loaded yet, using default');
+      }
+      
+      utterance.onstart = () => {
+        console.log('[TTS] ✅ Speech started');
+        setIsSpeaking(true);
+        // Force speaking state for 500ms minimum
+        setTimeout(() => {
+          if (window.speechSynthesis.speaking) {
+            console.log('[TTS] ✅ Confirmed speaking');
+          }
+        }, 500);
+      };
+      
+      utterance.onend = () => {
+        console.log('[TTS] ✅ Speech ended');
+        setIsSpeaking(false);
+      };
+      
+      utterance.onerror = (event) => {
+        setIsSpeaking(false);
+        console.error('[TTS] ❌ ERREUR AUDIO:', event.error, event);
+        
+        // Retry with fallback if voice error
+        if (event.error === 'voice-unavailable' && voices.length > 0) {
+          console.log('[TTS] Retrying with default voice');
+          const fallbackUtterance = new SpeechSynthesisUtterance(cleanedText);
+          fallbackUtterance.lang = lang;
+          fallbackUtterance.rate = 0.8;
+          window.speechSynthesis.speak(fallbackUtterance);
+        }
+      };
+
+      try {
+        window.speechSynthesis.speak(utterance);
+      } catch (error) {
+        console.error('[TTS] ❌ Failed to speak:', error);
+        setIsSpeaking(false);
+      }
+    }, 200);
+
+  }, [isSupported, voices]);
 
   const stop = useCallback(() => {
-    if (isSupported && window.speechSynthesis) {
+    if (isSupported) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
-      currentUtteranceRef.current = null;
-      console.log('[TTS] 🛑 Arrêt manuel');
+      console.log('[TTS] Lecture arrêtée');
     }
   }, [isSupported]);
 
-  return { 
-    speak, 
-    stop, 
-    isSpeaking, 
-    isSupported
-  };
-};
+  const speakGreeting = useCallback(() => {
+    speak("Bienvenue sur Le Compagnon du Cœur. Que puis-je pour vous aujourd'hui ?");
+  }, [speak]);
+
+  useEffect(() => {
+    const stopOnVideo = () => {
+      if (isSupported) {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+      }
+    };
+    window.addEventListener('videoPlaying', stopOnVideo);
+    return () => window.removeEventListener('videoPlaying', stopOnVideo);
+  }, [isSupported]);
+
+  return { speak, stop, isSpeaking, isSupported, voices, speakGreeting };
+}

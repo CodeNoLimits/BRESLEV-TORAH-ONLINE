@@ -122,7 +122,7 @@ div:has(> div:contains("KEY POINTS")),
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(240, 3.7%, 15.9%);
   }
 
   body {
@@ -205,6 +205,60 @@ div:has(> div:contains("KEY POINTS")),
   to { 
     transform: translateY(0); 
   }
+}
+
+/* SUPPRESSION DÉFINITIVE DES BLOCS BLEUS - TRIPLE BARRIÈRE */
+
+/* Barrière 1: Masquer tous les éléments avec contexte anglais */
+*[class*="context"],
+*[class*="Context"],
+.context-block,
+.context-section,
+.context-display,
+div:has-text("Context"),
+div:has-text("Contexte de l'enseignement"),
+p:has-text("Context"),
+p:has-text("Contexte de l'enseignement") {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Barrière 2: Masquer les blocs bleus par couleur */
+*[style*="background-color: rgb(59, 130, 246)"],
+*[style*="background-color: blue"],
+*[style*="bg-blue"],
+.bg-blue-500,
+.bg-blue-600,
+.bg-blue-700,
+*[class*="bg-blue"] {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Barrière 3: Masquer par contenu textuel */
+div:contains("Contexte de l'enseignement") {
+  display: none !important;
+}
+
+/* Masquage définitif - Règles de nettoyage finales */
+[data-testid*="context"],
+[aria-label*="context"],
+[title*="context"],
+.context-wrapper,
+.context-container,
+#context,
+#Context {
+  display: none !important;
+  visibility: hidden !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }
 
 /* Mobile touch optimizations */
