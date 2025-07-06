@@ -1,289 +1,162 @@
-import { useState, useCallback, useEffect } from 'react';
-
-// Generate unique IDs
-const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
-import { Header } from './components/Header';
-import { Sidebar } from './components/Sidebar';
-import { ChatArea } from './components/ChatArea';
-import { InputArea } from './components/InputArea';
+import { useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { LibraryPanel } from './components/LibraryPanel';
 import { TextViewer } from './components/TextViewer';
-import { BookNavigator } from './components/BookNavigator';
-import { LoadingModal } from './components/LoadingModal';
-import { useTTS } from './hooks/useTTS';
-import { sefariaService } from './services/sefaria';
-import { useGemini } from './hooks/useGemini';
-import { Message, Language, SefariaText, InteractionMode, AIMode } from './types';
+import { ChatInterface } from './components/ChatInterface';
+import { TTSControls } from './components/TTSControls';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { Toaster } from './components/ui/toaster';
+import { useApp } from './hooks/useApp';
+import './App.css';
 
-function App() {
-  // State management
-  const [language, setLanguage] = useState<Language>('fr');
-  const [ttsEnabled, setTtsEnabled] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedText, setSelectedText] = useState<SefariaText | null>(null);
-  const [selectedBook, setSelectedBook] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [streamingText, setStreamingText] = useState('');
-  const [isListening, setIsListening] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+// Create QueryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+    },
+  },
+});
 
-  // Custom hooks
-  const { speak, stop: stopTTS, isSpeaking } = useTTS();
+function AppContent() {
   const {
-    sendMessage,
-    isLoading: isAILoading,
-    isStreaming
-  } = useGemini({
-    language,
-    onResponse: setStreamingText,
-    onError: (err) => setError(err)
-  });
+    selectedBook,
+    selectedChapter,
+    chatMode,
+    isLoading,
+    error,
+    setSelectedBook,
+    setSelectedChapter,
+    setChatMode,
+    clearError
+  } = useApp();
 
-  // Voice recognition setup
-  const [recognition, setRecognition] = useState<any>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
 
-  useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
-      const recognitionInstance = new SpeechRecognition();
-      
-      recognitionInstance.continuous = false;
-      recognitionInstance.interimResults = false;
-      recognitionInstance.lang = language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'fr-FR';
-      
-      recognitionInstance.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        handleSendMessage(transcript, 'chat');
-        setIsListening(false);
-      };
-      
-      recognitionInstance.onend = () => setIsListening(false);
-      recognitionInstance.onerror = () => setIsListening(false);
-      
-      setRecognition(recognitionInstance);
-    }
-  }, [language]);
-
-  // Event handlers
-  const handleTextSelect = useCallback(async (ref: string, title: string) => {
-    try {
-      // Check if this is a book-level selection (no specific verse numbers)
-      const isBookLevel = !ref.includes('.') || ref.split('.').length <= 1;
-      
-      if (isBookLevel) {
-        // Show book navigator for complete book access
-        setSelectedBook(title);
-        setSelectedText(null);
-        console.log(`[App] Opening book navigator for: ${title}`);
-      } else {
-        // Load specific section/verse
-        const text = await sefariaService.getText(ref);
-        setSelectedText(text);
-        setSelectedBook(null);
-        console.log(`[App] Loaded specific text: ${ref}`);
-        
-        // Auto-trigger deep study analysis with French translation
-        const textContent = sefariaService.getTextInLanguage(text, 'en');
-        const frenchPrompt = `TEXTE ANGLAIS À ANALYSER: "${textContent}"
-
-INSTRUCTIONS STRICTES:
-1. Analyser uniquement ce texte selon les enseignements de Rabbi Nahman
-2. Rester concentré sur ce passage spécifique  
-3. Donner des conseils pratiques basés sur cet enseignement précis
-4. NE PAS traduire - la traduction française est gérée séparément`;
-        
-        await handleSendAIMessage(frenchPrompt, 'study', `Texte sélectionné: ${title}`);
-      }
-      
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Erreur lors du chargement du texte');
-    }
-  }, []);
-
-  const handleSectionSelect = useCallback(async (ref: string) => {
-    try {
-      const text = await sefariaService.getText(ref);
-      setSelectedText(text);
-      setSelectedBook(null);
-      console.log(`[App] Loaded book section: ${ref}`);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Erreur lors du chargement de la section');
-    }
-  }, []);
-
-  const handleSendMessage = useCallback(async (message: string, mode: InteractionMode) => {
-    const aiMode: AIMode = mode === 'analysis' ? 'analyze' : mode === 'guidance' ? 'counsel' : 'explore';
-    await handleSendAIMessage(message, aiMode);
-  }, []);
-
-  const handleSendAIMessage = useCallback(async (message: string, mode: AIMode, context?: string) => {
-    // Add user message
-    const userMessage: Message = {
-      id: generateId(),
-      text: message,
-      sender: 'user',
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, userMessage]);
-    
-    // Clear streaming text
-    setStreamingText('');
-    
-    try {
-      // Send to AI
-      const response = await sendMessage(message, mode, context);
-      
-      // Add AI response
-      const aiMessage: Message = {
-        id: generateId(),
-        text: response,
-        sender: 'ai',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, aiMessage]);
-      
-      // Auto-speak if TTS enabled with debug logs
-      if (ttsEnabled && response) {
-        console.log(`[App] TTS enabled, attempting to speak response of length: ${response.length}`);
-        speak(response);
-      } else {
-        console.log(`[App] TTS not triggered - enabled: ${ttsEnabled}, response: ${!!response}`);
-      }
-      
-    } catch (error) {
-      const errorMessage: Message = {
-        id: generateId(),
-        text: 'Une erreur est survenue lors de la communication avec l\'IA. Veuillez réessayer.',
-        sender: 'ai',
-        timestamp: new Date(),
-        isSafetyMessage: true
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setStreamingText('');
-    }
-  }, [sendMessage, ttsEnabled, speak]);
-
-  const handleAnalyzeText = useCallback(async (text: string) => {
-    await handleSendAIMessage(text, 'analyze');
-  }, [handleSendAIMessage]);
-
-  const handleSeekGuidance = useCallback(async (situation: string) => {
-    await handleSendAIMessage(situation, 'counsel');
-  }, [handleSendAIMessage]);
-
-  const handleSummarize = useCallback(async (messageId: string) => {
-    const message = messages.find(m => m.id === messageId);
-    if (message) {
-      await handleSendAIMessage(message.text, 'summarize');
-    }
-  }, [messages, handleSendAIMessage]);
-
-  const handleStartVoiceInput = useCallback(() => {
-    if (recognition && !isListening) {
-      setIsListening(true);
-      recognition.start();
-    }
-  }, [recognition, isListening]);
-
-  const handleTTSToggle = useCallback((enabled: boolean) => {
-    setTtsEnabled(enabled);
-    if (!enabled) {
-      stopTTS();
-    }
-  }, [stopTTS]);
-
-  // Auto-stop TTS when streaming starts
-  useEffect(() => {
-    if (isStreaming && isSpeaking) {
-      stopTTS();
-    }
-  }, [isStreaming, isSpeaking, stopTTS]);
+  // Current context for chat
+  const currentContext = selectedChapter 
+    ? `${selectedBook?.titleEn} - Chapitre ${selectedChapter.chapterNumber}`
+    : selectedBook?.titleEn;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-950">
-      {/* Sidebar */}
-      <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onTextSelect={handleTextSelect}
-        language={language}
-      />
-      
-      {/* Main Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <Header
-          language={language}
-          onLanguageChange={setLanguage}
-          ttsEnabled={ttsEnabled}
-          onTTSToggle={handleTTSToggle}
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          isSpeaking={isSpeaking || isListening}
-          onStartVoiceInput={handleStartVoiceInput}
-        />
-        
-        {/* Book Navigator */}
-        {selectedBook && (
-          <BookNavigator
-            bookTitle={selectedBook}
-            onSectionSelect={handleSectionSelect}
-            onClose={() => setSelectedBook(null)}
-            language={language}
-          />
-        )}
-        
-        {/* Text Viewer */}
-        <TextViewer
-          selectedText={selectedText}
-          onClose={() => setSelectedText(null)}
-          language={language}
-        />
-        
-        {/* Chat Area */}
-        <ChatArea
-          messages={messages}
-          isStreaming={isStreaming}
-          language={language}
-          onSummarize={handleSummarize}
-          onSpeak={speak}
-          streamingText={streamingText}
-        />
-        
-        {/* Input Area */}
-        <InputArea
-          onSendMessage={handleSendMessage}
-          onAnalyzeText={handleAnalyzeText}
-          onSeekGuidance={handleSeekGuidance}
-          isLoading={isAILoading}
-          onStartVoiceInput={handleStartVoiceInput}
-        />
-      </div>
-      
-      {/* Loading Modal */}
-      <LoadingModal isVisible={isAILoading && !isStreaming} />
-      
-      {/* Error Handling */}
-      {error && (
-        <div className="fixed bottom-4 right-4 bg-red-900/90 border border-red-500 rounded-lg p-4 max-w-md animate-slide-up">
-          <div className="flex items-start space-x-3">
-            <svg className="w-5 h-5 text-red-400 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"></path>
-            </svg>
-            <div>
-              <h4 className="font-semibold text-white mb-1">Erreur</h4>
-              <p className="text-red-200 text-sm">{error}</p>
-              <button
-                className="mt-2 text-sky-400 hover:text-sky-300 text-sm"
-                onClick={() => setError(null)}
-              >
-                Fermer
-              </button>
-            </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      {/* Header */}
+      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur">
+        <div className="flex h-16 items-center justify-between px-4">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 rounded-lg hover:bg-slate-800 transition-colors"
+              aria-label="Toggle sidebar"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <h1 className="text-xl font-bold text-sky-400">
+              Torah de Breslev
+            </h1>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            {/* Chat Mode Selector */}
+            <select
+              value={chatMode}
+              onChange={(e) => setChatMode(e.target.value as 'chapter' | 'book' | 'global')}
+              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-sm"
+            >
+              <option value="chapter">Mode Chapitre</option>
+              <option value="book">Mode Livre</option>
+              <option value="global">Mode Global</option>
+            </select>
+
+            <button
+              onClick={() => setChatOpen(!chatOpen)}
+              className="p-2 rounded-lg bg-sky-600 hover:bg-sky-700 transition-colors"
+              aria-label="Toggle chat"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.001 8.001 0 01-7.996-7.808c0-4.418 3.582-8 8-8s8 3.582 8 8z" />
+              </svg>
+            </button>
           </div>
         </div>
+      </header>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-900/20 border border-red-500/50 text-red-400 px-4 py-3 mx-4 mt-4 rounded-lg flex items-center justify-between">
+          <span className="text-sm">{error}</span>
+          <button
+            onClick={clearError}
+            className="text-red-400 hover:text-red-300 ml-4"
+            aria-label="Dismiss error"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       )}
+
+      {/* Main Content */}
+      <div className="flex h-[calc(100vh-4rem)]">
+        {/* Sidebar */}
+        <div className={`transition-all duration-300 ${
+          sidebarOpen ? 'w-80' : 'w-0'
+        } overflow-hidden border-r border-slate-800`}>
+          <LibraryPanel
+            selectedBook={selectedBook}
+            selectedChapter={selectedChapter}
+            onBookSelect={setSelectedBook}
+            onChapterSelect={setSelectedChapter}
+            isLoading={isLoading}
+          />
+        </div>
+
+        {/* Main Text Area */}
+        <div className={`flex-1 flex ${chatOpen ? 'mr-96' : ''} transition-all duration-300`}>
+          <div className="flex-1 overflow-hidden">
+            <TextViewer
+              book={selectedBook}
+              chapter={selectedChapter}
+              isLoading={isLoading}
+            />
+          </div>
+        </div>
+
+        {/* Chat Panel */}
+        <div className={`transition-all duration-300 ${
+          chatOpen ? 'w-96' : 'w-0'
+        } overflow-hidden border-l border-slate-800`}>
+          <ChatInterface
+            mode={chatMode}
+            context={currentContext}
+            isOpen={chatOpen}
+            onClose={() => setChatOpen(false)}
+          />
+        </div>
+      </div>
+
+      {/* TTS Controls - Floating */}
+      <TTSControls />
+
+      {/* Toast Notifications */}
+      <Toaster />
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AppContent />
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+}
