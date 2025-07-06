@@ -16,92 +16,61 @@ router.post('/chat', async (req, res) => {
       });
     }
 
-    console.log(`📝 Nouvelle question: "${query}" (livre: ${selectedBook})`);
+    console.log(`[Chat API] Query: "${query}" pour le livre: ${selectedBook}`);
 
-    // Traitement avec Gemini
-    const startTime = Date.now();
-    const result = await processBookQuery(query.trim(), selectedBook);
-    const processingTime = Date.now() - startTime;
+    // Traitement de la requête avec Gemini
+    const response = await processBookQuery(query, selectedBook);
 
-    console.log(`⚡ Réponse générée en ${processingTime}ms`);
-
-    // Réponse succès
     res.json({
-      response: result.response,
-      sources: result.sources,
-      metadata: {
-        book: selectedBook,
-        processingTime,
-        timestamp: new Date().toISOString(),
-        sourceCount: result.sources.length
-      }
+      response,
+      book: selectedBook,
+      timestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    console.error('❌ Erreur route /chat:', error);
+    console.error('[Chat API] Erreur:', error);
     
-    const errorMessage = error instanceof Error ? error.message : 'Erreur interne du serveur';
-    
+    // Réponse de fallback en cas d'erreur
     res.status(500).json({
-      error: 'Erreur de traitement',
-      details: errorMessage,
-      timestamp: new Date().toISOString()
+      error: 'Erreur du guide spirituel',
+      response: 'Le guide spirituel rencontre des difficultés temporaires. Veuillez reformuler votre question ou réessayer dans un moment.',
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
     });
   }
 });
 
-// Route de test pour vérifier la connexion Gemini
+// Route de santé pour vérifier l'état des services
 router.get('/health', async (req, res) => {
   try {
     const geminiStatus = await testGeminiConnection();
     
     res.json({
-      status: 'ok',
+      status: 'healthy',
       services: {
-        gemini: geminiStatus ? 'connected' : 'disconnected',
-        server: 'running'
-      },
-      timestamp: new Date().toISOString()
+        gemini: geminiStatus ? 'connected' : 'error',
+        timestamp: new Date().toISOString()
+      }
     });
   } catch (error) {
-    console.error('❌ Erreur health check:', error);
-    res.status(500).json({
-      status: 'error',
-      error: error instanceof Error ? error.message : 'Erreur inconnue'
+    res.status(503).json({
+      status: 'unhealthy',
+      error: 'Services non disponibles',
+      details: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
     });
   }
 });
 
 // Route pour lister les livres disponibles
 router.get('/books', (req, res) => {
-  const availableBooks = [
-    {
-      id: 'chayei-moharan',
-      name: 'Chayei Moharan',
-      language: 'fr',
-      status: 'available',
-      description: 'Vie et enseignements de Rabbi Nahman de Breslev'
-    },
-    {
-      id: 'likutei-moharan',
-      name: 'Likutei Moharan',
-      language: 'he',
-      status: 'loading',
-      description: 'Recueil principal des enseignements de Rabbi Nahman'
-    },
-    {
-      id: 'sippurei-maasiyot',
-      name: 'Sippurei Maasiyot',
-      language: 'he',
-      status: 'loading',
-      description: 'Contes et histoires de Rabbi Nahman'
-    }
-  ];
-
   res.json({
-    books: availableBooks,
-    total: availableBooks.length,
-    available: availableBooks.filter(b => b.status === 'available').length
+    available_books: [
+      {
+        id: 'chayei-moharan',
+        name: 'Chayei Moharan',
+        description: 'Biographie de Rabbi Nahman racontée par Rabbi Nathan'
+      }
+    ],
+    default_book: 'chayei-moharan'
   });
 });
 

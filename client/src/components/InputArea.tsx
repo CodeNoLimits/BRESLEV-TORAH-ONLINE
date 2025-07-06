@@ -1,196 +1,174 @@
-import { useState } from 'react';
-import { InteractionMode } from '../types';
+
+import React, { useState, useRef, useEffect } from 'react';
+import { useVoice } from '../hooks/useVoice';
 
 interface InputAreaProps {
-  onSendMessage: (message: string, mode: InteractionMode) => void;
-  onAnalyzeText: (text: string) => void;
-  onSeekGuidance: (situation: string) => void;
+  onSendMessage: (text: string, mode?: string) => void;
   isLoading: boolean;
-  onStartVoiceInput: () => void;
+  placeholder?: string;
 }
 
-export const InputArea = ({
+export const InputArea: React.FC<InputAreaProps> = ({
   onSendMessage,
-  onAnalyzeText,
-  onSeekGuidance,
   isLoading,
-  onStartVoiceInput
-}: InputAreaProps) => {
-  const [activeTab, setActiveTab] = useState<InteractionMode>('chat');
-  const [chatMessage, setChatMessage] = useState('');
-  const [analysisText, setAnalysisText] = useState('');
-  const [guidanceText, setGuidanceText] = useState('');
+  placeholder = "Posez votre question spirituelle..."
+}) => {
+  const [inputValue, setInputValue] = useState('');
+  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  const { askVoice, speak, isListening, isSupported } = useVoice((transcript) => {
+    console.log('[InputArea] Transcription reçue:', transcript);
+    setInputValue(transcript);
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 100);
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    switch (activeTab) {
-      case 'chat':
-        if (chatMessage.trim()) {
-          onSendMessage(chatMessage, 'chat');
-          setChatMessage('');
-        }
-        break;
-      case 'analysis':
-        if (analysisText.trim()) {
-          onAnalyzeText(analysisText);
-          setAnalysisText('');
-        }
-        break;
-      case 'guidance':
-        if (guidanceText.trim()) {
-          onSeekGuidance(guidanceText);
-          setGuidanceText('');
-        }
-        break;
+    if (inputValue.trim() && !isLoading) {
+      console.log('[InputArea] Envoi message:', inputValue);
+      onSendMessage(inputValue.trim());
+      setInputValue('');
     }
   };
 
-  const tabs = [
-    { id: 'chat' as InteractionMode, label: 'Conversation', icon: 'chat' },
-    { id: 'analysis' as InteractionMode, label: 'Analyser un extrait', icon: 'search' },
-    { id: 'guidance' as InteractionMode, label: 'Conseil personnalisé', icon: 'heart' }
-  ];
+  const handleMicClick = () => {
+    if (!isSupported) {
+      console.warn('[InputArea] STT non supporté');
+      return;
+    }
+
+    if (!isListening) {
+      console.log('[InputArea] Démarrage écoute');
+      askVoice();
+    }
+  };
+
+  const handleTTSToggle = () => {
+    const newState = !ttsEnabled;
+    setTtsEnabled(newState);
+    console.log('[InputArea] TTS', newState ? 'activé' : 'désactivé');
+    
+    if (newState) {
+      speak("Mode lecture vocale activé");
+    } else {
+      speechSynthesis.cancel();
+    }
+  };
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [inputValue]);
 
   return (
-    <div className="border-t border-slate-700 bg-slate-900">
-      {/* Tabs */}
-      <div className="px-6 pt-4">
-        <div className="flex space-x-4 border-b border-slate-700 -mb-px">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? 'text-sky-400 border-sky-400'
-                  : 'text-slate-400 hover:text-white border-transparent'
-              }`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.icon === 'chat' && (
-                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd"></path>
-                </svg>
-              )}
-              {tab.icon === 'search' && (
-                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd"></path>
-                </svg>
-              )}
-              {tab.icon === 'heart' && (
-                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"></path>
-                </svg>
-              )}
-              {tab.label}
-            </button>
-          ))}
+    <div className="border-t border-slate-700 bg-slate-900 p-4">
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="flex space-x-2">
+          {/* Bouton TTS */}
+          <button
+            type="button"
+            onClick={handleTTSToggle}
+            className={`p-3 rounded-lg transition-all duration-200 ${
+              ttsEnabled
+                ? 'bg-sky-600 text-white shadow-lg'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+            title={ttsEnabled ? 'Désactiver lecture vocale' : 'Activer lecture vocale'}
+          >
+            {isSpeaking ? (
+              <svg className="w-5 h-5 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM15.657 6.343a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-1.929 5.657 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-1.343-4.243 1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217z" clipRule="evenodd" />
+              </svg>
+            )}
+          </button>
+
+          {/* Zone de texte */}
+          <div className="flex-1 relative">
+            <textarea
+              ref={textareaRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={placeholder}
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent min-h-[3rem] max-h-32"
+              rows={1}
+              disabled={isLoading}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+            />
+            
+            {/* Indicateur STT */}
+            {isListening && (
+              <div className="absolute top-2 right-2 flex items-center space-x-1">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                <span className="text-xs text-red-400">Écoute...</span>
+              </div>
+            )}
+          </div>
+
+          {/* Bouton Micro */}
+          <button
+            type="button"
+            onClick={handleMicClick}
+            disabled={!isSupported}
+            className={`p-3 rounded-lg transition-all duration-200 ${
+              !isSupported
+                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                : isListening
+                ? 'bg-red-600 text-white shadow-lg animate-pulse'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+            title={
+              !isSupported 
+                ? 'Microphone non disponible' 
+                : isListening 
+                ? 'En écoute...' 
+                : 'Commencer écoute vocale'
+            }
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+            </svg>
+          </button>
+
+          {/* Bouton Envoi */}
+          <button
+            type="submit"
+            disabled={isLoading || !inputValue.trim()}
+            className="px-6 py-3 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+          >
+            {isLoading ? (
+              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            )}
+          </button>
         </div>
-      </div>
 
-      {/* Tab Content */}
-      <div className="p-6">
-        {/* Chat Tab */}
-        {activeTab === 'chat' && (
-          <form onSubmit={handleSubmit} className="flex items-end space-x-4">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                placeholder="Posez votre question spirituelle..."
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:border-sky-400 transition-colors"
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-3 text-slate-400 hover:text-sky-400 transition-colors"
-                onClick={onStartVoiceInput}
-                title="Entrée vocale"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"></path>
-                </svg>
-              </button>
-            </div>
-            <button
-              type="submit"
-              disabled={isLoading || !chatMessage.trim()}
-              className="px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all transform hover:scale-105 flex items-center space-x-2"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path>
-              </svg>
-              <span>Envoyer</span>
-            </button>
-          </form>
-        )}
-
-        {/* Analysis Tab */}
-        {activeTab === 'analysis' && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                <svg className="w-4 h-4 mr-2 text-amber-400 inline" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path>
-                  <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path>
-                </svg>
-                Collez votre extrait à analyser
-              </label>
-              <textarea
-                rows={4}
-                placeholder="Collez ici le texte que vous souhaitez analyser en profondeur..."
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:border-sky-400 transition-colors resize-none"
-                value={analysisText}
-                onChange={(e) => setAnalysisText(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={isLoading || !analysisText.trim()}
-              className="w-full px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all"
-            >
-              <svg className="w-4 h-4 mr-2 inline" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              Analyser ce texte
-            </button>
-          </form>
-        )}
-
-        {/* Guidance Tab */}
-        {activeTab === 'guidance' && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                <svg className="w-4 h-4 mr-2 text-amber-400 inline" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"></path>
-                </svg>
-                Décrivez votre situation personnelle
-              </label>
-              <textarea
-                rows={4}
-                placeholder="Partagez votre situation ou votre questionnement personnel. Je chercherai dans les enseignements un conseil adapté..."
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:border-sky-400 transition-colors resize-none"
-                value={guidanceText}
-                onChange={(e) => setGuidanceText(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={isLoading || !guidanceText.trim()}
-              className="w-full px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all"
-            >
-              <svg className="w-4 h-4 mr-2 inline" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414-1.414L9 5.586 7.707 4.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4a1 1 0 00-1.414-1.414L9 5.586z" clipRule="evenodd"></path>
-              </svg>
-              Chercher un conseil
-            </button>
-          </form>
-        )}
-      </div>
+        {/* Info sur les raccourcis */}
+        <div className="text-xs text-slate-500 text-center">
+          Entrée pour envoyer • Shift+Entrée pour nouvelle ligne • 
+          {isSupported ? 'Micro activé' : 'Micro indisponible'}
+        </div>
+      </form>
     </div>
   );
 };

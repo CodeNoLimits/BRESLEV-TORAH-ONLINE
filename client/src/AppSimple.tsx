@@ -6,10 +6,10 @@ import { DownloadToast } from './components/DownloadToast';
 import { VoiceAssistant } from './components/VoiceAssistant';
 import { OptimizedTextDisplay } from './components/OptimizedTextDisplay';
 
-import { useTTS } from './hooks/useTTS';
+import { simpleTTS } from './services/simpleTTS';
+import { useAsk } from './hooks/useAsk';
+import { useVoice } from './hooks/useVoice';
 
-import { MobileTTS, isMobile, MobileUtils } from './services/mobileOptimized';
-import { useVoiceInput } from './hooks/useVoiceInput';
 import { useToast } from './hooks/use-toast';
 import { TextSegmenter } from './services/textSegmenter';
 import { sefariaClient, SefariaText } from './services/sefariaDirectClient';
@@ -26,6 +26,12 @@ interface Message {
   content: string;
   timestamp: Date;
   mode?: string;
+  sources?: Array<{
+    book: string;
+    chapter: string;
+    section: string;
+    reference: string;
+  }>;
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -64,15 +70,20 @@ function AppSimple() {
   const [showDownloadToast, setShowDownloadToast] = useState(false);
   const [bulkLoadStarted, setBulkLoadStarted] = useState(false);
 
-  // TTS Premium avec fallback Web Speech API
-  const { speak, stop: stopTTS, isSpeaking } = useTTS();
+  // TTS Global unifié - VERSION SIMPLE
+  // TTS simple et fiable
+  const speak = (text: string) => simpleTTS.speak(text);
+  const stopTTS = () => simpleTTS.stop();
+  const isSpeaking = false; // Pour compatibilité
+
+  // Système de questions unifié 
+  const { ask, isLoading: isAsking } = useAsk();
   const { toast } = useToast();
 
   // Fonction TTS multilingue
   const speakWithLanguage = useCallback((text: string, langCode?: string) => {
     if (!ttsEnabled || !text) return;
-    const finalLangCode = langCode || 'fr-FR';
-    speak(text, finalLangCode);
+    speak(text);
   }, [ttsEnabled, speak]);
 
   // Fonction speakGreeting pour compatibilité avec Header
@@ -88,15 +99,63 @@ function AppSimple() {
     const message = greetingMessages[language] || greetingMessages.fr;
     const langCode = language === 'he' ? 'he-IL' : language === 'en' ? 'en-US' : 'fr-FR';
 
-    speakWithLanguage(message, langCode);
+    speakWithLanguage(message);
   }, [ttsEnabled, language, speakWithLanguage]);
 
-  // Voice input for questions
-  const { startListening, stopListening, isListening } = useVoiceInput(
-    selectedText?.ref || null,
-    addMessage,
-    speak
-  );
+  // Nouveau gestionnaire de questions unifié
+  const handleQuestion = useCallback(async (question: string) => {
+    console.log('[AppSimple] Question reçue:', question);
+
+    // Message utilisateur
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: question,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    try {
+      // Appel API unifié vers smart-query
+      const result = await ask(question);
+
+      // Message IA avec filtrage des blocs bleus
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: result.answer,
+        timestamp: new Date(),
+        sources: result.sources
+      };
+      setMessages(prev => [...prev, aiMessage]);
+
+      // TTS automatique si activé
+      if (ttsEnabled && result.answer) {
+        console.log('[AppSimple] Lecture automatique TTS...');
+        await speak(result.answer);
+      }
+
+    } catch (error) {
+      console.error('[AppSimple] Erreur question:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: "❗ Une erreur est survenue lors du traitement de votre question.",
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    }
+  }, [ask, speak, ttsEnabled]);
+
+  const [currentQuestion, setCurrentQuestion] = useState('');
+
+  // Voice input unifié avec nouveau hook
+  const { askVoice, speak: speakVoice, isListening, isSupported } = useVoice((question) => {
+    setCurrentQuestion(question);
+    handleQuestion(question);
+  });
+
+  // Voice input handled by useVoiceInput hook
 
   // Initialize lightweight cache only - no heavy preloading
   useEffect(() => {
@@ -138,29 +197,26 @@ ${selectedText.text?.join('\n\n') || 'Non disponible'}
 ` : '';
 
     const prompts = {
-      study: `${selectedContext}INSTRUCTION STRICTE: Analyse uniquement le texte dans le CONTEXTE PRINCIPAL ci-dessus.
-NE PAS traduire en français - la traduction est gérée séparément.
-Fournis UNIQUEMENT une analyse spirituelle détaillée selon Rabbi Nahman de Breslov.
+      study: `${selectedContext}INSTRUCTION STRICTE: Analyse spirituelle détaillée selon Rabbi Nahman de Breslov.
+NE PAS inclure de section "CONTEXTE" ou "CONTEXT" dans ta réponse.
+Fournis UNIQUEMENT l'analyse directe.
 
-DEMANDE UTILISATEUR: ${text}
+DEMANDE UTILISATEUR: ${text}`,
 
-NE PAS analyser d'autres textes que celui du CONTEXTE PRINCIPAL.`,
+      general: `Tu es Le Compagnon du Cœur, guide spirituel des enseignements de Rabbi Nahman de Breslov.
 
-      general: `You are the Heart's Companion, a spiritual guide based on the teachings of Rabbi Nachman of Breslov.
+RÈGLES ABSOLUES:
+- Réponds TOUJOURS en français
+- NE PAS commencer par "CONTEXTE" ou "CONTEXT"  
+- Réponse directe et spirituelle uniquement
 
-CRITICAL: Detect the language of the user's question and respond in that EXACT same language.
-- If question is in Hebrew (עברית), respond completely in Hebrew
-- If question is in French (français), respond completely in French  
-- If question is in English, respond completely in English
+${selectedContext ? `TEXTE ÉTUDIÉ: ${selectedContext}
 
-${selectedContext ? `CONTEXT OF SELECTED TEACHING:
-The main ideas of this text focus on humility, divine glory, and spiritual elevation according to Rabbi Nachman.
+QUESTION: ${text}
 
-USER QUESTION: ${text}
+Réponds directement selon ces enseignements.` : `QUESTION: ${text}
 
-Answer with wisdom based on these teachings in the SAME LANGUAGE as the question above.` : `USER QUESTION: ${text}
-
-Answer with wisdom according to Breslov teachings in the SAME LANGUAGE as the question above.`}`,
+Réponds selon la sagesse breslov.`}`,
 
       snippet: `${selectedContext}INSTRUCTION STRICTE: Analyse uniquement l'extrait du CONTEXTE PRINCIPAL.
 
@@ -218,12 +274,15 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
     return results.sort((a, b) => b.score - a.score).slice(0, 3);
   }, []);
 
-  // Enhanced AI handler with intelligent search integration
+  // Enhanced AI handler with intelligent RAG integration
   const handleAIRequest = useCallback(async (text: string, mode: string = 'general') => {
     setIsAILoading(true);
     setStreamingText('');
 
     try {
+      // Import RAG service dynamically
+      const { breslovRAG } = await import('./services/breslovRAG');
+
       // First check for specific Sefaria requests
       const sefariaRequest = detectSefariaRequest(text);
       let enhancedText = text;
@@ -241,19 +300,11 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
           console.error('[AppSimple] Error fetching Sefaria content:', error);
         }
       } else if (mode === 'general') {
-        // For general questions, search across all loaded texts
-        const searchResults = await searchLoadedTexts(text);
-        if (searchResults.length > 0) {
-          console.log(`[AppSimple] Found ${searchResults.length} relevant texts for question`);
-          let contextualText = `QUESTION: ${text}\n\nCONTEXTE - Textes pertinents de Rabbi Nahman:\n\n`;
-
-          searchResults.forEach((result, index) => {
-            contextualText += `${index + 1}. ${result.book}:\n"${result.content}"\n\n`;
-          });
-
-          contextualText += `Réponds à la question en te basant sur ces textes authentiques de Rabbi Nahman de Breslov.`;
-          enhancedText = contextualText;
-        }
+        // Use intelligent RAG for all general questions
+        console.log(`[AppSimple] Using RAG for question: ${text}`);
+        const relevantContext = await breslovRAG.getRelevantContext(text);
+        enhancedText = `${relevantContext}\n\nQUESTION: ${text}`;
+        console.log(`[AppSimple] RAG context provided for question`);
       }
 
       const prompt = buildPrompt(mode, enhancedText);
@@ -288,9 +339,22 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
       setMessages(prev => [...prev, aiMessage]);
       setStreamingText('');
 
-      // Retirer l'auto-lecture pour éviter les problèmes mobiles
-      // L'utilisateur doit cliquer explicitement sur le bouton TTS
-      console.log(`[AppSimple] Response complete - TTS available via button click`);
+      // Auto-lecture intelligente des réponses IA
+      if (ttsEnabled && fullResponse.trim().length > 0) {
+        // Délai pour éviter les conflits avec l'interface
+        setTimeout(() => {
+          console.log(`[AppSimple] Auto-lecture de la réponse IA`);
+          const cleanResponse = fullResponse
+            .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+            .replace(/\*(.*?)\*/g, '$1')     // Remove italic markdown
+            .replace(/#{1,6}\s/g, '')        // Remove headers
+            .substring(0, 1000);             // Limit to first 1000 chars
+
+          speakWithLanguage(cleanResponse, 'fr-FR');
+        }, 500);
+      }
+
+      console.log(`[AppSimple] Response complete - Auto-TTS ${ttsEnabled ? 'enabled' : 'disabled'}`);
 
     } catch (error: any) {
       console.error('[AppSimple] AI error:', error);
@@ -492,31 +556,11 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
     }
   }, [handleAIRequest, breslovCrawler, breslovComplete, sefariaClient]);
 
-  // Handle input submission with context awareness
+  // SYSTÈME UNIFIÉ RÉVOLUTIONNAIRE - remplace handleSendMessage par handleQuestion
   const handleSendMessage = useCallback(async (message: string, mode: InteractionMode) => {
-    if (!message.trim()) return;
-
-    const aiMode = mode === 'analysis' ? 'snippet' : 
-                   mode === 'guidance' ? 'advice' : 'general';
-
-    console.log(`[AppSimple] Send message - Mode: ${aiMode}, Has context: ${!!selectedText}`);
-
-    // If we have a selected text, include it as context for written questions
-    if (selectedText && selectedText.text && selectedText.text.length > 0) {
-      const contextText = selectedText.text.join('\n\n');
-      const contextualQuestion = `CONTEXTE DE L'ENSEIGNEMENT:\n${selectedText.title}\n\n${contextText.substring(0, 8000)}${contextText.length > 8000 ? '...' : ''}\n\nQUESTION DE L'UTILISATEUR:\n${message}`;
-
-      console.log(`[AppSimple] Written question with context: ${message}`);
-      await handleAIRequest(contextualQuestion, aiMode);
-    } else {
-      // No context available, respond with guidance
-      const guidanceMessage = `QUESTION: ${message}\n\nPour une réponse contextuelle précise, sélectionnez d'abord un enseignement dans la bibliothèque Breslov, puis posez votre question. Sinon, je peux vous donner une réponse générale sur les enseignements de Rabbi Nahman.`;
-      console.log(`[AppSimple] Question without context: ${message}`);
-      await handleAIRequest(guidanceMessage, 'guidance');
-    }
-
-    setCurrentInput('');
-  }, [handleAIRequest, selectedText]);
+    console.log(`[AppSimple] Redirection vers système unifié: ${message}`);
+    await handleQuestion(message);
+  }, [handleQuestion]);
 
   // Handle text analysis events from TextViewer
   useEffect(() => {
@@ -575,7 +619,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
 
               <OptimizedTextDisplay
                 selectedText={selectedText}
-                onTTSSpeak={speakWithLanguage}
+                onTTSSpeak={speak}
                 isTTSSpeaking={isSpeaking}
                 language={language}
                 onTextSelection={setUserSelectedText}
@@ -612,7 +656,7 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                       (selectedText.text.length > 0 ? selectedText.text[0] : selectedText.title);
                     console.log('[AppSimple] Manual TTS trigger:', textToSpeak.substring(0, 50));
 
-                    speak(textToSpeak, 'fr-FR'); // TTS français
+                    speak(textToSpeak); // TTS unifié
                   }}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${
                     isSpeaking 
@@ -673,17 +717,16 @@ Résume les points clés du texte sélectionné selon Rabbi Nahman.`
                 <button
                   onClick={() => {
                     const content = userSelectedText || selectedText.text.join('\n\n');
-                    const prefix = userSelectedText ? 'GUIDANCE SPIRITUELLE BASÉE SUR LE TEXTE SÉLECTIONNÉ' : `GUIDANCE SPIRITUELLE BASÉE SUR ${selectedText.title}`;
 
                     // Use intelligent segmentation for long texts
                     if (!userSelectedText && content.length > 8000) {
                       const segmentResult = TextSegmenter.segmentText(content, selectedText.title);
                       const optimizedContent = TextSegmenter.formatForAI(segmentResult, selectedText.title);
                       console.log(`[AppSimple] Guidance - using segmented text (${optimizedContent.length} chars from ${content.length} original)`);
-                      handleAIRequest(`${prefix}:\n\n${optimizedContent}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
+                      handleAIRequest(`${optimizedContent}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
                     } else {
                       console.log(`[AppSimple] Guidance - using ${userSelectedText ? 'selected' : 'full'} text (${content.length} chars)`);
-handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
+                      handleAIRequest(`${content}\n\nComment ce texte peut-il m'aider dans ma vie quotidienne?`, 'counsel');
                     }
 
                     if (userSelectedText) setUserSelectedText('');
@@ -723,9 +766,12 @@ handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider da
                     <span className="text-sm font-medium text-sky-300">
                       Vous
                     </span>
-                    {message.mode && (
+                    {message.mode && message.mode !== 'general' && (
                       <span className="text-xs text-slate-500 bg-slate-700 px-2 py-1 rounded">
-                        {message.mode}
+                        {message.mode === 'snippet' ? 'Analyse' : 
+                         message.mode === 'advice' ? 'Conseil' : 
+                         message.mode === 'counsel' ? 'Guidance' :
+                         message.mode}
                       </span>
                     )}
                   </div>
@@ -770,9 +816,9 @@ handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider da
                     const segmentResult = TextSegmenter.segmentText(content, 'Demande de guidance');
                     const optimizedContent = TextSegmenter.formatForAI(segmentResult, 'Guidance spirituelle');
                     console.log(`[AppSimple] Guidance - using segmented text (${optimizedContent.length} chars from ${content.length} original)`);
-                    handleAIRequest(`GUIDANCE SPIRITUELLE:\n\n${optimizedContent}\n\nComment puis-je appliquer ces enseignements dans ma vie quotidienne?`, 'counsel');
+                    handleAIRequest(`${optimizedContent}\n\nComment puis-je appliquer ces enseignements dans ma vie quotidienne?`, 'counsel');
                   } else {
-                    handleAIRequest(`GUIDANCE SPIRITUELLE:\n\n${content}\n\nComment puis-je appliquer ces enseignements dans ma vie quotidienne?`, 'counsel');
+                    handleAIRequest(`${content}\n\nComment puis-je appliquer ces enseignements dans ma vie quotidienne?`, 'counsel');
                   }
 
                   if (selectedText) {
@@ -839,8 +885,10 @@ handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider da
               />
               <div className="flex flex-col gap-2">
                 <button
-                  onClick={isListening ? stopListening : startListening}
-                  className={`p-3 rounded-lg transition-all duration-200 ${
+                  onClick={() => {
+                    askVoice(currentInput);
+                  }}
+                  className={`p-3 rounded-lg transition-all duration-200 touch-target ${
                     isListening 
                       ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse' 
                       : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
@@ -851,6 +899,24 @@ handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider da
                     <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd"></path>
                   </svg>
                 </button>
+
+                {/* Bouton de reconnaissance vocale directe */}
+                <button
+                  onClick={() => {
+                    askVoice(currentInput);
+                  }}
+                  className={`p-3 rounded-lg transition-all duration-200 touch-target ${
+                    isListening 
+                      ? 'bg-orange-600 hover:bg-orange-500 text-white animate-pulse' 
+                      : 'bg-blue-700 hover:bg-blue-600 text-blue-200'
+                  }`}
+                  title={isListening ? 'Arrêter l\'écoute vocale' : 'Question vocale directe'}
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"></path>
+                  </svg>
+                </button>
+
                 <button
                   onClick={() => handleSendMessage(currentInput, 'chat')}
                   disabled={isAILoading || !currentInput.trim()}
@@ -866,17 +932,17 @@ handleAIRequest(`${prefix}:\n\n${content}\n\nComment ce texte peut-il m'aider da
 
       {/* Floating TTS Control */}
       <FloatingTTSControl 
-        isSpeaking={isSpeaking}
+        isSpeaking={isListening}
         isListening={isListening}
         isRecording={isListening}
         onToggleTTS={() => {
-          if (isSpeaking) {
+          if (isListening) {
             stopTTS();
           } else {
             speak("Mode TTS activé");
           }
         }}
-        onStartListening={startListening}
+        onStartListening={() => {askVoice(currentInput)}}
         onSpeak={(text: string) => speak(text)}
       />
 

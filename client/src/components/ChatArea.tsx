@@ -53,7 +53,35 @@ export const ChatArea = ({
       )}
 
       {/* Messages */}
-      {messages.map((message) => (
+      {messages
+            .filter(message => {
+              // COUP DE MASSE: Filtrage ultra-agressif anti-contexte
+              const blackList = [
+                "CONTEXTE DE L'ENSEIGNEMENT",
+                "CONTEXT OF THE TEACHING", 
+                "GUIDANCE SPIRITUELLE BASÉE SUR",
+                "CONTEXTE PRINCIPAL",
+                "MAIN CONTEXT",
+                "TEACHING CONTEXT",
+                "POINTS CLÉS",
+                "KEY POINTS",
+                "ANALYSE SPIRITUELLE",
+                "SPIRITUAL ANALYSIS"
+              ];
+              
+              // Filtrage par début de message
+              if (blackList.some(flag => 
+                message.text?.toUpperCase().startsWith(flag.toUpperCase())
+              )) {
+                return false;
+              }
+              
+              // Filtrage par contenu 
+              return !blackList.some(flag => 
+                message.text?.toUpperCase().includes(flag.toUpperCase())
+              );
+            })
+            .map((message) => (
         <div
           key={message.id}
           className={`flex items-start space-x-3 animate-fade-in ${
@@ -67,7 +95,7 @@ export const ChatArea = ({
               </svg>
             </div>
           )}
-          
+
           <div className={`chat-bubble rounded-lg p-4 shadow-lg max-w-4xl overflow-hidden ${
             message.sender === 'user'
               ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white'
@@ -79,7 +107,7 @@ export const ChatArea = ({
               className="leading-relaxed max-h-96 overflow-y-auto prose prose-slate prose-invert"
               dangerouslySetInnerHTML={{ __html: formatMessage(message.text) }}
             />
-            
+
             {/* Message Actions */}
             {message.sender === 'ai' && !message.isSafetyMessage && message.text.length > 200 && (
               <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-700">
@@ -104,7 +132,7 @@ export const ChatArea = ({
               </div>
             )}
           </div>
-          
+
           {message.sender === 'user' && (
             <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center flex-shrink-0">
               <svg className="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">

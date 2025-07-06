@@ -26,6 +26,29 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 - **Connection**: Neon Database serverless PostgreSQL instance
 - **Local Storage**: Browser sessionStorage for caching Sefaria API responses
 
+### Multi-Book Architecture with Hebrew Support (July 3, 2025)
+- **MultiBookProcessor**: Service centralisé pour gérer plusieurs livres de manière extensible
+- **Document Processing**: Chunking automatique (30 lignes avec chevauchement de 5) pour recherche optimale
+- **Hebrew Text Support**: 
+  - Détection automatique RTL pour textes hébreux (>30% caractères hébreux)
+  - Extraction de mots-clés bilingue (français + hébreu)
+  - Traduction paresseuse uniquement à la demande
+- **Caching Strategy**: 
+  - Cache de 5 minutes pour les recherches
+  - Cache de 30 minutes pour les traductions
+- **API Endpoints**:
+  - `/api/multi-book/books` - Liste des livres disponibles
+  - `/api/multi-book/search` - Recherche dans tous les livres
+  - `/api/multi-book/search/:bookId` - Recherche dans un livre spécifique
+  - `/api/multi-book/add-book` - Ajouter un nouveau livre
+  - `/api/multi-book/translate-chunk` - Traduire un chunk hébreu à la demande
+- **Supported Languages**: French, Hebrew, Mixed content
+- **Gemini Integration**: 
+  - Recherche directe dans le texte hébreu
+  - Réponses conversationnelles directes (2-3 phrases par idée)
+  - Citations hébraïques avec traduction française
+  - Instructions spécifiques pour textes bilingues
+
 ## Key Components
 
 ### 1. Library System (Sefaria Integration)
@@ -132,6 +155,32 @@ Le Compagnon du Cœur is a sophisticated spiritual guidance web application that
 
 ## Recent Changes
 
+- ✓ INTERFACE MULTI-LIVRES COMPLÈTE: Nouvelle interface avec sidebar pour sélectionner les livres, architecture identique à Chayei Moharan (July 3, 2025)
+- ✓ SUPPORT HÉBREU NATIF: Recherche directe dans les textes hébreux avec traduction paresseuse uniquement pour l'affichage (July 3, 2025)
+- ✓ GEMINI BILINGUE: Instructions optimisées pour chercher en hébreu et répondre en français avec citations originales (July 3, 2025)
+- ✓ TRADUCTION À LA DEMANDE: API endpoint `/api/multi-book/translate-chunk` pour traduire uniquement les passages affichés (July 3, 2025)
+- ✓ CACHE INTELLIGENT: Cache de 30 minutes pour les traductions, évitant de retraduire les mêmes passages (July 3, 2025)
+- ✓ LIVRES HÉBREUX DISPONIBLES: 10 livres prêts à charger (Likutei Moharan, Sippurei Maasiyot, Likutei Tefilot, etc.) (July 3, 2025)
+- ✓ PROCESSEUR V2 AMÉLIORÉ: Recherche exhaustive dans tout le document Chayei Moharan français (663 lignes, 27 chunks) avec cache 5 minutes (July 3, 2025)
+- ✓ INSTRUCTIONS GEMINI OPTIMISÉES: Réponses conversationnelles nuancées avec analyse contextuelle profonde (July 3, 2025)
+- ✓ STT AMÉLIORÉ: Délai de silence augmenté à 2 secondes pour permettre des pauses naturelles (July 3, 2025)
+- ✓ ARCHITECTURE MULTI-LIVRES: Système extensible pour ajouter tous les livres Breslov un par un (July 3, 2025)
+- ✓ INDICATEUR VISUEL: Affichage clair si l'information est trouvée ou non dans le document (July 3, 2025)
+- ✓ RECHERCHE GEMINI BASÉE SUR CONNAISSANCES: L'IA utilise maintenant ses connaissances du vrai Chayei Moharan pour répondre aux questions (July 3, 2025)
+- ✓ SOLUTION D'URGENCE DÉPLOYÉE: En réponse au problème de correspondance textuelle, l'IA donne des réponses authentiques basées sur ses connaissances bibliographiques (July 3, 2025)
+- ✓ CHAYEI MOHARAN DEDICATED SYSTEM: Complete focus on single book with 823 chapters (July 3, 2025)
+- ✓ Gemini AI integration for Chayei Moharan with Hebrew text + French translation (July 3, 2025)
+- ✓ TTS/STT optimized - automatic stop on microphone activation, clear audio output (July 3, 2025)
+- ✓ Chapter-by-chapter navigation with lazy translation (1000 char chunks) (July 3, 2025)
+- ✓ Interface focused solely on Chayei Moharan - search, chapters, reader views (July 3, 2025)
+- ✓ EMERGENCY REBUILD COMPLETE: Application fully reconstructed according to user requirements (July 2, 2025)
+- ✓ AppUltimate interface deployed with stable mobile menu and reliable TTS/STT functionality (July 2, 2025)
+- ✓ Backend completely rewritten to access user's 13 Hebrew books exclusively from PostgreSQL (6909 passages) (July 2, 2025)
+- ✓ Eliminated Gemini API dependency - direct book access with authentic Hebrew citations and sources (July 2, 2025)
+- ✓ Mobile interface optimized with proper text display and no auto-closing menu issues (July 2, 2025)
+- ✓ PostgreSQL database integrated with complete schema for users, conversations, messages, and text selections (July 2, 2025)
+- ✓ Storage layer migrated from memory to database with Drizzle ORM for persistence (July 2, 2025)
+- ✓ Database schema includes spiritual guidance conversation tracking and selected text references (July 2, 2025)
 - ✓ Architecture correction complète - données fictives remplacées par références Sefaria authentiques (30 juin 2025)
 - ✓ Validation robuste sélection - contenu vérifié avant fermeture interface (30 juin 2025)  
 - ✓ Références Likutei Tefilot corrigées - 210 références inexistantes remplacées par notice informative (30 juin 2025)

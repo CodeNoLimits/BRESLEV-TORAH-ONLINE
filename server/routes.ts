@@ -9,9 +9,12 @@ import { v1beta1, protos } from '@google-cloud/text-to-speech';
 import fs from 'fs/promises';
 import path from 'path';
 import { validateSectionExists, getBookConfig } from '@shared/data/BRESLOV_BOOKS';
-import { registerMetaRoutes } from './routes/meta.js';
-import { ttsRouter } from './routes/tts.js';
-import chatRouter from './routes/chat.js';
+import { registerMetaRoutes } from './routes/meta';
+import { ttsRouter } from './routes/tts';
+import chatRouter from './routes/chat';
+import smartQueryRouter from "./routes/smartQuery";
+import chayeiMoharanRouter from "./routes/chayeiMoharan";
+import { registerChayeiMoharanFrenchRoutes } from "./routes/chayeiMoharanFrench.js";
 // Dynamic import for ES module compatibility
 let fullTextExtractor: any = null;
 
@@ -19,7 +22,7 @@ let fullTextExtractor: any = null;
 async function loadFullTextExtractor() {
   if (!fullTextExtractor) {
     try {
-      fullTextExtractor = await import('./fullTextExtractor.js');
+      fullTextExtractor = await import('./fullTextExtractor');
     } catch (error) {
       console.error('[Routes] Failed to load fullTextExtractor:', error);
       throw new Error('Text extractor module not available');
@@ -39,6 +42,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // TTS Routes
   app.use('/api', ttsRouter);
   app.use('/api', chatRouter);
+
+  // Smart Query Route (nouvelle route unifiée)
+  app.use('/api/smart-query', smartQueryRouter);
+  
+  // Chayei Moharan Routes (livre principal avec Gemini)
+  app.use('/api/chayei-moharan', chayeiMoharanRouter);
+  
+  // Chayei Moharan French Routes (document français authentique)
+  registerChayeiMoharanFrenchRoutes(app);
+  
+  // Multi-Book Routes (architecture extensible pour tous les livres)
+  const { registerMultiBookRoutes } = await import('./routes/multiBook.js');
+  registerMultiBookRoutes(app);
 
   // Docs API Endpoints
   app.get('/api/docs/index', async (req: Request, res: Response) => {
@@ -614,6 +630,50 @@ TRADUCTION FRANÇAISE:`;
   // Basic health check for automated tests
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
+  });
+
+  // Endpoint pour tester l'accès aux livres locaux
+  app.get('/api/local-books/status', async (req: Request, res: Response) => {
+    try {
+      const { localBooksProcessor } = await import('./services/localBooksProcessor');
+      await localBooksProcessor.initialize();
+
+      const books = localBooksProcessor.getAvailableBooks();
+      const count = localBooksProcessor.getBooksCount();
+
+      res.json({
+        status: 'ok',
+        booksCount: count,
+        availableBooks: books,
+        message: count > 0 ? `${count} livres Breslov chargés et prêts` : 'Aucun livre trouvé'
+      });
+    } catch (error) {
+      console.error('[Local Books] Error:', error);
+      res.status(500).json({ error: 'Erreur d\'accès aux livres locaux' });
+    }
+  });
+
+  // Endpoint pour rechercher dans les livres locaux
+  app.post('/api/local-books/search', async (req: Request, res: Response) => {
+    try {
+      const { query } = req.body;
+      if (!query) {
+        return res.status(400).json({ error: 'Question manquante' });
+      }
+
+      const { localBooksProcessor } = await import('./services/localBooksProcessor');
+      const results = await localBooksProcessor.searchRelevantContent(query, 5);
+
+      res.json({
+        query,
+        resultsCount: results.length,
+        results,
+        message: results.length > 0 ? `${results.length} passages trouvés` : 'Aucun passage pertinent trouvé'
+      });
+    } catch (error) {
+      console.error('[Local Books Search] Error:', error);
+      res.status(500).json({ error: 'Erreur de recherche' });
+    }
   });
 
   // Register meta routes
