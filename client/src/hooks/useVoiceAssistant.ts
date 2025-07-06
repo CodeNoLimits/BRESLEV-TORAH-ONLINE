@@ -35,21 +35,49 @@ export function useVoiceAssistant({ onQuickResponse, onError }: VoiceAssistantOp
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
+        console.log('[STT] Recognition started');
         setIsListening(true);
       };
 
-      recognition.onresults = (event: any) => {
+      recognition.onresult = (event: any) => {
+        console.log('[STT] Got result:', event);
         const transcript = event.results[0][0].transcript;
+        console.log('[STT] Transcript:', transcript);
         handleVoiceInput(transcript);
       };
 
       recognition.onend = () => {
+        console.log('[STT] Recognition ended');
         setIsListening(false);
       };
 
       recognition.onerror = (event: any) => {
+        console.error('[STT] Recognition error:', event.error);
         setIsListening(false);
-        onError?.(`Erreur d'écoute: ${event.error}`);
+        
+        // Handle specific errors
+        switch(event.error) {
+          case 'no-speech':
+            onError?.('Aucune parole détectée');
+            break;
+          case 'audio-capture':
+            onError?.('Impossible d\'accéder au microphone');
+            break;
+          case 'not-allowed':
+            onError?.('Accès au microphone refusé');
+            break;
+          default:
+            onError?.(`Erreur d'écoute: ${event.error}`);
+        }
+      };
+      
+      recognition.onspeechend = () => {
+        console.log('[STT] Speech ended');
+      };
+      
+      recognition.onnomatch = () => {
+        console.log('[STT] No match found');
+        onError?.('Parole non reconnue, réessayez');
       };
     }
   }, []);
@@ -114,32 +142,56 @@ Exemples de réponses:
     
     // Essayer d'abord la synthèse vocale native
     if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'fr-FR';
-      utterance.rate = 1.1; // Légèrement plus rapide
-      utterance.pitch = 1.0;
-      utterance.volume = 0.9;
-      
-      // Choisir une voix française si disponible
-      const voices = speechSynthesis.getVoices();
-      const frenchVoice = voices.find(voice => 
-        voice.lang.startsWith('fr') && voice.name.includes('Female')
-      ) || voices.find(voice => voice.lang.startsWith('fr'));
-      
-      if (frenchVoice) {
-        utterance.voice = frenchVoice;
-      }
-      
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      
-      synthRef.current = utterance;
-      speechSynthesis.speak(utterance);
+      // Small delay to ensure previous speech is cancelled
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'fr-FR';
+        utterance.rate = 1.1; // Légèrement plus rapide
+        utterance.pitch = 1.0;
+        utterance.volume = 0.9;
+        
+        // Choisir une voix française si disponible
+        const voices = speechSynthesis.getVoices();
+        const frenchVoice = voices.find(voice => 
+          voice.lang.startsWith('fr') && voice.name.includes('Female')
+        ) || voices.find(voice => voice.lang.startsWith('fr'));
+        
+        if (frenchVoice) {
+          utterance.voice = frenchVoice;
+          console.log('[TTS] Using French voice:', frenchVoice.name);
+        } else {
+          console.log('[TTS] No French voice found, using default');
+        }
+        
+        utterance.onstart = () => {
+          console.log('[TTS] Started speaking');
+        };
+        
+        utterance.onend = () => {
+          console.log('[TTS] Finished speaking');
+          setIsSpeaking(false);
+        };
+        
+        utterance.onerror = (event) => {
+          console.error('[TTS] Speech error:', event);
+          setIsSpeaking(false);
+        };
+        
+        synthRef.current = utterance;
+        
+        try {
+          speechSynthesis.speak(utterance);
+        } catch (error) {
+          console.error('[TTS] Failed to speak:', error);
+          setIsSpeaking(false);
+        }
+      }, 50);
     } else {
       // Fallback sans synthèse vocale
+      console.error('[TTS] Speech synthesis not available');
       setIsSpeaking(false);
     }
-  }, []);
+  }, [stopSpeaking]);
 
   // Commencer l'écoute
   const startListening = useCallback(() => {
@@ -152,11 +204,33 @@ Exemples de réponses:
     stopSpeaking();
     
     try {
-      recognitionRef.current.start();
-    } catch (error) {
-      onError?.('Impossible de démarrer l\'écoute');
+      // Check if already listening
+      if (isListening) {
+        console.log('[STT] Already listening, stopping first');
+        recognitionRef.current.stop();
+        setTimeout(() => {
+          recognitionRef.current.start();
+        }, 100);
+      } else {
+        recognitionRef.current.start();
+      }
+    } catch (error: any) {
+      console.error('[STT] Failed to start:', error);
+      if (error.message?.includes('already started')) {
+        // If already started, stop and restart
+        recognitionRef.current.stop();
+        setTimeout(() => {
+          try {
+            recognitionRef.current.start();
+          } catch (e) {
+            onError?.('Impossible de démarrer l\'écoute');
+          }
+        }, 100);
+      } else {
+        onError?.('Impossible de démarrer l\'écoute');
+      }
     }
-  }, [onError]);
+  }, [onError, isListening, stopSpeaking]);
 
   // Arrêter l'écoute
   const stopListening = useCallback(() => {

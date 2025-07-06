@@ -1,42 +1,55 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Switch, Route } from "wouter";
-import "./index.css";
-import { Toaster } from "@/components/ui/toaster";
-import { toast } from "@/hooks/use-toast";
-import AppSimple from "./AppSimple";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import ChayeiMoharanApp from './components/ChayeiMoharanApp';
+import './index.css';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+// Vérification des API nécessaires
+const checkBrowserSupport = () => {
+  const warnings = [];
+  
+  if (!('speechSynthesis' in window)) {
+    warnings.push('Text-to-Speech non supporté dans ce navigateur');
+  }
+  
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    warnings.push('Reconnaissance vocale non supportée dans ce navigateur');
+  }
+  
+  if (warnings.length > 0) {
+    console.warn('⚠️ Limitations navigateur:', warnings);
+  } else {
+    console.log('✅ Toutes les API vocales sont supportées');
+  }
+};
 
-// Global error handling for unhandled rejections
-window.addEventListener('unhandledrejection', (event) => {
-  console.error('[Global] Unhandled promise rejection:', event.reason);
-  toast({
-    title: "Erreur technique",
-    description: "Une erreur inattendue s'est produite. Veuillez réessayer.",
-    variant: "destructive",
-  });
-  event.preventDefault();
-});
-
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <Switch>
-        <Route path="/" component={AppSimple} />
-        <Route component={AppSimple} />
-      </Switch>
-      <Toaster />
-    </QueryClientProvider>
+// Initialisation de l'application
+const initializeApp = () => {
+  checkBrowserSupport();
+  
+  const root = ReactDOM.createRoot(
+    document.getElementById('root') as HTMLElement
   );
-}
+  
+  root.render(
+    <React.StrictMode>
+      <ChayeiMoharanApp />
+    </React.StrictMode>
+  );
+  
+  console.log('🕊️ Application Chayei Moharan initialisée');
+};
 
-ReactDOM.createRoot(document.getElementById("root")!).render(<App />);
+// Charger les voix TTS si disponibles
+if ('speechSynthesis' in window) {
+  // Attendre que les voix soient chargées
+  if (speechSynthesis.getVoices().length === 0) {
+    speechSynthesis.addEventListener('voiceschanged', () => {
+      console.log('🔊 Voix TTS chargées:', speechSynthesis.getVoices().length);
+      initializeApp();
+    }, { once: true });
+  } else {
+    initializeApp();
+  }
+} else {
+  initializeApp();
+}

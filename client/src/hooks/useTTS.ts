@@ -18,13 +18,26 @@ export function useTTS() {
     const handleVoicesChanged = () => {
       const availableVoices = window.speechSynthesis.getVoices();
       setVoices(availableVoices);
+      console.log('[TTS] Voices loaded:', availableVoices.length);
     };
 
     if ('speechSynthesis' in window && 'SpeechSynthesisUtterance' in window) {
       setIsSupported(true);
       console.log('[TTS] Web Speech API détecté et activé');
-      // Charger les voix immédiatement et écouter les changements
-      handleVoicesChanged();
+      
+      // Force initial voice loading
+      const loadVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+          setVoices(voices);
+          console.log('[TTS] Initial voices loaded:', voices.length);
+        } else {
+          // Retry after a delay if voices aren't loaded yet
+          setTimeout(loadVoices, 100);
+        }
+      };
+      
+      loadVoices();
       window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
     } else {
       console.warn('[TTS] Web Speech API non supporté sur cet appareil');
@@ -51,30 +64,73 @@ export function useTTS() {
       return;
     }
 
+    // Force stop any ongoing speech with multiple cancels
     window.speechSynthesis.cancel();
+    window.speechSynthesis.cancel();
+    
+    // Longer delay to ensure complete cancellation
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
+      utterance.lang = lang;
+      utterance.rate = 0.8;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
       
-    const utterance = new SpeechSynthesisUtterance(cleanedText);
-    utterance.lang = lang;
-    utterance.rate = 0.8;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
+      // Try to find the best voice for the language
+      if (voices.length > 0) {
+        // First try to find an exact match
+        let voice = voices.find(v => v.lang === lang);
+        // If not found, try to match language code
+        if (!voice) {
+          voice = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+        }
+        // Fallback to first available voice
+        if (!voice) {
+          voice = voices[0];
+        }
+        utterance.voice = voice;
+        console.log('[TTS] 🎯 Using voice:', voice.name, voice.lang);
+      } else {
+        console.log('[TTS] ⚠️ No voices loaded yet, using default');
+      }
       
-    if (voices.length > 0) {
-      const voice = voices.find(v => v.lang.startsWith(lang.split('-')[0])) || voices[0];
-      utterance.voice = voice;
-      console.log('[TTS] 🎯 Using voice:', voice.name, voice.lang);
-    } else {
-      console.log('[TTS] ⚠️ No voices found, using default');
-    }
+      utterance.onstart = () => {
+        console.log('[TTS] ✅ Speech started');
+        setIsSpeaking(true);
+        // Force speaking state for 500ms minimum
+        setTimeout(() => {
+          if (window.speechSynthesis.speaking) {
+            console.log('[TTS] ✅ Confirmed speaking');
+          }
+        }, 500);
+      };
       
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = (event) => {
-      setIsSpeaking(false);
-      console.error('[TTS] ❌ ERREUR AUDIO COMPLÈTE:', event.error, event);
-    };
+      utterance.onend = () => {
+        console.log('[TTS] ✅ Speech ended');
+        setIsSpeaking(false);
+      };
+      
+      utterance.onerror = (event) => {
+        setIsSpeaking(false);
+        console.error('[TTS] ❌ ERREUR AUDIO:', event.error, event);
+        
+        // Retry with fallback if voice error
+        if (event.error === 'voice-unavailable' && voices.length > 0) {
+          console.log('[TTS] Retrying with default voice');
+          const fallbackUtterance = new SpeechSynthesisUtterance(cleanedText);
+          fallbackUtterance.lang = lang;
+          fallbackUtterance.rate = 0.8;
+          window.speechSynthesis.speak(fallbackUtterance);
+        }
+      };
 
-    window.speechSynthesis.speak(utterance);
+      try {
+        window.speechSynthesis.speak(utterance);
+      } catch (error) {
+        console.error('[TTS] ❌ Failed to speak:', error);
+        setIsSpeaking(false);
+      }
+    }, 200);
 
   }, [isSupported, voices]);
 
