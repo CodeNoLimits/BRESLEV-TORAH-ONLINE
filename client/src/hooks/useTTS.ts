@@ -303,11 +303,21 @@ export function useTTS(): UseTTSReturn {
     }
   }, []);
 
+  /**
+   * Speak a greeting message
+   */
+  const speakGreeting = useCallback(async () => {
+    const greeting = "Bienvenue sur Le Compagnon du Cœur. Que puis-je pour vous aujourd'hui ?";
+    await speak(greeting, 'fr');
+  }, [speak]);
+
   return {
     speak,
     stop,
     pause,
     resume,
+    speakGreeting,
+    voices,
     state: {
       ...state,
       isPlaying: state.isPlaying || isSpeaking
