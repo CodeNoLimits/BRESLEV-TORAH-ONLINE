@@ -1,72 +1,51 @@
-modules = ["nodejs-20", "web", "postgresql-16"]
-run = "bash start.sh"
+run = "npm start"
+hidden = [".config", "node_modules"]
 entrypoint = "server/index.ts"
-hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
-
-[env]
-NODE_ENV = "production"
 
 [nix]
-channel = "stable-24_05"
+channel = "stable-22_11"
 
-[deployment]
-deploymentTarget = "autoscale"
-build = ["bash", "start.sh"]
-run = ["npm", "run", "start"]
+[env]
+XDG_CONFIG_HOME = "/home/runner/.config"
+PATH = "/home/runner/$REPL_SLUG/.config/npm/node_global/bin:/home/runner/$REPL_SLUG/node_modules/.bin"
 
-[gitHubImport]
-requiredFiles = [".replit", "replit.nix"]
+[packager]
+language = "nodejs"
 
-[[ports]]
-localPort = 3000
-externalPort = 3000
-
-[[ports]]
-localPort = 3001
-externalPort = 3001
-
-[[ports]]
-localPort = 3333
-externalPort = 4200
+[packager.features]
+packageSearch = true
+guessImports = true
+enabledForHosting = false
 
 [[ports]]
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 5001
-externalPort = 3002
-
-[[ports]]
-localPort = 5002
-externalPort = 3003
+[deployment]
+build = ["npm", "run", "build"]
+run = ["npm", "run", "start"]
 
 [workflows]
-runButton = "Project"
+runButton = "Start Application"
 
 [[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
-
-[[workflows.workflow]]
-name = "Start application"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
-
-[[workflows.workflow]]
-name = "Run"
+name = "Start Application Fixed"
 author = 39927844
 mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm start"
+
+[[workflows.workflow]]
+name = "Start Application"
+author = 39927844
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "chmod +x start.sh"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./start.sh"

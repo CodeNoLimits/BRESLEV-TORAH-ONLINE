@@ -1,0 +1,128 @@
+Na Naḥ Naḥma Naḥman Méouman 🕊️
+
+**Oriya’el Na’aman** te répond, Tselahya.
+On corrige tout de suite — clic par clic, fichier par fichier :
+
+---
+
+## 1 · Faire disparaître le “Contexte de l’enseignement” en anglais
+
+### Pourquoi ça apparaît
+
+Le back-end renvoie encore **`context`** + `answer`, et le composant React affiche le bloc complet.
+
+### Correctif
+
+| Emplacement                             | Action                                                                                                                                                                                              |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server/routes/ask.ts` (ou `/chat.ts`)  | 1. Règle la requête Gemini pour **ne retourner que la réponse** :<br>`ts const reply = await model.generateContent({ ... });<br>const answer = reply.response.text();<br>res.json({ answer }); ` |
+| `client/src/components/ChatMessage.tsx` | 2. Filtre tout ce qui contient `CONTEXTE` ou `CONTEXT` :<br>`tsx if (message.text.startsWith("CONTEXTE")) return null; `                                                                            |
+| `client/src/components/AnswerPanel.tsx` | 3. Remplace `dangerouslySetInnerHTML` par un `<Markdown>` propre pour ne pas afficher le bloc caché.                                                                                                |
+
+> 💾 **Sauvegarde** → **Run** → Le cadre bleu clair “Contexte…” disparaît.
+
+---
+
+## 2 · Réponses trop courtes / simplistes
+
+1. **Augmente le contexte**
+
+   * Dans la même route back-end, passe à **`similaritySearch(question, 8)`** (au lieu de 5).
+2. **Prompt plus exigeant**
+
+   ```ts
+   const system = `
+   Tu es un erudit de Rabbi Na'hman. Réponds de façon structurée,
+   profonde et détaillée (minimum 3 parties numérotées),
+   cite le livre + chapitre exact et, si pertinent, donne
+   un exercice pratique en conclusion.
+   `;
+   ```
+3. **Paramètres Gemini**
+
+   ```ts
+   maxOutputTokens: 1024,
+   temperature: 0.4,
+   topP: 0.95,
+   ```
+4. **Test** → Pose de nouveau ta « question complexe » : la réponse doit maintenant sortir
+   en blocs détaillés avec sources.
+
+---
+
+## 3 · Le bouton Micro (TTS / STT) ne transcrit pas
+
+### Cas le plus fréquent
+
+Le navigateur Web Speech API écoute, mais **`onresult`** ne colle pas le texte dans l’input.
+
+### Correctif front-end
+
+| Fichier                                        | Ajout    |
+| ---------------------------------------------- | -------- |
+| `client/src/hooks/useSpeech.ts` (ou similaire) | \`\`\`ts |
+| recognition.onresult = e => {                  |          |
+| const transcript = Array.from(e.results)       |          |
+
+```
+.map(r => r[0].transcript)
+.join(" ");
+```
+
+setInput(transcript);          // 1. Remplit le champ texte
+handleSend(transcript);        // 2. Lance immédiatement la requête
+};
+
+````|
+| `client/src/components/RecorderButton.tsx` | Vérifie que `recognition.start()` est bien déclenché **après** un `permission` check. |
+
+> 🔄 Recharge → Parle → le texte se pose dans le champ puis la question part ; l’IA répond.
+
+### Si tu utilises Whisper / Gemini Speech-to-Text
+Assure-toi d’appeler `/ask/stt` serveur → renvoie le `transcript` puis relance `/ask` ; la logique reste la même.
+
+---
+
+## 4 · Les correctifs “Git-it” ne semblent pas appliqués
+
+1. **Forcer la branche locale à jour**  
+   ```bash
+   git checkout main
+   git pull origin main --prune
+````
+
+2. **Vérifier que Replit prend bien la dernière image**
+
+   * Onglet **Version Control** à gauche → le *HEAD* doit afficher le dernier commit.
+   * Si ton Agent Replit a lancé un fork automatique (URL exotique), refais `Import from GitHub` avec le dépôt officiel.
+
+---
+
+## 5 · Commit & Push des corrections
+
+```bash
+git add server/routes/ask.ts \
+        client/src/components/ChatMessage.tsx \
+        client/src/components/AnswerPanel.tsx \
+        client/src/hooks/useSpeech.ts \
+        client/src/components/RecorderButton.tsx
+git commit -m "fix: remove context block, improve RAG depth, auto-send STT"
+git push
+```
+
+> Depuis GitHub Desktop : **Commit** → **Push** → la PR s’actualise → **Merge**.
+
+---
+
+## 6 · Prochaines briques possibles
+
+| Idée                           | Impact                                                                    |
+| ------------------------------ | ------------------------------------------------------------------------- |
+| **Scroll infini** (pagination) | Chargement fluide de >100 résultats sans bannière.                        |
+| **Bookmarks + Auth**           | Chaque visiteur garde ses passages préférés.                              |
+| **Lecture audio**              | Utilise `speechSynthesis` pour lire la réponse.                           |
+| **Analyse vocale continue**    | Mode “mains libres” : auto-réponse dès que l’utilisateur finit de parler. |
+
+Dis-moi laquelle t’appelle ; je te la détaille comme toujours, étape par étape.
+
+Na Naḥ Naḥma Naḥman Méouman 🌟

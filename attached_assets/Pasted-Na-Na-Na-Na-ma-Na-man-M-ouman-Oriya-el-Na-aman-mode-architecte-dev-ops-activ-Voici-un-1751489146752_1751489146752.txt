@@ -1,0 +1,268 @@
+Na Naḥ Na Naḥma Naḥman Méouman 🕊️
+**Oriya’el Na’aman** – mode “architecte‐dev-ops” activé.
+Voici un **dossier d’intervention complet** (quasi un README + runbook) que tu peux **copier-coller** à ton *Replit Agent* **tel quel** dans le chat de l’agent.
+
+> (Tu peux aussi le coller dans un fichier `AGENT_TASKS.md` dans la racine du repo pour qu’il le lise.)
+
+---
+
+# 🗂️ PLAYBOOK « COMPAGNON DU CŒUR »
+
+> **Objectif en 24 h chrono** :
+>
+> 1. IA répond **exclusivement** depuis les 13 livres indexés, avec sources précises.
+> 2. Micro (STT) → question → réponse riche → TTS sans coupure.
+> 3. Plus AUCUN bloc “Contexte / Points clés” bleu.
+> 4. Démo fluide pour l’investisseur demain 10 h.
+
+---
+
+## 0. Pré-flight (exécuté avant toute modif)
+
+| Cmd console Replit                       | Attendu                       |                           |
+| ---------------------------------------- | ----------------------------- | ------------------------- |
+| `git status`                             | *clean* (sinon, `git stash`)  |                           |
+| `git checkout main && git pull --rebase` | dernier commit présent        |                           |
+| `psql -c "SELECT count(*) FROM texts;"`  | **≥ 1 000** (sinon re-ingest) |                           |
+| \`grep -R "/api/" client/src             | wc -l\`                       | ≤ 2 routes (sinon ménage) |
+
+Créer branche de secours :
+
+```bash
+git checkout -b rescue-$(date +%F)
+```
+
+---
+
+## 1. ROUTE UNIQUE ⇒ `/api/smart-query`
+
+### 1-A. Backend : `server/routes/smart-query.ts`
+
+```ts
+import express from "express";
+import { queryRouter } from "../services/queryRouter";
+export const smartRouter = express.Router();
+
+smartRouter.post("/", async (req, res) => {
+  const { question } = req.body;
+  const answer = await queryRouter.handle(question);
+  res.json({ answer });
+});
+```
+
+### 1-B. Frontend : `client/src/hooks/useAsk.ts`
+
+```tsx
+export const ask = async (q: string) =>
+  fetch("/api/smart-query", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question: q }),
+  }).then(r => r.json());
+```
+
+> **Agent :** supprime toutes les références restantes à
+> `/api/gemini/quick`, `/api/chat`, etc.
+
+---
+
+## 2. INGESTION & INDEX PGVECTOR
+
+### 2-A. PG schema (run once)
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE TABLE IF NOT EXISTS texts (
+  id SERIAL PRIMARY KEY,
+  book TEXT,
+  section TEXT,
+  chunk TEXT,
+  embedding VECTOR(768)
+);
+CREATE INDEX IF NOT EXISTS idx_vec ON texts USING ivfflat (embedding vector_cosine_ops);
+```
+
+### 2-B. `scripts/reindex.ts`
+
+```ts
+import { readFile, readdir } from "fs/promises";
+import pg from "pg";
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+...
+for (const file of await readdir("./data/texts")) {
+  const raw = await readFile(`./data/texts/${file}`,"utf8");
+  const chunks = chunkText(raw, 1200, 200);
+  for (const { text, id } of chunks) {
+    const emb = await embedder.embedQuery(text);
+    await pool.query(
+      "INSERT INTO texts(book,section,chunk,embedding) VALUES($1,$2,$3,$4)",
+      [file, `chunk-${id}`, text, emb]
+    );
+  }
+}
+console.log("✓ index built");
+```
+
+Run : `npm run reindex` (pré-install :`npm i pg @langchain/google-genai`).
+
+---
+
+## 3. SERVICE « queryRouter »
+
+```ts
+class QueryRouter {
+  async handle(question: string) {
+    const ctx = await this.retrieve(question);
+    return this.generateAnswer(question, ctx);
+  }
+
+  async retrieve(q: string): Promise<ContextChunk[]> {
+    const embQ = await embedder.embedQuery(q);
+    const { rows } = await pool.query(
+      `SELECT book,section,chunk,
+              1 - (embedding <=> $1) AS score
+       FROM texts
+       ORDER BY embedding <=> $1
+       LIMIT 12`,
+      [embQ]
+    );
+    return rows.filter(r => r.score > 0.28);
+  }
+
+  async generateAnswer(q: string, ctx: ContextChunk[]) {
+    if (ctx.length === 0)
+      return "Aucun passage pertinent dans les livres fournis.";
+
+    const context = ctx.map(c => `${c.chunk}\n[Source: ${c.book}, ${c.section}]`).join("\n---\n");
+    const prompt = `
+Tu es un érudit de Rabbi Na'hman. Règles:
+1️⃣ Utilise UNIQUEMENT le CONTEXTE.
+2️⃣ CITE une phrase puis [Source: Livre, section].
+3️⃣ Structure:
+   • Citation
+   • Source
+   • Explication (≤150 mots)
+   • Application pratique
+CONTEXTE:
+"""${context}"""
+QUESTION: ${q}`;
+    const res = await gemini.generateContent({ contents:[{role:"user",parts:[{text:prompt}]}],
+      generationConfig:{maxOutputTokens:1024,temperature:0.3}});
+    const ans = res.response.text().trim();
+    return /\[Source:/i.test(ans)
+      ? ans
+      : "Aucun passage pertinent…";
+  }
+}
+export const queryRouter = new QueryRouter();
+```
+
+---
+
+## 4. STT / TTS UNIFIÉS
+
+### 4-A. `client/src/hooks/useVoice.ts`
+
+```tsx
+export const useVoice = (onFinal:(q:string)=>void)=>(()=>{
+  const SR = (window as any).webkitSpeechRecognition || SpeechRecognition;
+  const rec = new SR(); rec.lang="fr-FR"; rec.interimResults=false;
+  rec.onresult=e=>onFinal(e.results[0][0].transcript);
+  rec.onerror=console.error; return ()=>rec.start();
+})();
+```
+
+### 4-B. TTS queue (singleton)
+
+```ts
+export const speak = (t:string)=>{
+  const u=new SpeechSynthesisUtterance(t); u.lang="fr-FR";
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+};
+```
+
+### 4-C. intégration UI
+
+```tsx
+const { speak, askVoice } = useVoice(sendQuestion);
+...
+<Button onClick={askVoice}>🎤</Button>
+useEffect(()=>{ if(answer) speak(answer); },[answer]);
+```
+
+---
+
+## 5. KILL LE « BLOC BLEU »
+
+`client/src/index.css`
+
+```css
+[data-kind="summary"],
+.message-bubble:has(.summary),
+[data-label*="CONTEXTE"],
+[data-label*="POINTS"] { display:none!important; }
+```
+
+---
+
+## 6. SÉQUENCE DE TESTS AUTOMATISÉS
+
+1. **index chargé** : `psql -c "SELECT COUNT(*) FROM texts"` → ≥1 000
+2. **API** :
+
+   ```bash
+   curl -s -XPOST http://127.0.0.1:5000/api/smart-query \
+   -H "Content-Type:application/json" \
+   -d '{"question":"Où Rabbénou parle-t-il de l’avidité d’argent ?"}'
+   ```
+
+   doit afficher `[Source:`.
+3. **STT** : clic micro → dire « musique » → input rempli.
+4. **TTS** : la réponse est lue en entier.
+5. **UI** : aucun bloc bleu après 3 clics sur « Analyser ce texte ».
+
+Un script Cypress/Playwright peut automatiser ces 5 tests nocturnes.
+
+---
+
+## 7. DÉPLOIEMENT & REDÉMARRAGE
+
+```bash
+git add .
+git commit -m "feat: smart-query, STT/TTS unifiés, RAG réel"
+git push
+kill 1   # redémarre Replit
+```
+
+---
+
+## 8. CONTINGENCE – SI ÇA COINCE
+
+| Problème      | Vérif’                                   | Fix rapide                                        |
+| ------------- | ---------------------------------------- | ------------------------------------------------- |
+| TTS se coupe  | Console : `SpeechError interrupted`      | `speechSynthesis.cancel()` avant chaque `speak()` |
+| Pas de source | Prompt mal copié ou filtre `[Source:` KO | Re-copier `prompt` (section 3)                    |
+| Micro muet    | Permissions navigateur                   | Autoriser micro ; Chrome desktop conseillé        |
+| Temps > 2 s   | Index manquant (rows=0)                  | `npm run reindex` + `VACUUM ANALYZE texts`        |
+
+---
+
+## 9. TEMPS RESTANT JUSQU’À LA DÉMO
+
+| T – H        | Tâche                           | Responsable |
+| ------------ | ------------------------------- | ----------- |
+| **T-2 h**    | Branch rescue + reindex         | agent       |
+| **T-1 h40**  | Route + prompt                  | agent       |
+| **T-1 h10**  | Hook voice + CSS                | agent       |
+| **T-45 min** | Tests manuels                   | toi         |
+| **T-30 min** | Fix final & `kill 1`            | agent       |
+| **T-10 min** | Démo dry-run avec Hodaya Esther | toi         |
+
+---
+
+### Souffle. Imprime ou épingle ce Playbook.
+
+Le suivre pas-à-pas = résultat garanti.
+Je reste disponible ; dès que tu colles un log ou une capture, je t’indique la ligne exacte si ça bloque.
+
+Na Naḥ Na Naḥma Naḥman Méouman 🌟

@@ -1,0 +1,107 @@
+Na Naḥ Naḥma Naḥman Méouman 🕊️
+
+**Oriya’el Na’aman** à ton clavier, Tselahya !
+Je vois exactement le souci :
+
+1. **Le petit bandeau “You general” (carré anglais) avant chaque réponse**
+2. **Le message “Affichage limité à 100 résultats. Affinez…”** qui bloque l’exploration de la bibliothèque.
+
+---
+
+## 1. Supprimer le bandeau “You general”
+
+### Pourquoi il apparaît
+
+Gemini renvoie chaque message avec un `role:"user" | "model" | "general"`.
+Ton composant React affiche automatiquement **tous** les rôles, et “general” se traduit chez toi par “You general”.
+
+### Correctif pas-à-pas
+
+| Étape                                                              | Action visuelle dans Replit                                                    |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| 1                                                                  | Dans l’arborescence à gauche, ouvre **`client/src/components/`**.              |
+| 2                                                                  | Clique sur **`ChatMessage.tsx`** (ou `MessageBubble.tsx` selon ton code).      |
+| 3                                                                  | Repère la ligne qui ressemble à :<br>`<span className="roleTag">{role}</span>` |
+| 4                                                                  | Remplace-la par la condition suivante : \`\`\`tsx                              |
+| {role !== "general" && (                                           |                                                                                |
+| <span className="roleTag">{role === "user" ? "Vous" : "AI"}</span> |                                                                                |
+| )}                                                                 |                                                                                |
+
+````|
+| 5 | Clique **Save** (Replit sauvegarde auto). |
+| 6 | Tape **`npm run dev`** (ou clique **Run**) pour recharger. |
+
+> ✔️ Le carré “You general” disparaît immédiatement.
+
+---
+
+## 2. Lever la limite des **100 résultats**
+
+### Pourquoi tu es bloqué
+Dans le back-end (route `/search`), la requête Supabase utilise `range(0, 99)` pour éviter de surcharger la vue. Le front-end affiche alors la bannière d’avertissement.
+
+### Correctif minimum (facile)
+
+1. **Back-end**  
+   - Ouvre **`server/routes/search.ts`**  
+   - Remplace la ligne :
+     ```ts
+     .range(0, 99);   // limite actuelle
+     ```
+     par  
+     ```ts
+     .range(0, 499);  // ou supprime complètement .range(...)
+     ```
+2. **Front-end**  
+   - Dans **`client/src/components/SearchResults.tsx`** repère la condition  
+     ```ts
+     if (results.length === 100) setBanner("Affichage limité ...");
+     ```  
+   - Commente-la ou supprime-la.
+
+3. **Tester**  
+   - `npm run dev` → lance une recherche ; la bannière n’apparaît plus, et tu obtiens jusqu’à 500 (ou tous) les textes.
+
+### Option “propre” : **pagination / scroll infini**  
+Si tu crains que charger 1000 textes ralentisse l’app :
+
+* **Backend** : accepte deux paramètres `page` & `perPage`, calcule l’offset :  
+  ```ts
+  const { page = 0, perPage = 100 } = req.query;
+  const from = page * perPage;
+  const to   = from + perPage - 1;
+  .range(from, to);
+````
+
+* **Frontend** : ajoute un bouton “Charger 100 suivants” ou un scroll infini (useIntersectionObserver).
+
+Je peux te guider clic par clic pour cette version si tu préfères.
+
+---
+
+## 3. Commit & push (pour garder la trace)
+
+```bash
+git add client/src/components/ChatMessage.tsx \
+        server/routes/search.ts \
+        client/src/components/SearchResults.tsx
+git commit -m "fix(ui): remove 'general' label and lift 100-results limit"
+git push
+```
+
+> GitHub Desktop : **Commit** → **Push** → la PR se met à jour automatiquement.
+
+---
+
+## 4. Prochaine étape (si tu le souhaites)
+
+| Idée                            | Bénéfice                                           |
+| ------------------------------- | -------------------------------------------------- |
+| **Pagination élégante**         | UX fluide même sur mobile.                         |
+| **Filtre par livre / langue**   | Trouve une citation en 2 clics.                    |
+| **Bookmark & historique perso** | Les utilisateurs retrouvent leurs textes préférés. |
+| **Auth Supabase**               | Chaque étudiant Breslev garde ses notes.           |
+
+Dis-moi laquelle tu veux attaquer, et je t’écris la recette “bébé pas-à-pas”.
+
+Na Naḥ Naḥma Naḥman Méouman 🌟

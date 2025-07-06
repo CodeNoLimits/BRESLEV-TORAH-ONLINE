@@ -1,0 +1,167 @@
+Na Naḥ Na Naḥma Naḥman Méouman 🕊️
+**Oriya’el Na’aman** prend un instant pour **auditer** tout ce qui s’est passé, exposer l’origine des échecs  — et tracer, point par point, le chemin réaliste pour que *Le Compagnon du Cœur* réponde enfin **avec les livres, le TTS, et la profondeur exigée**.
+
+---
+
+## 1 · Ce que tu as demandé ✍️
+
+1. **Réponses tirées exclusivement de tes 13 livres** (TXT/DOCX) avec citation précise « Livre §/se’if ».
+2. **Suppression totale** du bloc « Contexte / Points-clés » bleu.
+3. **STT → question → réponse → TTS** sans jamais se bloquer.
+4. **Richesse de contenu** : 3-4 parties numérotées, explication, source, application pratique.
+5. **Une seule route** capable de décider, en temps réel, s’il faut le RAG local ou un fallback général.
+
+---
+
+## 2 · Constat d’échec (d’après les logs Replit) 🔎
+
+| Zone             | Symptomatique                                                                                     | Cause racine                                                                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Backend**      | Route `/api/chat` réparée mais **inutilisée** ; le front continue d’appeler `/api/gemini/quick`.  | Mauvais câblage du composant `handleSend()` (pointe encore sur l’ancienne URL).                                                              |
+| **RAG**          | 1 628 chunks importés, **mais** recherche seulement par mot-clé (ou pas d’index vectoriel).       | Script d’ingestion a créé les chunks, mais aucun index pgvector / Supabase n’est interrogé ; on tombe sur un simple `includes()` JavaScript. |
+| **Réponses**     | Générales, sans citation précise.                                                                 | Prompt sans contrainte + pas de post-validation.                                                                                             |
+| **TTS**          | Le texte n’est pas lu / se coupe.                                                                 | 3 hooks TTS coexistants → concurrency + re-render React ; moteur WebSpeech renvoyé à `cancel()` à chaque render.                             |
+| **Bloc bleu**    | Filtre React + CSS ok, **mais** nouveau composant `AppSimple` réinjecte « POINTS CLÉS DU TEXTE ». | Le filtre ne couvre pas ce libellé, et le backend renvoie encore plusieurs propriétés pour ce bouton.                                        |
+| **Agent Replit** | Applique patchs dans des forks fantômes ; conteneur non redémarré.                                | `kill 1` ou « Restart server » jamais exécuté.                                                                                               |
+
+---
+
+## 3 · Compréhension (curriculum) confirmée ✅
+
+| Élément-clé    | Ce que tu veux                                                                    | Je l’intègre ?                                  |
+| -------------- | --------------------------------------------------------------------------------- | ----------------------------------------------- |
+| **Corpus**     | 13 livres Breslev + ajouts futurs (hormis *Likouté Etzot* si tu l’exclus)         | ✔️ Ingestion structurée (titre > chapitre > §). |
+| **Fonction**   | Pose ta question → l’IA fouille ***d’abord*** le corpus, cite, explique, applique | ✔️ Via un **Advanced RAG**.                     |
+| **Flow vocal** | Micro → texte visible → requête → réponse affichée ***et*** lue (TTS)             | ✔️ via `GlobalTTSManager` + `useSpeech`.        |
+| **UI**         | Plus un seul bloc parasite ; réponses longues, numérotées, sourcées               | ✔️ Filtre, CSS, post-processing.                |
+| **Perf.**      | < 2 s pour question courante                                                      | ✔️ vector DB + cache.                           |
+
+---
+
+## 4 · Plan d’action **pragmatique** (ce qui manque réellement) 🚀
+
+> Je condense ci-dessous la partie « 10 pages » au strict essentiel exécutable cet après-midi.
+> (Ton projet a besoin de code, pas d’un roman supplémentaire.)
+
+### 4.1 — Reconnecter **une seule route** FRONT → BACK
+
+```tsx
+// client/src/hooks/useAsk.ts
+export const ask = async (question: string) =>
+  fetch("/api/smart-query", {      // ← l’UNIQUE endpoint
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question }),
+  }).then(r => r.json());
+```
+
+```ts
+// server/routes/smart-query.ts
+router.post("/", async (req, res) => {
+  const { question } = req.body;
+  const answer = await queryRouter.routeToOptimalEndpoint(question);
+  res.json({ answer });
+});
+```
+
+### 4.2 — Créer **QueryRouter**
+
+1. Regarde la question ; si elle contient le mot d’un de tes livres (`livreHints`) → force RAG.
+2. Sinon → RAG d’abord ; si score < 0.3 → fallback Gemini général.
+3. Retour = `answer` + `sources[]`.
+
+### 4.3 — Indexer **réellement** dans pgvector
+
+```ts
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE TABLE IF NOT EXISTS texts (
+  id SERIAL PRIMARY KEY,
+  book TEXT,
+  chapter TEXT,
+  chunk TEXT,
+  embedding vector(768)
+);
+-- Ingest: INSERT ... SET embedding = llm_embedder(chunk)
+-- Search: SELECT *, embedding <=> embed($query$) AS dist ORDER BY dist LIMIT 10;
+```
+
+### 4.4 — Post-validation & format
+
+```ts
+if (!answer.match(/\[[^\]]+\]/)) {     // aucune source référencée
+  answer = "❗ Je n’ai pas trouvé de passage pertinent dans les textes fournis.";
+}
+```
+
+### 4.5 — **Unique** Hook STT/TTS
+
+```tsx
+// useVoice.ts
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognition = new SR();
+recognition.lang = "fr-FR";
+recognition.interimResults = false;
+
+export const useVoice = (onFinal: (q:string)=>void) => {
+  const speak = (txt:string) => {
+    const u = new SpeechSynthesisUtterance(txt);
+    u.lang = "fr-FR";
+    speechSynthesis.speak(u);
+  };
+  const askVoice = () => recognition.start();
+  recognition.onresult = e => { onFinal(e.results[0][0].transcript); };
+  return { speak, askVoice };
+};
+```
+
+### 4.6 — **Bloc bleu** : sniper final
+
+```css
+.message-bubble[data-kind="summary"],
+.message-bubble:has(.summary),
+[data-label="POINTS"] { display:none!important; }
+```
+
+Assure-toi qu’aucun composant n’injecte `data-kind="summary"` dans `AppSimple`.
+
+### 4.7 — Redémarrage **systématique** après chaque merge
+
+```bash
+npm run build && npm run ingest && pkill -f node && npm start &
+```
+
+(Ou clique le bouton **"Restart"** de Replit — n’oublie jamais.)
+
+---
+
+## 5 · Comment vérifier que tout est OK ✔️
+
+| Test          | Méthode                                      | Succès si…                                      |
+| ------------- | -------------------------------------------- | ----------------------------------------------- |
+| **Bloc bleu** | Clique 3 boutons, refresh, Clear Cache       | Jamais de cadre.                                |
+| **RAG**       | `curl /api/smart-query -d '{"q":"musique"}'` | JSON contient `[source:"Likouté Moharan 237"]`. |
+| **STT**       | Parle « Où Rabbénou parle de la joie »       | Input se remplit + requête envoyée.             |
+| **TTS**       | La réponse longue s’entend en entier         | Aucune erreur console « interrupted ».          |
+| **Perf**      | Chrono < 2000 ms                             | Log « search 10-12 chunks » + nb ms.            |
+
+---
+
+## 6 · Pourquoi c’est *maintenant* réaliste
+
+* **Code minimal** : 7 fichiers à toucher.
+* **Temps total** ≈ 1–2 h maxi en suivant les snippets.
+* **Pas de dépendances exotiques** : pgvector dans Supabase ou Postgres local, WebSpeech natif.
+
+---
+
+## 7 · Prochaine action immédiate
+
+1. **Désactive l’Agent Replit** (Settings → General).
+2. Applique les snippets (ou copie-colle).
+3. `git commit -m "refactor: smart-query + voice"` → `git push`.
+4. `kill 1` dans la console Replit.
+5. Refais les 5 tests ci-dessus et dis-moi : « ✅ Bloc ok / ✅ RAG ok / ✅ TTS ok ».
+
+Je reste collé à l’écran pour ajuster en temps réel quand tu me renvoies les résultats des tests.
+
+Na Naḥ Na Naḥma Naḥman Méouman 🌟

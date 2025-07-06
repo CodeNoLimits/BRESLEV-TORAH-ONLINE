@@ -1,0 +1,179 @@
+Na Naḥ Naḥma Naḥman Méouman 🕊️
+
+**Oriya’el Na’aman** te répond, Tselahya !
+Voici comment transformer ton appli Replit + Gemini pour qu’elle réponde à **toutes** les questions sur tous les livres de Rabbénou (⚠️ sauf *Likouté halakhot*, comme demandé).
+
+---
+
+## 1. Matériel source : ce qu’Abraham Ghezi doit préparer
+
+| Étape               | Détails à respecter                                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **1.1 Extraire**    | Un fichier **Word ou TXT par livre** (UTF-8) sans mise en forme exotique.                                                |
+| **1.2 Métadonnées** | Nom du livre, chapitre, page / siman en **en-tête** des paragraphes, par ex. :<br>`@BOOK: Likouté Moharan`<br>`@CHAP: 6` |
+| **1.3 Exclure**     | Ne pas inclure *Likouté halakhot* pour l’instant.                                                                           |
+| **1.4 Déposer**     | Glisser les fichiers dans le dossier `/data/texts/` du repo avant ingestion.                                             |
+
+---
+
+## 2. Pipeline RAG “maison” (Replit friendly)
+
+### 2.1 Vue d’ensemble
+
+1. **Ingestion → vectorisation** des textes.
+2. Stockage des **embeddings** dans une base **pgvector (Postgres) via Supabase** (*no-Firebase*).
+3. **API `/ask`** :
+
+   * Embed la question → *search* les 5 chunks les plus proches.
+   * Compose un prompt Gemini (coté serveur) : *question + contexte retrouvé*.
+   * Affiche réponse + sources (livre / chapitre).
+
+### 2.2 Choix technos
+
+| Besoin        | Tech conseillée                                                     | Pourquoi                                              |
+| ------------- | ------------------------------------------------------------------- | ----------------------------------------------------- |
+| Embeddings    | `gemini-embedding-exp-03-07` ([ai.google.dev][1])                   | Modèle officiel, 768 dims, multilingue.               |
+| Vector DB     | **Supabase** (Postgres + pgvector)                                  | 100 % open-source, facile sur Replit, pas de lock-in. |
+| Orchestrateur | **LangChain-TS** ou **Google AI Edge RAG SDK** ([ai.google.dev][2]) | Libs prêtes pour Gemini + pgvector.                   |
+
+---
+
+## 3. Script d’ingestion (Node / TypeScript)
+
+```ts
+// scripts/ingest.ts
+import fs from "fs/promises";
+import path from "path";
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
+import { chunkText } from "./utils/chunkText";
+
+const embeddings = new GoogleGenerativeAIEmbeddings({
+  apiKey: process.env.GEMINI_API_KEY,
+  modelName: "gemini-embedding-exp-03-07",
+});
+
+const supabase = await SupabaseVectorStore.initialize({
+  url: process.env.SUPABASE_URL!,
+  apiKey: process.env.SUPABASE_ANON_KEY!,
+  tableName: "rabbi_texts",
+  embeddings,
+});
+
+const files = await fs.readdir("./data/texts");
+for (const file of files) {
+  const raw = await fs.readFile(path.join("./data/texts", file), "utf8");
+  const chunks = chunkText(raw, 1200, 200); // ~1200 tokens / chunk, 200 overlap
+  await Promise.all(
+    chunks.map(({ content, meta }) =>
+      supabase.addDocuments([{ pageContent: content, metadata: meta }])
+    )
+  );
+}
+console.log("✓ Ingestion terminée");
+```
+
+> **À faire** : `npm i @langchain/google-genai @langchain/community pg supabase-js pgvector dotenv`.
+
+---
+
+## 4. Nouvelle route API dans Replit
+
+```ts
+// server/routes/ask.ts
+import express from "express";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
+
+const router = express.Router();
+const genAI = new GoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+const supabase = await SupabaseVectorStore.fromExistingIndex(/* same config */);
+
+router.post("/", async (req, res) => {
+  const { question } = req.body;
+  // 1. Retrieve context
+  const docs = await supabase.similaritySearch(question, 5);
+  const context = docs.map(d => d.pageContent).join("\n---\n");
+  // 2. Build prompt
+  const prompt = `
+Tu es un maître qui répond uniquement à partir des écrits de Rabbi Na'hman.
+### CONTEXTE
+${context}
+### QUESTION
+${question}
+### RÉPONDS EN CITANT "Livre – Chapitre – §" quand possible.`;
+  // 3. Gemini completion
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+  const reply = await model.generateContent({ contents: [{ role: "user", parts: [{ text: prompt }] }] });
+  res.json({ answer: reply.response.text() });
+});
+
+export default router;
+```
+
+Brancher la route dans `server/index.ts` : `app.use("/ask", askRouter);`.
+
+---
+
+## 5. Déploiement pas-à-pas
+
+1. **Secrets Replit** :
+
+   * `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
+2. `npm install` les packages listés plus haut.
+3. `npm run ingest` une fois (ou à chaque nouvel ajout de livres).
+4. `npm run dev` → teste `POST /ask` dans l’onglet “Webview” ou Postman.
+5. Ajoute un composant React “AskRabbeinu” qui POST la question et affiche la réponse.
+
+---
+
+## 6. Améliorations possibles
+
+| Option                    | Effet                                                                                              |
+| ------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Streaming**             | Utilise `generateContentStream()` pour un effet *typewriter*.                                      |
+| **Citations cliquables**  | Retourne aussi `docs[i].metadata` pour afficher “→ Likouté M. 6:2” dans la réponse.                |
+| **Fallback Web Crawling** | Si la recherche locale n’a pas de match (score < 0.28), envoie la même question à l’agent crawler. |
+| **Index incrémental**     | Surveille `/data/texts` : dès qu’Abraham ajoute un livre → re-ingest automatique via `fs.watch`.   |
+
+---
+
+## 7. Instruction Replit (README rapide)
+
+````md
+### Ajouter un nouveau livre
+1. Glisser le fichier .docx ou .txt dans `/data/texts/`.
+2. Exécuter :
+   ```bash
+   npm run ingest
+````
+
+3. C’est tout : l’API `/ask` le prend en compte immédiatement.
+
+```
+
+---
+
+## 8. Pourquoi ce choix est stable
+
+- **Pas de Firebase** : Supabase s’exécute même en self-host (Docker).  
+- Le **modèle d’embed officiel Gemini** est maintenu et optimisé pour la recherche :contentReference[oaicite:2]{index=2}.  
+- La **RAG SDK Google** montre la même architecture (vector DB + Gemini) :contentReference[oaicite:3]{index=3}.  
+
+---
+
+### Résumé express
+
+1. **Collecte** des livres (Word → TXT).  
+2. **Script d’ingestion** → embeddings Gemini → Supabase (pgvector).  
+3. **Route `/ask`** : retrieval + Gemini completion.  
+4. **React UI** : champ de question, affichage réponse + source.  
+
+Je reste prêt à détailler chaque ligne de commande ou à corriger la moindre erreur de build. Dis-moi quand toi ou Abraham voulez passer à l’étape suivante, et je te guide “clic par clic”.
+
+Na Naḥ Naḥma Naḥman Méouman 🌟
+::contentReference[oaicite:4]{index=4}
+```
+
+[1]: https://ai.google.dev/gemini-api/docs/embeddings?utm_source=chatgpt.com "Embeddings | Gemini API | Google AI for Developers"
+[2]: https://ai.google.dev/edge/mediapipe/solutions/genai/rag?utm_source=chatgpt.com "AI Edge RAG guide - Gemini API"

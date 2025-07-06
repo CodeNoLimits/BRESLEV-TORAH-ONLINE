@@ -1,0 +1,326 @@
+# 🚨 MISSION CRITIQUE : RÉPARER COMPLÈTEMENT L'APPLICATION BRESLEV-TORAH-ONLINE
+
+## CONTEXTE
+Je suis sur Replit avec une application React/Express qui ne fonctionne pas. L'erreur "nix environment failed to build" bloque tout. J'ai besoin que tu répares TOUT en UNE SEULE FOIS car chaque interaction coûte très cher.
+
+## OBJECTIF FINAL
+Application 100% fonctionnelle qui :
+1. Démarre sans erreur sur Replit
+2. Interface de chat spirituel avec Gemini AI
+3. Questions/réponses sur les textes de Rabbi Nahman
+4. TTS/STT fonctionnel pour conversation vocale
+
+## RÉPARATIONS À EFFECTUER (DANS CET ORDRE)
+
+### 1. RÉPARER L'ENVIRONNEMENT NIX
+Créer `replit.nix` à la racine :
+```nix
+{ pkgs }: {
+  deps = [
+    pkgs.nodejs-18_x
+    pkgs.nodePackages.typescript
+  ];
+}
+```
+
+### 2. CRÉER CONFIGURATION REPLIT MINIMALE
+Remplacer `.replit` par :
+```toml
+run = "npm start"
+hidden = [".config"]
+entrypoint = "server/index.js"
+
+[nix]
+channel = "stable-22_11"
+
+[env]
+XDG_CONFIG_HOME = "/home/runner/.config"
+PATH = "/home/runner/$REPL_SLUG/.config/npm/node_global/bin:/home/runner/$REPL_SLUG/node_modules/.bin"
+
+[packager]
+language = "nodejs"
+
+[packager.features]
+packageSearch = true
+guessImports = true
+enabledForHosting = false
+
+[[ports]]
+localPort = 3001
+externalPort = 80
+```
+
+### 3. CRÉER SCRIPT DE BUILD SIMPLE
+Créer `build.sh` :
+```bash
+#!/bin/bash
+echo "🔨 Build simple pour Replit..."
+
+# Nettoyer
+rm -rf dist
+
+# Créer structure
+mkdir -p dist/client
+
+# Build client avec esbuild (plus simple que Vite)
+echo "📦 Build client..."
+cd client
+npx esbuild src/main.tsx --bundle --outfile=../dist/client/bundle.js --loader:.tsx=tsx --loader:.ts=ts --loader:.jsx=jsx --loader:.js=jsx --platform=browser --target=es2020
+
+# Copier HTML
+cp index.html ../dist/client/
+cd ..
+
+# Build serveur
+echo "📦 Build serveur..."
+npx esbuild server/index.ts --bundle --outfile=dist/index.js --platform=node --target=node18 --format=cjs --external:express --external:cors --external:dotenv --external:@google/generative-ai
+
+echo "✅ Build terminé!"
+```
+
+### 4. SIMPLIFIER PACKAGE.JSON
+Remplacer les scripts par :
+```json
+{
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "bash build.sh",
+    "dev": "node server/index.js"
+  }
+}
+```
+
+### 5. CRÉER SERVEUR MINIMAL
+Créer `server/index.js` (pas .ts pour éviter les problèmes) :
+```javascript
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Servir le client
+app.use(express.static(path.join(__dirname, '../dist/client')));
+
+// Route API de test
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    gemini: !!process.env.GEMINI_API_KEY,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Route chat simple
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { query } = req.body;
+    
+    if (!process.env.GEMINI_API_KEY) {
+      return res.json({
+        response: "Désolé, l'IA n'est pas configurée. Ajoutez GEMINI_API_KEY dans les Secrets Replit."
+      });
+    }
+
+    // Import dynamique pour éviter les erreurs au démarrage
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    
+    const result = await model.generateContent(query);
+    const response = await result.response;
+    
+    res.json({
+      response: response.text()
+    });
+    
+  } catch (error) {
+    console.error('Erreur chat:', error);
+    res.json({
+      response: "Désolé, une erreur est survenue. Vérifiez la console."
+    });
+  }
+});
+
+// Démarrer
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Serveur sur http://0.0.0.0:${PORT}`);
+  console.log(`✅ API: http://0.0.0.0:${PORT}/api/health`);
+  
+  if (!process.env.GEMINI_API_KEY) {
+    console.log('⚠️  GEMINI_API_KEY manquante!');
+    console.log('👉 Ajoutez-la dans Secrets (🔒)');
+  }
+});
+```
+
+### 6. SIMPLIFIER LE CLIENT
+Créer `client/index.html` :
+```html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chayei Moharan</title>
+  <script src="bundle.js" defer></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui;
+      background: #0f172a;
+      color: white;
+    }
+    #root {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="root">Chargement...</div>
+</body>
+</html>
+```
+
+### 7. CLIENT REACT MINIMAL
+Créer `client/src/main.tsx` :
+```tsx
+import React, { useState } from 'react';
+import ReactDOM from 'react-dom/client';
+
+function App() {
+  const [question, setQuestion] = useState('');
+  const [response, setResponse] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const askQuestion = async () => {
+    if (!question.trim()) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: question })
+      });
+      const data = await res.json();
+      setResponse(data.response);
+    } catch (error) {
+      setResponse('Erreur de connexion');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
+      <h1>🕊️ Chayei Moharan</h1>
+      
+      <div style={{ marginBottom: '20px' }}>
+        <input
+          type="text"
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && askQuestion()}
+          placeholder="Posez votre question..."
+          style={{
+            width: '100%',
+            padding: '10px',
+            fontSize: '16px',
+            background: '#1e293b',
+            border: '1px solid #334155',
+            color: 'white',
+            borderRadius: '4px'
+          }}
+        />
+      </div>
+      
+      <button 
+        onClick={askQuestion}
+        disabled={loading}
+        style={{
+          padding: '10px 20px',
+          background: '#f59e0b',
+          border: 'none',
+          borderRadius: '4px',
+          color: 'white',
+          cursor: loading ? 'wait' : 'pointer',
+          fontSize: '16px'
+        }}
+      >
+        {loading ? 'Chargement...' : 'Demander'}
+      </button>
+      
+      {response && (
+        <div style={{
+          marginTop: '20px',
+          padding: '15px',
+          background: '#1e293b',
+          borderRadius: '4px',
+          border: '1px solid #334155'
+        }}>
+          <p>{response}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')!).render(<App />);
+```
+
+### 8. FICHIER .GITIGNORE
+```
+node_modules/
+dist/
+.env
+.replit_history
+```
+
+## ACTIONS À EXÉCUTER
+
+1. **Supprimer** tous les fichiers TypeScript complexes qui causent des erreurs
+2. **Créer** tous les fichiers ci-dessus
+3. **Installer** uniquement les dépendances essentielles :
+   ```bash
+   npm init -y
+   npm install express cors dotenv @google/generative-ai
+   npm install --save-dev esbuild react react-dom @types/react @types/react-dom
+   ```
+
+4. **Build** avec :
+   ```bash
+   chmod +x build.sh
+   npm run build
+   ```
+
+5. **Configurer** dans Replit Secrets :
+   - GEMINI_API_KEY = [ta clé API]
+
+6. **Démarrer** :
+   ```bash
+   npm start
+   ```
+
+## RÉSULTAT ATTENDU
+
+✅ Application qui démarre sans erreur
+✅ Interface simple mais fonctionnelle
+✅ Chat avec Gemini qui répond
+✅ Prêt à recevoir les textes français
+
+## SI ERREUR PERSISTE
+
+Utiliser la version ENCORE PLUS SIMPLE :
+- Supprimer TOUT sauf server/index.js
+- Faire juste un serveur Express qui répond "Hello World"
+- Puis ajouter les fonctionnalités une par une
+
+**EXÉCUTE TOUT CECI MAINTENANT EN UNE SEULE FOIS !**

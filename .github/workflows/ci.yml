@@ -8,7 +8,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: npm ci
-      - run: npm run test:unit
+      - run: npx vitest run
   e2e:
     needs: unit
     runs-on: ubuntu-latest
@@ -17,4 +17,5 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: npm ci
+      - run: npx playwright install --with-deps
       - run: npm run test:e2e || echo "E2E optional for now"

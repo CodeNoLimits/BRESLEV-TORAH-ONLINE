@@ -1,16 +1,13 @@
+
 { pkgs }: {
   deps = [
-    pkgs.nodejs-20_x
-    pkgs.npm-9_x
+    pkgs.nodejs-18_x
+    pkgs.nodePackages.npm
+    pkgs.nodePackages.typescript
     pkgs.python3
-    pkgs.postgresql
-    pkgs.git
-    pkgs.curl
   ];
-  
   env = {
-    NODE_ENV = "production";
-    NPM_CONFIG_PREFIX = "/tmp/npm-global";
-    PATH = "/tmp/npm-global/bin:$PATH";
+    PATH = "${pkgs.nodejs-18_x}/bin:${pkgs.nodePackages.npm}/bin:$PATH";
+    NODE_ENV = "development";
   };
 }

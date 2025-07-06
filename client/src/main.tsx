@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './App.css';
 
+console.log('🕊️ Torah de Breslev - Initialisation...');
+
 // Global error handler
 window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled promise rejection:', event.reason);
@@ -24,3 +26,5 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+console.log('✅ Application Torah de Breslev chargée');

@@ -1,0 +1,286 @@
+Na Naḥ Naḥma Naḥman Méouman 🕊️
+**Oriya’el Na’aman** déploie ici une « mise à niveau intégrale » — un plan d’attaque exhaustif pour que *Le Compagnon du Cœur* fonctionne **exactement** comme tu le veux :
+
+---
+
+# Sommaire ultra- détaillé
+
+| Section | Objectif                                                       | Résultat attendu                                |
+| ------- | -------------------------------------------------------------- | ----------------------------------------------- |
+| **A**   | Éradiquer définitivement le bloc “Contexte / Points clés” bleu | Plus aucun cadre parasite, sous aucun bouton    |
+| **B**   | Relier *tous* les livres (TXT) à Gemini avec un RAG robuste    | Réponses précises à n’importe quelle question   |
+| **C**   | Booster la profondeur et la forme des réponses                 | Explications longues, structurées, avec sources |
+| **D**   | Activer STT + TTS bidirectionnel (micro & lecture)             | Parle → transcrit → répond ; IA lit la réponse  |
+| **E**   | Pipeline “dev → prod” fiable sur Replit + GitHub               | Chaque commit = build propre, visible en live   |
+| **F**   | Checklist de débogage rapide                                   | Pour ne plus perdre de temps si ça re-déconne   |
+
+---
+
+## A · Éradiquer le bloc bleu — triple barrière
+
+> **But** : rien ne doit pouvoir ré-afficher ce contexte anglais, même si un dev gaffe plus tard.
+
+1. **Coupe-source back-end**
+
+   * **Cherche** dans `server/` : `res.json({` → pour chaque route (`ask.ts`, `analyse.ts`, `points.ts`, `guidance.ts`…)
+   * **Remplace** tous les retours multiples par **une seule** ligne :
+
+     ```ts
+     res.json({ answer });         // et rien d’autre
+     ```
+   * **Test** : onglet *Network* → la réponse JSON ne comporte plus que `{"answer": "…"} `.
+
+2. **Filtre React**
+
+   * `client/src/components/ChatMessage.tsx` :
+
+     ```tsx
+     const banned = ["CONTEXTE", "CONTEXT", "GUIDANCE SPIRITUELLE", "POINTS CLÉS"];
+     if (banned.some(b => text.toUpperCase().startsWith(b))) return null;
+     ```
+   * `client/src/components/AnswerPanel.tsx` : avant d’afficher le markdown :
+
+     ```ts
+     answer = answer.replace(/^(CONTEXTE|POINTS)[\s\S]+?\n\n/i, "");
+     ```
+
+3. **CSS Garde-fou**
+
+   * `client/src/index.css` :
+
+     ```css
+     .message-bubble[data-role="context"],
+     .message-bubble:has(> .context-flag) { display:none!important; }
+     ```
+
+4. **Redémarre vraiment**
+
+   * Dans le Shell Replit :
+
+     ```bash
+     kill 1        # reboot du conteneur
+     ```
+   * Hard-refresh **⌘⇧R**.
+
+---
+
+## B · Brancher *tous* les livres sur Gemini (RAG solide)
+
+### 1. Ingestion unique
+
+```ts
+// scripts/ingest.ts
+import fs from "fs/promises";
+import path from "path";
+import { chunkText } from "./utils/chunkText";
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
+
+const embeddings = new GoogleGenerativeAIEmbeddings({
+  apiKey: process.env.GEMINI_API_KEY,
+  modelName: "gemini-embedding-exp-03-07",
+});
+const store = await SupabaseVectorStore.initialize({
+  url: process.env.SUPABASE_URL!,
+  apiKey: process.env.SUPABASE_KEY!,
+  tableName: "breslev_texts",
+  embeddings,
+});
+
+for (const file of await fs.readdir("./data/texts")) {
+  const raw = await fs.readFile(path.join("./data/texts", file), "utf8");
+  const chunks = chunkText(raw, 1200, 200);          // taille & overlap
+  await store.addDocuments(
+    chunks.map(c => ({ pageContent: c.text, metadata: { book: file, idx: c.id } }))
+  );
+}
+console.log("✓ Tous les textes intégrés");
+```
+
+*Commandes* :
+
+```bash
+npm i @langchain/google-genai @langchain/community pg supabase-js pgvector
+npm run ingest        # 1 × ou à chaque nouveau livre
+```
+
+> **Test** : dans `psql` :
+>
+> ```sql
+> SELECT COUNT(*) FROM breslev_texts;
+> ```
+
+### 2. Endpoint `/ask`
+
+```ts
+// server/routes/ask.ts
+router.post("/", async (req, res) => {
+  const { question } = req.body;
+  const docs = await store.similaritySearch(question, 10);        // 10 chunks
+  const context = docs.map(d => d.pageContent).join("\n---\n");
+  const prompt = `
+  Tu es un érudit de Rabbi Na'hman. Réponds en 4 parties numérotées :
+  1. Réponse détaillée
+  2. Référence exacte (Livre §)
+  3. Fil conducteur spirituel
+  4. Conseils pratiques
+  Utilise uniquement le CONTEXTE suivant :
+  """${context}"""
+  QUESTION : ${question}
+  `;
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+  const result = await model.generateContent({ contents:[{role:"user",parts:[{text:prompt}]}],
+                                               generationConfig:{maxOutputTokens:2048,
+                                                                 temperature:0.3}});
+  res.json({ answer: result.response.text().trim() });
+});
+```
+
+### 3. Vérifications :
+
+```bash
+curl -X POST http://localhost:3000/ask \
+     -H "Content-Type: application/json" \
+     -d '{"question":"Où Rabbénou parle-t-il de la musique comme remède ?"}'
+```
+
+→ Doit citer « Likouté Moharan 237 ».
+
+### 4. Surveillance auto
+
+```bash
+fswatch -o ./data/texts | xargs -n1 -I{} npm run ingest
+```
+
+---
+
+## C · Booster la profondeur de réponse
+
+| Levier                                | Valeur conseillée | Effet                           |
+| ------------------------------------- | ----------------- | ------------------------------- |
+| `similaritySearch(q, 10–12)`          | 10 à 12 chunks    | + de contexte riche             |
+| `maxOutputTokens`                     | 2048 (Gemini Pro) | Réponse longue                  |
+| `temperature`                         | 0.3–0.4           | Cohérence                       |
+| Prompt “4 parties numérotées”         | impose structure  | Lecture facile                  |
+| *Streaming* (`generateContentStream`) | oui               | Affichage type machine-à-écrire |
+
+Front-end :
+
+```tsx
+for await (const chunk of stream) setAnswer(prev => prev + chunk.text);
+```
+
+---
+
+## D · STT + TTS bidirectionnel
+
+### 1. Reconnaissance vocale (STT)
+
+```tsx
+// hooks/useSpeech.ts
+import { useEffect, useState } from "react";
+export const useSpeech = (send: (txt:string)=>void) => {
+  const [rec, setRec] = useState<SpeechRecognition|null>(null);
+  useEffect(() => {
+    const SR = (window as any).webkitSpeechRecognition || SpeechRecognition;
+    const r = new SR(); r.lang = "fr-FR"; r.interimResults = false;
+    r.onresult = e => {
+      const t = Array.from(e.results).map(r=>r[0].transcript).join(" ");
+      send(t);                       // 1. envoie dans l’input
+    };
+    r.onerror = console.error;
+    setRec(r);
+  }, []);
+  return () => rec?.start();
+};
+```
+
+### 2. Synthèse vocale (TTS)
+
+```ts
+export const speak = (txt:string) => {
+  const u = new SpeechSynthesisUtterance(txt);
+  u.lang = "fr-FR";
+  u.rate = 1.03; u.pitch = 0.9;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+};
+```
+
+### 3. Intégration UI
+
+```tsx
+const startRec = useSpeech(handleSend);
+…
+<Button onClick={startRec}>🎤</Button>
+…
+useEffect(()=>{ if(answer) speak(answer); },[answer]);
+```
+
+### 4. Fallback Whisper (si navigateur ≠ Chrome)
+
+* Endpoint `/stt` qui reçoit `audio/webm` → envoie à `speech-to-text-002`.
+* Renvoie `{ transcript }` → front appel `/ask`.
+
+---
+
+## E · Pipeline Git ↔ Replit SANS Agent capricieux
+
+1. **Désactive l’Auto-Agent** (Settings > General > *Disable Replit AI Agent*).
+2. **Replit** : `Git` tab → assure-toi qu’il pointe sur **ton** repo, pas un fork.
+3. **Workflow** :
+
+   ```bash
+   git checkout main
+   git pull --rebase origin main
+   # code…
+   git add .
+   git commit -m "feat: STT+TTS, kill context"
+   git push
+   ```
+4. **Container restart** à chaque merge :
+
+   * Ajoute un `postinstall` dans `package.json` : `"postinstall": "npm run ingest"`
+   * Replit détecte → redéploie.
+
+---
+
+## F · Checklist dépannage express
+
+| Symptôme                      | Diagnostic                        | Remède                                     |
+| ----------------------------- | --------------------------------- | ------------------------------------------ |
+| Bloc bleu réapparaît          | JSON contient `context`           | Cherche `res.json({ context`               |
+| Réponse courte                | `maxOutputTokens` trop bas        | 2048                                       |
+| “Aucune source trouvée”       | Vectordb vide                     | `SELECT count(*) FROM breslev_texts;`      |
+| Micro muet                    | `getUserMedia` non accordé        | Vérifier permissions navigateur            |
+| Parole non lue                | `speechSynthesis.speaking` bloqué | `speechSynthesis.cancel()` avant `speak()` |
+| Replit n’applique pas le code | Agent actif ou cache              | `kill 1` + hard refresh                    |
+
+---
+
+### Commande unique de reconstruction si tout casse
+
+```bash
+rm -rf node_modules dist
+npm install
+npm run ingest
+npm run dev        # ou Run bouton Replit
+```
+
+---
+
+## Conclusion & prochaines briques
+
+1. **Applique les trois verrous (A)** → plus aucun cadre parasite.
+2. **Lance `npm run ingest`** → DB remplie (≈ 25 000 chunks).
+3. **Teste `/ask`** → la réponse arrive, longue, structurée -> TTS la lit.
+4. **Valide** → on branchera ensuite :
+
+   * Auth Supabase + favoris,
+   * Timeline de progression d’étude,
+   * Export PDF des sessions,
+   * Mode “live shiour” (WebRTC).
+
+Je reste en alerte : dis-moi quel point cale encore, ou colle-moi la moindre trace d’erreur et on la dégomme !
+
+Na Naḥ Naḥma Naḥman Méouman 🌟
