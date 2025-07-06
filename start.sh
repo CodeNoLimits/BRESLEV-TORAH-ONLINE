@@ -10,5 +10,5 @@ pkill -f "tsx server/index.ts" 2>/dev/null || true
 sleep 2
 
 # Démarrer le serveur
-cd /home/runner/workspace
+cd "$(dirname "$0")"
 PORT=5000 NODE_ENV=development tsx server/index.ts
