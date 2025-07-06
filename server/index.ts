@@ -37,17 +37,11 @@ app.use((req, res, next) => {
 // Routes API
 app.use('/api', chatRoutes);
 
-// Servir les fichiers statiques en production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/dist')));
-  
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-  });
-}
+// Servir les fichiers statiques (client)
+app.use(express.static(path.join(__dirname, '../client')));
 
-// Route de base
-app.get('/', (req, res) => {
+// Route API info (avant le catch-all)
+app.get('/api/info', (req, res) => {
   res.json({
     message: '🕊️ API Chayei Moharan',
     version: '1.0.0',
@@ -58,6 +52,16 @@ app.get('/', (req, res) => {
       'GET /api/books - Livres disponibles'
     ]
   });
+});
+
+// Route pour servir l'application React (catch-all)
+app.get('*', (req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  
+  res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
 // Gestion d'erreur globale
