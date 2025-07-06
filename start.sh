@@ -1,37 +1,33 @@
 #!/bin/bash
-
-echo "🚀 Démarrage de Chayei Moharan..."
+echo "🚀 Démarrage de Le Compagnon du Cœur..."
 
 # Vérifier Node.js
 if ! command -v node &> /dev/null; then
-    echo "❌ Node.js n'est pas installé"
+    echo "❌ Node.js non trouvé"
+    exit 1
+fi
+
+# Vérifier npm
+if ! command -v npm &> /dev/null; then
+    echo "❌ npm non trouvé"
     exit 1
 fi
 
 echo "✅ Node.js version: $(node --version)"
 echo "✅ NPM version: $(npm --version)"
 
+# Installer les dépendances si nécessaire
+if [ ! -d "node_modules" ]; then
+    echo "📦 Installation des dépendances..."
+    npm install
+fi
+
 # Vérifier les variables d'environnement critiques
 if [ -z "$GEMINI_API_KEY" ]; then
-    echo "⚠️ GEMINI_API_KEY non configurée dans les Secrets Replit"
+    echo "⚠️ GEMINI_API_KEY manquante - Configurez dans Secrets"
     echo "👉 Ajoutez votre clé API Gemini dans les Secrets (🔒)"
 else
     echo "✅ GEMINI_API_KEY configurée"
-fi
-
-# Installation des dépendances
-if [ ! -d "node_modules" ] || [ ! -f "node_modules/.installed" ]; then
-    echo "📦 Installation des dépendances..."
-    npm ci --production=false --silent
-    if [ $? -eq 0 ]; then
-        touch node_modules/.installed
-        echo "✅ Dépendances installées"
-    else
-        echo "❌ Erreur installation dépendances"
-        exit 1
-    fi
-else
-    echo "✅ Dépendances déjà installées"
 fi
 
 # Build si nécessaire
@@ -54,8 +50,8 @@ if [ ! -f "dist/index.js" ]; then
     exit 1
 fi
 
-# Démarrer le serveur
-echo "🏃 Démarrage du serveur..."
+# Démarrer l'application
+echo "🔥 Lancement de l'application..."
 echo "📍 Port: ${PORT:-5000}"
 echo "🌐 URL: https://$REPL_SLUG.$REPL_OWNER.repl.co"
 NODE_ENV=production PORT=${PORT:-5000} node dist/index.js

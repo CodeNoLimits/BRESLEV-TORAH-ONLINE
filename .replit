@@ -26,7 +26,7 @@ build = ["npm", "run", "build"]
 run = ["npm", "start"]
 
 [workflows]
-runButton = "Start Application Fixed"
+runButton = "Start Application"
 
 [[workflows.workflow]]
 name = "Start Application Fixed"
@@ -36,3 +36,16 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm start"
+
+[[workflows.workflow]]
+name = "Start Application"
+author = 39927844
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "chmod +x start.sh"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./start.sh"

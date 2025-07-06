@@ -1,4 +1,3 @@
-
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -48,7 +47,7 @@ app.post('/api/chat', async (req, res) => {
   try {
     const { query, question } = req.body;
     const userQuery = query || question;
-    
+
     if (!userQuery?.trim()) {
       return res.status(400).json({
         error: 'Question vide'
@@ -68,24 +67,24 @@ app.post('/api/chat', async (req, res) => {
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-    
+
     const prompt = `Tu es un assistant spirituel expert des enseignements de Rabbi Nahman de Breslev. 
     Réponds en français de manière claire et spirituelle.
-    
+
     Question: ${userQuery}`;
-    
+
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-    
+
     console.log(`[Gemini] Réponse générée: ${text.length} caractères`);
-    
+
     res.json({
       response: text,
       sources: ['Gemini Pro'],
       timestamp: new Date().toISOString()
     });
-    
+
   } catch (error) {
     console.error('❌ Erreur Gemini:', error);
     res.status(500).json({
@@ -102,7 +101,7 @@ app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) {
     return next();
   }
-  
+
   res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
@@ -120,7 +119,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Serveur Chayei Moharan sur le port ${PORT}`);
   console.log(`📚 Application: http://0.0.0.0:${PORT}`);
   console.log(`🩺 Santé: http://0.0.0.0:${PORT}/api/health`);
-  
+
   if (!process.env.GEMINI_API_KEY) {
     console.log('⚠️  GEMINI_API_KEY manquante!');
     console.log('👉 Ajoutez-la dans Secrets (🔒)');
