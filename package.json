@@ -6,8 +6,11 @@
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "dev:vite": "concurrently \"NODE_ENV=development tsx server/index.ts\" \"cd client && npx vite --port 5173 --host\"",
-    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && esbuild server/fullTextExtractor.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/fullTextExtractor.js",
+    "build": "echo '🔨 Building client...' && vite build && echo '🔨 Building server...' && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && esbuild server/fullTextExtractor.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/fullTextExtractor.js && echo '✅ Build completed'",
+    "build:client": "vite build",
+    "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
+    "replit": "bash start.sh",
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "test:api": "node ./scripts/test-api.mjs",

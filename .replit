@@ -1,14 +1,21 @@
 modules = ["nodejs-20", "web", "postgresql-16"]
-run = "npm run dev"
+run = "bash start.sh"
+entrypoint = "server/index.ts"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+
+[env]
+NODE_ENV = "production"
 
 [nix]
 channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["npm", "run", "build"]
+build = ["bash", "start.sh"]
 run = ["npm", "run", "start"]
+
+[gitHubImport]
+requiredFiles = [".replit", "replit.nix"]
 
 [[ports]]
 localPort = 3000

@@ -17,11 +17,23 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middlewares
+// Middlewares avec support Replit
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-domain.com'] 
-    : ['http://localhost:3000', 'http://localhost:5173'],
+    ? [
+        'https://your-domain.com',
+        /\.replit\.app$/,  // Support domaines Replit
+        /\.repl\.co$/,     // Ancien domaine Replit
+        /\.replit\.dev$/   // Nouveau domaine de dev Replit
+      ]
+    : [
+        'http://localhost:3000', 
+        'http://localhost:3001',
+        'http://localhost:5173',
+        /\.replit\.app$/,
+        /\.repl\.co$/,
+        /\.replit\.dev$/
+      ],
   credentials: true
 }));
 
