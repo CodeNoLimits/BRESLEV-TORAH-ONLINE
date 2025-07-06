@@ -166,7 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // TTS Cloud Fallback Endpoint pour mobile
+  // Mobile-friendly TTS endpoint using Google Cloud when available
   app.post('/api/tts/speak', async (req: Request, res: Response) => {
     try {
       const { text, language = 'fr' } = req.body as { text?: string; language?: string };
@@ -175,19 +175,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Text is required' });
       }
 
-      // Pour l'instant, retourner une erreur 501 avec message informatif
-      // TODO: Implémenter Google Cloud TTS quand clé API disponible
-      console.log(`[TTS-Fallback] Request for ${language}: ${text.substring(0, 50)}...`);
+      if (!ttsClient) {
+        try {
+          ttsClient = new v1beta1.TextToSpeechClient();
+        } catch (err) {
+          console.error('[TTS] Client init failed:', err);
+          return res.status(503).json({ error: 'TTS credentials missing' });
+        }
+      }
 
-      return res.status(501).json({ 
-        error: 'TTS Cloud not implemented yet',
-        fallback: 'Use Web Speech API',
-        message: 'Google Cloud TTS endpoint ready for implementation'
-      });
+      const voiceMap = {
+        fr: { languageCode: 'fr-FR', name: 'fr-FR-Wavenet-D' },
+        en: { languageCode: 'en-US', name: 'en-US-Studio-M' },
+        he: { languageCode: 'he-IL', name: 'he-IL-Wavenet-B' }
+      } as const;
+
+      const voice = voiceMap[language as keyof typeof voiceMap] || voiceMap.fr;
+
+      console.log(`[TTS] Synthesizing (${language}): ${text.substring(0, 50)}...`);
+
+      const request: protos.google.cloud.texttospeech.v1beta1.ISynthesizeSpeechRequest = {
+        input: { text },
+        voice: {
+          languageCode: voice.languageCode,
+          name: voice.name,
+          ssmlGender: protos.google.cloud.texttospeech.v1beta1.SsmlVoiceGender.MALE
+        },
+        audioConfig: {
+          audioEncoding: protos.google.cloud.texttospeech.v1beta1.AudioEncoding.MP3,
+          speakingRate: 0.95,
+          pitch: -2.0,
+          volumeGainDb: 2.0
+        }
+      };
+
+      const [response] = await ttsClient.synthesizeSpeech(request);
+
+      if (!response.audioContent) {
+        throw new Error('No audio content returned');
+      }
+
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Content-Length', response.audioContent.length);
+      res.send(response.audioContent);
 
     } catch (error) {
-      console.error('[TTS-Fallback] Error:', error);
-      return res.status(500).json({ error: 'TTS service error' });
+      console.error('[TTS] Error:', error);
+      res.status(500).json({ error: 'TTS service error' });
     }
   });
 
