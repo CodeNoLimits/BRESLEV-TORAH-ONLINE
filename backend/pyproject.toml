@@ -1,0 +1,56 @@
+[tool.poetry]
+name = "breslev-backend"
+version = "1.0.0"
+description = "FastAPI backend for Breslev Torah Online"
+authors = ["Breslev Torah Team <contact@breslev-torah.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.112.0"
+uvicorn = {extras = ["standard"], version = "^0.30.5"}
+sqlmodel = "^0.0.21"
+alembic = "^1.13.2"
+asyncpg = "^0.29.0"
+redis = {extras = ["hiredis"], version = "^5.0.7"}
+httpx = "^0.27.0"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+python-multipart = "^0.0.9"
+google-cloud-texttospeech = "^2.16.3"
+google-generativeai = "^0.7.2"
+chromadb = "^0.5.5"
+sentence-transformers = "^3.0.1"
+pydantic-settings = "^2.4.0"
+backoff = "^2.2.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.2"
+pytest-asyncio = "^0.23.8"
+black = "^24.8.0"
+ruff = "^0.5.7"
+mypy = "^1.11.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+select = ["E", "W", "F", "I", "B", "C4", "N", "UP"]
+ignore = ["E501", "B008", "B904"]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_untyped_defs = true
+follow_imports = "silent"
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
