@@ -1,5 +1,58 @@
-node_modules/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv
+*.egg-info/
+build/
 dist/
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+*.log
+.DS_Store
+
+# Environment
 .env
+.env.local
+.env.*.local
 .replit_history
+
+# Data
+data/
+*.db
+*.sqlite
+chroma_db/
 cache.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# FastAPI
+*.pyc
+.pytest_cache/
+
+# Next.js
+/.next/
+/out/
+/.swc/
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts

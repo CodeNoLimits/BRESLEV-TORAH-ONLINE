@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+httpx
+beautifulsoup4
+redis
+pathlib
