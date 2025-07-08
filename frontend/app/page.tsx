@@ -1,224 +1,117 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Book, MessageCircle, X, Menu } from 'lucide-react'
-import FloatingBackground from '@/components/ui/FloatingBackground'
-import TriPanelLayout from '@/components/library/TriPanelLayout'
-import BookSelector from '@/components/library/BookSelector'
-import GeminiChat from '@/components/chat/GeminiChat'
-import { GlassCard } from '@/components/ui/GlassPanel'
+import { GlassPanel } from '@/components/ui/GlassPanel'
+import { useTheme } from '@/providers/theme-provider'
+import { useAuth } from '@/providers/auth-provider'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
 export default function HomePage() {
-  const [currentView, setCurrentView] = useState<'library' | 'reader'>('library')
-  const [currentBook, setCurrentBook] = useState<string>('')
-  const [currentSection, setCurrentSection] = useState<string>('1:1')
-  const [showSidebar, setShowSidebar] = useState(false)
-  const [showChat, setShowChat] = useState(false)
-
-  // Mock data - dans une vraie app, ceci viendrait de l'API
-  const mockTexts = {
-    likutei_moharan: {
-      he: "אָמַר רַבִּי נַחְמָן: כִּי עִקַּר הַתִּקּוּן הוּא עַל יְדֵי הַנִּגּוּן, שֶׁהַנִּגּוּן הוּא מִבְחִינַת הַמָּקוֹם שֶׁאֵין שָׁם שׁוּם דִּבּוּר כְּלָל, רַק צְרִיחָה בְּעַלְמָא. וְעַל יְדֵי זֶה נִפְתָּחִים כָּל הַשְּׁעָרִים, וְכָל הַקְּלִפּוֹת נִשְׁבָּרִים...",
-      en: "Rabbi Nachman said: The main rectification comes through melody, for melody comes from a place where there is no speech at all, only pure outcry. Through this, all gates are opened and all shells are broken...",
-      fr: "Rabbi Nachman a dit: La rectification principale vient par la mélodie, car la mélodie vient d'un lieu où il n'y a aucune parole du tout, seulement un cri pur. Par cela, toutes les portes s'ouvrent et toutes les écorces sont brisées..."
-    }
-  }
-
-  const handleBookSelect = (bookId: string) => {
-    setCurrentBook(bookId)
-    setCurrentView('reader')
-  }
-
-  const handleBackToLibrary = () => {
-    setCurrentView('library')
-    setShowSidebar(false)
-  }
-
-  const currentTexts = currentBook ? mockTexts[currentBook as keyof typeof mockTexts] : undefined
+  const { t } = useTheme()
+  const { user } = useAuth()
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      {/* Animated background */}
-      <FloatingBackground />
-      
-      {/* Main content */}
-      <div className="relative z-10 min-h-screen flex">
-        {/* Sidebar - Book selector when in reader mode */}
-        <AnimatePresence>
-          {(currentView === 'library' || showSidebar) && (
-            <motion.div
-              initial={{ x: -400, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -400, opacity: 0 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="w-80 h-screen p-4 overflow-y-auto flex-shrink-0"
-            >
-              <div className="space-y-4">
-                {currentView === 'reader' && (
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-white font-semibold">Library</h3>
-                    <button
-                      onClick={() => setShowSidebar(false)}
-                      className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-                    >
-                      <X className="w-4 h-4 text-white" />
-                    </button>
-                  </div>
-                )}
-                
-                <BookSelector 
-                  onBookSelect={handleBookSelect}
-                  currentBook={currentBook}
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Main content area */}
-        <div className="flex-1 flex flex-col">
-          <AnimatePresence mode="wait">
-            {currentView === 'library' ? (
-              // Library view - full screen book selector
-              <motion.div
-                key="library"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.05 }}
-                transition={{ duration: 0.4, ease: 'easeInOut' }}
-                className="flex-1 flex items-center justify-center p-8"
-              >
-                <div className="max-w-4xl w-full">
-                  <div className="text-center mb-8">
-                    <motion.h1 
-                      className="text-4xl md:text-6xl font-bold text-white mb-4"
-                      initial={{ y: -50, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.2, duration: 0.6 }}
-                    >
-                      ברסלב תורה
-                    </motion.h1>
-                    <motion.p 
-                      className="text-xl text-white/70 mb-2"
-                      initial={{ y: -30, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.4, duration: 0.6 }}
-                    >
-                      Breslev Torah Online
-                    </motion.p>
-                    <motion.p 
-                      className="text-white/50"
-                      initial={{ y: -20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.6, duration: 0.6 }}
-                    >
-                      Study the teachings of Rabbi Nachman with AI guidance
-                    </motion.p>
-                  </div>
-
-                  <motion.div
-                    initial={{ y: 50, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.8, duration: 0.6 }}
-                  >
-                    <BookSelector 
-                      onBookSelect={handleBookSelect}
-                      currentBook={currentBook}
-                    />
-                  </motion.div>
-                </div>
-              </motion.div>
-            ) : (
-              // Reader view 
-              <motion.div
-                key="reader"
-                initial={{ opacity: 0, x: 100 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ duration: 0.4, ease: 'easeInOut' }}
-                className="flex-1 flex flex-col h-screen"
-              >
-                {/* Top navigation */}
-                <div className="flex items-center justify-between p-4 border-b border-white/10">
-                  <div className="flex items-center space-x-4">
-                    {!showSidebar && (
-                      <button
-                        onClick={() => setShowSidebar(true)}
-                        className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-                      >
-                        <Menu className="w-5 h-5 text-white" />
-                      </button>
-                    )}
-                    
-                    <button
-                      onClick={handleBackToLibrary}
-                      className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white/70 hover:text-white"
-                    >
-                      <Book className="w-4 h-4" />
-                      <span className="text-sm">Library</span>
-                    </button>
-                  </div>
-
-                  <div className="text-center">
-                    <h1 className="text-white font-semibold">Breslev Torah</h1>
-                    <p className="text-white/60 text-sm">Study & AI Guidance</p>
-                  </div>
-
-                  <div className="w-24"></div> {/* Spacer for balance */}
-                </div>
-
-                {/* Main reader */}
-                <div className="flex-1 p-4">
-                  <TriPanelLayout
-                    currentBook={currentBook}
-                    currentSection={currentSection}
-                    hebrewText={currentTexts?.he}
-                    englishText={currentTexts?.en}
-                    frenchText={currentTexts?.fr}
-                    onChatToggle={() => setShowChat(!showChat)}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="max-w-4xl w-full space-y-8">
+        
+        {/* Header */}
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
+            <span className="text-gradient">
+              {t('app.title')}
+            </span>
+          </h1>
+          
+          <p className="text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
+            ללמוד את תורתו של רבי נחמן מברסלב עם סיוע בינה מלאכותית
+          </p>
         </div>
 
-        {/* Chat sidebar */}
-        <AnimatePresence>
-          {showChat && (
-            <motion.div
-              initial={{ x: 400, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 400, opacity: 0 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="w-80 h-screen p-4 border-l border-white/10"
-            >
-              <GlassCard className="h-full p-0">
-                <div className="flex items-center justify-between p-4 border-b border-white/10">
-                  <h3 className="text-white font-semibold flex items-center space-x-2">
-                    <MessageCircle className="w-4 h-4" />
-                    <span>AI Guidance</span>
-                  </h3>
-                  <button
-                    onClick={() => setShowChat(false)}
-                    className="p-1 rounded hover:bg-white/10 transition-colors"
-                  >
-                    <X className="w-4 h-4 text-white/60" />
-                  </button>
-                </div>
+        {/* Main Content */}
+        <GlassPanel className="text-center space-y-6">
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold text-white">
+              ברוכים הבאים לעולם התורה הברסלבית
+            </h2>
+            
+            <p className="text-white/70 leading-relaxed">
+              גלו את עומק תורתו של רבי נחמן מברסלב דרך פלטפורמה דיגיטלית מתקדמת
+              המשלבת טכנולוגיית בינה מלאכותית עם לימוד תורה מסורתי
+            </p>
+          </div>
+
+          {user ? (
+            <div className="space-y-4">
+              <p className="text-white/80">
+                שלום {user.name}! מוכן להמשיך ללמוד?
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/library">
+                  <Button size="lg" className="w-full sm:w-auto">
+                    {t('nav.library')} - הספרייה
+                  </Button>
+                </Link>
                 
-                <div className="flex-1">
-                  <GeminiChat 
-                    currentBook={currentBook}
-                    currentSection={currentSection}
-                    className="h-full"
-                  />
-                </div>
-              </GlassCard>
-            </motion.div>
+                <Link href="/chat">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                    {t('nav.chat')} - שאל את הבינה המלאכותית
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-white/70">
+                התחבר כדי להתחיל ללמוד ולחקור את האוצרות הרוחניים
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/login">
+                  <Button size="lg" className="w-full sm:w-auto">
+                    {t('auth.login')} - התחברות
+                  </Button>
+                </Link>
+                
+                <Link href="/register">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                    {t('auth.register')} - הרשמה
+                  </Button>
+                </Link>
+              </div>
+            </div>
           )}
-        </AnimatePresence>
+        </GlassPanel>
+
+        {/* Features */}
+        <div className="grid md:grid-cols-3 gap-6">
+          <GlassPanel variant="subtle" className="space-y-3">
+            <h3 className="text-lg font-semibold text-white">
+              ספרייה מקיפה
+            </h3>
+            <p className="text-white/70 text-sm">
+              גישה לכל ספרי רבי נחמן מברסלב בעברית, אנגלית וצרפתית
+            </p>
+          </GlassPanel>
+
+          <GlassPanel variant="subtle" className="space-y-3">
+            <h3 className="text-lg font-semibold text-white">
+              בינה מלאכותית מתקדמת
+            </h3>
+            <p className="text-white/70 text-sm">
+              שאל שאלות וקבל תשובות מבוססות על הטקסטים המקוריים
+            </p>
+          </GlassPanel>
+
+          <GlassPanel variant="subtle" className="space-y-3">
+            <h3 className="text-lg font-semibold text-white">
+              הקראה קולית
+            </h3>
+            <p className="text-white/70 text-sm">
+              האזן לטקסטים עם טכנולוגיית הקראה קולית איכותית
+            </p>
+          </GlassPanel>
+        </div>
       </div>
     </div>
   )

@@ -1,29 +1,33 @@
 import type { Metadata } from 'next'
-import { Inter, Heebo } from 'next/font/google'
+import { Inter, Noto_Sans_Hebrew } from 'next/font/google'
 import './globals.css'
+import { Providers } from './providers'
+import { FloatingBackground } from '@/components/ui/FloatingBackground'
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
 })
 
-const heebo = Heebo({ 
-  subsets: ['latin', 'hebrew'],
-  variable: '--font-heebo',
+const hebrew = Noto_Sans_Hebrew({
+  subsets: ['hebrew'],
+  variable: '--font-hebrew',
 })
 
 export const metadata: Metadata = {
-  title: 'Breslev Torah Online - ספריית רבי נחמן מברסלב',
-  description: 'Application spirituelle interactive pour l\'étude des enseignements de Rabbi Nachman de Breslev avec IA contextuelle',
-  keywords: ['Breslev', 'Rabbi Nachman', 'Torah', 'Spiritualité', 'Judaism', 'Hassidisme'],
-  authors: [{ name: 'Breslev Torah Online' }],
-  viewport: 'width=device-width, initial-scale=1',
-  robots: 'index, follow',
+  title: 'Breslev Torah Online - ברסלב תורה אונליין',
+  description: 'Study the teachings of Rabbi Nachman of Breslov with AI assistance',
+  keywords: 'Breslov, Torah, Rabbi Nachman, Chassidut, Jewish studies',
   openGraph: {
     title: 'Breslev Torah Online',
-    description: 'Explorez la sagesse de Rabbi Nachman avec l\'IA moderne',
+    description: 'Study the teachings of Rabbi Nachman of Breslov with AI assistance',
     type: 'website',
-    locale: 'fr_FR',
+    locale: 'he_IL',
+    alternateLocale: ['en_US', 'fr_FR'],
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 }
 
@@ -33,15 +37,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr" dir="ltr" className={`${inter.variable} ${heebo.variable}`}>
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=David+Libre:wght@400;500;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="antialiased">
-        {children}
+    <html lang="he" dir="rtl" className={`${inter.variable} ${hebrew.variable}`}>
+      <body className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 font-hebrew">
+        <FloatingBackground />
+        <Providers>
+          <div className="relative z-10">
+            {children}
+          </div>
+        </Providers>
       </body>
     </html>
   )
