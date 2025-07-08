@@ -1,222 +1,88 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=David+Libre:wght@400;500;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-@layer base {
-  :root {
-    --gradient-1: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
-    --gradient-2: linear-gradient(145deg, #f093fb 0%, #f5576c 100%);
-    --gradient-3: linear-gradient(145deg, #4facfe 0%, #00f2fe 100%);
-    --gradient-4: linear-gradient(145deg, #43e97b 0%, #38f9d7 100%);
-    --gradient-5: linear-gradient(145deg, #fa709a 0%, #fee140 100%);
-  }
-  
-  * {
-    @apply border-border;
-  }
-  
-  body {
-    @apply bg-slate-950 text-slate-100 font-sans;
-    background: 
-      radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-      radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-      radial-gradient(circle at 40% 40%, rgba(120, 198, 121, 0.2) 0%, transparent 50%),
-      linear-gradient(145deg, #0f0f23 0%, #1a1a2e 100%);
-    background-attachment: fixed;
-    min-height: 100vh;
-  }
-  
-  .hebrew-text {
-    @apply font-hebrew text-right;
-    direction: rtl;
-    unicode-bidi: bidi-override;
-  }
-  
-  .english-text {
-    @apply font-sans text-left;
-    direction: ltr;
-  }
-  
-  .french-text {
-    @apply font-sans text-left;
-    direction: ltr;
-  }
+/* Styles globaux pour l'application Breslev Torah */
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 
-@layer components {
-  .glassmorphism {
-    @apply bg-white/10 backdrop-blur-xl border border-white/20;
-    background: linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-  }
-  
-  .glassmorphism-hover {
-    @apply hover:bg-white/15 transition-all duration-300;
-  }
-  
-  .gradient-border {
-    position: relative;
-    background: linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-    border-radius: 1rem;
-    padding: 2px;
-  }
-  
-  .gradient-border::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 1rem;
-    padding: 2px;
-    background: linear-gradient(145deg, #667eea, #764ba2);
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    -webkit-mask-composite: xor;
-  }
-  
-  .animate-gradient {
-    background-size: 200% 200%;
-    animation: gradient 3s ease infinite;
-  }
-  
-  @keyframes gradient {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-  
-  .text-gradient {
-    @apply bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400 bg-clip-text text-transparent;
-  }
-  
-  .card-hover {
-    @apply transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20;
-  }
-  
-  .floating-element {
-    @apply animate-float;
-  }
-  
-  .glow-effect {
-    @apply animate-glow;
-  }
-  
-  .shimmer-effect {
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .shimmer-effect::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      90deg,
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
       transparent,
-      rgba(255, 255, 255, 0.2),
-      transparent
-    );
-    transform: translateX(-100%);
-    animation: shimmer 3s infinite;
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+/* Variables CSS pour les couleurs */
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 15, 23, 42;
+  --background-end-rgb: 30, 41, 59;
+}
+
+/* Glassmorphism base */
+.glassmorphism {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+}
+
+/* Fonts spécialisées */
+.font-hebrew {
+  font-family: 'David Libre', 'Heebo', serif;
+  direction: rtl;
+}
+
+.font-english {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.font-french {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Animations personnalisées */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
   }
-  
-  .book-card {
-    @apply glassmorphism glassmorphism-hover card-hover rounded-2xl p-6;
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .book-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-  }
-  
-  .chat-bubble {
-    @apply glassmorphism rounded-2xl p-4 max-w-[80%] relative;
-  }
-  
-  .chat-bubble-user {
-    @apply bg-gradient-to-r from-blue-600/80 to-purple-600/80 ml-auto;
-  }
-  
-  .chat-bubble-assistant {
-    @apply glassmorphism mr-auto;
-  }
-  
-  .input-field {
-    @apply glassmorphism rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:bg-white/15 focus:border-white/30 transition-all duration-300;
-  }
-  
-  .button-primary {
-    @apply bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25;
-  }
-  
-  .button-secondary {
-    @apply glassmorphism glassmorphism-hover text-white font-medium px-6 py-3 rounded-xl transition-all duration-300;
-  }
-  
-  .section-divider {
-    @apply h-px bg-gradient-to-r from-transparent via-white/20 to-transparent my-6;
+  50% {
+    transform: translateY(-20px);
   }
 }
 
-@layer utilities {
-  .text-shadow {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  }
-  
-  .text-shadow-lg {
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-  }
-  
-  .bg-grid {
-    background-image: 
-      linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
-    background-size: 20px 20px;
-  }
-  
-  .mask-gradient {
-    mask: linear-gradient(180deg, white, transparent);
-    -webkit-mask: linear-gradient(180deg, white, transparent);
-  }
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
 
-/* Scrollbar personnalisé */
+/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-slate-900/50;
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.1);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-700/80;
+  background: rgba(255, 255, 255, 0.3);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-600/80;
+  background: rgba(255, 255, 255, 0.5);
 }
-
-/* Sélection de texte */
-::selection {
-  @apply bg-purple-500/30 text-white;
-}
-
-/* Focus visible pour accessibilité */
-.focus\:ring-custom:focus {
-  @apply outline-none ring-2 ring-purple-500/50 ring-offset-2 ring-offset-slate-900;
-}
-EOF < /dev/null

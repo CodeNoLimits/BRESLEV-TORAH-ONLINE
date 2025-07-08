@@ -6,6 +6,7 @@ import { Book, MessageCircle, X, Menu } from 'lucide-react'
 import FloatingBackground from '@/components/ui/FloatingBackground'
 import TriPanelLayout from '@/components/library/TriPanelLayout'
 import BookSelector from '@/components/library/BookSelector'
+import GeminiChat from '@/components/chat/GeminiChat'
 import { GlassCard } from '@/components/ui/GlassPanel'
 
 export default function HomePage() {
@@ -193,7 +194,7 @@ export default function HomePage() {
               transition={{ duration: 0.3, ease: 'easeInOut' }}
               className="w-80 h-screen p-4 border-l border-white/10"
             >
-              <GlassCard className="h-full">
+              <GlassCard className="h-full p-0">
                 <div className="flex items-center justify-between p-4 border-b border-white/10">
                   <h3 className="text-white font-semibold flex items-center space-x-2">
                     <MessageCircle className="w-4 h-4" />
@@ -207,12 +208,12 @@ export default function HomePage() {
                   </button>
                 </div>
                 
-                <div className="p-4 flex-1 flex items-center justify-center">
-                  <div className="text-center text-white/60">
-                    <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">AI Chat will be available soon</p>
-                    <p className="text-xs mt-1">Ask questions about the texts</p>
-                  </div>
+                <div className="flex-1">
+                  <GeminiChat 
+                    currentBook={currentBook}
+                    currentSection={currentSection}
+                    className="h-full"
+                  />
                 </div>
               </GlassCard>
             </motion.div>

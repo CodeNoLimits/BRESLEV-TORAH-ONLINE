@@ -36,7 +36,7 @@ async def main():
         print(f"📚 Livres réussis: {len([s for s in results.values() if s > 0])}/12")
         
         if total_sections > 0:
-            print("\n✨ Téléchargement terminé avec succès\!")
+            print("\n✨ Téléchargement terminé avec succès !")
         else:
             print("\n⚠️ Aucune section récupérée - vérifiez la connectivité")
             
@@ -49,4 +49,3 @@ async def main():
 if __name__ == "__main__":
     exit_code = asyncio.run(main())
     sys.exit(exit_code)
-EOF < /dev/null

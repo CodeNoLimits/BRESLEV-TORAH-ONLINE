@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Book, Search, Star, Download, Eye, ChevronDown } from 'lucide-react'
+import { Book, Search, Star, Download, Eye, ChevronDown, Loader2 } from 'lucide-react'
 import GlassPanel, { GlassCard } from '@/components/ui/GlassPanel'
+import { useBooks } from '@/hooks/useApiState'
 import { cn } from '@/lib/utils'
 
 interface Book {
@@ -100,8 +101,14 @@ export default function BookSelector({ onBookSelect, currentBook }: BookSelector
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'title' | 'recent' | 'sections'>('title')
+  
+  // Utiliser l'API pour récupérer les livres
+  const { books: apiBooks, loading, error, refetch } = useBooks()
+  
+  // Fallback sur les données mock si l'API n'est pas disponible
+  const booksToUse = apiBooks.length > 0 ? apiBooks : breslovBooks
 
-  const filteredBooks = breslovBooks
+  const filteredBooks = booksToUse
     .filter(book => {
       const matchesSearch = 
         book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -129,6 +136,32 @@ export default function BookSelector({ onBookSelect, currentBook }: BookSelector
       <div className="text-center">
         <h2 className="text-2xl font-bold text-white mb-2">Breslov Library</h2>
         <p className="text-white/60">Select a text to study</p>
+        
+        {/* Status indicators */}
+        {loading && (
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+            <span className="text-blue-400 text-sm">Loading books from API...</span>
+          </div>
+        )}
+        
+        {error && (
+          <div className="mt-2 p-2 bg-red-500/20 border border-red-500/30 rounded-lg">
+            <p className="text-red-300 text-sm">API Error: {error}</p>
+            <button 
+              onClick={refetch}
+              className="text-blue-400 text-xs hover:underline mt-1"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+        
+        {!loading && !error && apiBooks.length === 0 && (
+          <div className="mt-2 p-2 bg-orange-500/20 border border-orange-500/30 rounded-lg">
+            <p className="text-orange-300 text-sm">Using offline book data</p>
+          </div>
+        )}
       </div>
 
       {/* Search & Filters */}
