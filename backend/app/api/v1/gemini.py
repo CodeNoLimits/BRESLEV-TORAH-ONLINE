@@ -9,28 +9,14 @@ import json
 backend_path = Path(__file__).parent.parent.parent
 sys.path.append(str(backend_path))
 
-from app.services.gemini_manager import GeminiContextManager
+try:
+    from app.services.real_gemini_manager import get_real_gemini_manager
+    REAL_GEMINI_AVAILABLE = True
+except ImportError:
+    REAL_GEMINI_AVAILABLE = False
 from app.services.sefaria_client import SefariaClient
 
 router = APIRouter()
-
-# Instances globales
-gemini_manager = None
-sefaria_client = None
-
-async def get_gemini_manager():
-    """Obtient l'instance du gestionnaire Gemini (singleton)"""
-    global gemini_manager
-    if gemini_manager is None:
-        gemini_manager = GeminiContextManager()
-    return gemini_manager
-
-async def get_sefaria_client():
-    """Obtient l'instance du client Sefaria (singleton)"""
-    global sefaria_client
-    if sefaria_client is None:
-        sefaria_client = SefariaClient()
-    return sefaria_client
 
 class ChatRequest(BaseModel):
     question: str
@@ -42,20 +28,19 @@ class InitializeRequest(BaseModel):
 
 @router.post("/chat")
 async def chat_with_gemini(request: ChatRequest):
-    """Chat intelligent avec Gemini AI et contexte RAG"""
+    """Chat RÉEL avec Gemini AI - AUCUN MOCK"""
+    
+    if not REAL_GEMINI_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="❌ Gemini service not available. Install google-generativeai: pip install google-generativeai"
+        )
+    
     try:
-        manager = await get_gemini_manager()
+        manager = await get_real_gemini_manager()
         
-        # Vérifier si on a des livres initialisés
-        if not manager.initialized_books:
-            return {
-                "answer": "⚠️ Aucun livre n'est encore initialisé. Veuillez d'abord initialiser les livres avec /api/v1/gemini/initialize",
-                "error": True,
-                "strategy": "not_initialized"
-            }
-        
-        # Répondre avec contexte intelligent
-        result = await manager.answer_question(
+        # Chat RÉEL avec l'API
+        result = await manager.real_chat(
             question=request.question,
             book_context=request.book_context,
             mode=request.mode
@@ -63,57 +48,71 @@ async def chat_with_gemini(request: ChatRequest):
         
         return result
         
+    except ValueError as e:
+        # Erreur de configuration (clé API manquante)
+        raise HTTPException(status_code=400, detail=str(e))
+        
     except Exception as e:
-        print(f"❌ Erreur chat Gemini: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Erreur générale
+        raise HTTPException(status_code=500, detail=f"Gemini API error: {str(e)}")
 
 @router.post("/initialize")
-async def initialize_books(request: InitializeRequest, background_tasks: BackgroundTasks):
-    """Initialise les livres pour l'IA RAG"""
+async def initialize_gemini_service():
+    """Initialise le service Gemini RÉEL"""
+    
+    if not REAL_GEMINI_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="❌ Gemini service not available. Install google-generativeai: pip install google-generativeai"
+        )
+    
     try:
-        manager = await get_gemini_manager()
-        client = await get_sefaria_client()
+        manager = await get_real_gemini_manager()
+        result = await manager.initialize_service()
         
-        # Déterminer quels livres initialiser
-        books_to_init = request.books if request.books else list(client.BRESLOV_BOOKS.keys())
+        return result
         
-        # Lancer l'initialisation en arrière-plan
-        background_tasks.add_task(initialize_books_task, manager, client, books_to_init)
-        
-        return {
-            "message": f"Initialisation de {len(books_to_init)} livres lancée en arrière-plan",
-            "books": books_to_init,
-            "status": "started"
-        }
+    except ValueError as e:
+        # Erreur de configuration (clé API manquante)
+        raise HTTPException(status_code=400, detail=str(e))
         
     except Exception as e:
-        print(f"❌ Erreur initialisation: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Erreur générale
+        raise HTTPException(status_code=500, detail=f"Initialization failed: {str(e)}")
 
 @router.get("/status")
-async def get_initialization_status():
-    """Récupère le statut d'initialisation"""
-    try:
-        manager = await get_gemini_manager()
-        client = await get_sefaria_client()
-        
-        # Vérifier quels livres sont disponibles
-        available_books = []
-        for book_key in client.BRESLOV_BOOKS.keys():
-            book_file = client.data_dir / f"{book_key}.json"
-            if book_file.exists():
-                available_books.append(book_key)
-        
+async def get_gemini_status():
+    """Status RÉEL du service Gemini - AUCUN MOCK"""
+    
+    if not REAL_GEMINI_AVAILABLE:
         return {
-            "initialized_books": list(manager.initialized_books),
-            "available_books": available_books,
-            "total_summaries": len(manager.summaries),
-            "status": "ready" if manager.initialized_books else "not_initialized"
+            "status": "service_unavailable",
+            "error": "google-generativeai package not installed",
+            "available_books": [],
+            "service": "none"
+        }
+    
+    try:
+        manager = await get_real_gemini_manager()
+        return await manager.get_status()
+        
+    except ValueError as e:
+        # Clé API manquante
+        return {
+            "status": "config_error",
+            "error": str(e),
+            "available_books": [],
+            "service": "real_gemini_api"
         }
         
     except Exception as e:
-        print(f"❌ Erreur statut: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Erreur générale
+        return {
+            "status": "error",
+            "error": str(e),
+            "available_books": [],
+            "service": "real_gemini_api"
+        }
 
 @router.post("/translate")
 async def translate_text(text: str, target_lang: str = "fr"):

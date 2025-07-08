@@ -5,3 +5,5 @@ httpx
 beautifulsoup4
 redis
 pathlib
+google-generativeai
+google-cloud-texttospeech

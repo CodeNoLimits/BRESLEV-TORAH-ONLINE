@@ -1,43 +1,112 @@
-version: '3.8'
+version: '3.9'
 
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15.4-alpine
+    container_name: breslev-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: breslev_db
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.utf8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - breslev-network
+
+  # Redis Cache
   redis:
-    image: redis:7-alpine
+    image: redis:7.2.5-alpine
+    container_name: breslev-redis
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - breslev-network
 
+  # ChromaDB Vector Store
+  chromadb:
+    image: chromadb/chroma:0.5.5
+    container_name: breslev-chromadb
+    ports:
+      - "8001:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
+    environment:
+      ANONYMIZED_TELEMETRY: "false"
+      ALLOW_RESET: "true"
+    networks:
+      - breslev-network
+
+  # Backend API
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: ../infrastructure/docker/backend.Dockerfile
+    container_name: breslev-backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
-    environment:
-      - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=${DATABASE_URL}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GOOGLE_CLOUD_KEY=${GOOGLE_CLOUD_KEY}
-    depends_on:
-      - redis
     volumes:
       - ./backend:/app
-      - ./data:/app/data
-      - ./chroma_db:/app/chroma_db
-    restart: unless-stopped
+      - ./data:/data
+      - ./credentials:/credentials:ro
+    env_file:
+      - .env.development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+    networks:
+      - breslev-network
 
+  # Frontend
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: ../infrastructure/docker/frontend.Dockerfile
+      target: development
+    container_name: breslev-frontend
+    command: pnpm dev
     ports:
       - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    env_file:
+      - .env.development
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
     depends_on:
       - backend
-    restart: unless-stopped
+    networks:
+      - breslev-network
+
+networks:
+  breslev-network:
+    driver: bridge
 
 volumes:
+  postgres_data:
   redis_data:
-EOF < /dev/null
+  chromadb_data:
