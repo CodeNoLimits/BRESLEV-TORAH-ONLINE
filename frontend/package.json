@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
-    "build": "next build",
+    "dev": "next dev --port 3000 --hostname 127.0.0.1",
+    "build": "npm run build:next",
+    "build:next": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "postbuild": "echo 'Build completed successfully'"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.2",
@@ -32,6 +34,7 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.11.4",
     "@types/node": "^20.14.12",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",

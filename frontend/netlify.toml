@@ -1,14 +1,21 @@
 [build]
-  command = "npm run build"
+  command = "npm ci && npm run build"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "18"
+  NPM_VERSION = "9"
+  NEXT_TELEMETRY_DISABLED = "1"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+[context.production.environment]
+  NEXT_PUBLIC_API_URL = "https://breslev-torah-api.onrender.com"
+  NEXT_PUBLIC_ENVIRONMENT = "production"
+
 [[redirects]]
   from = "/api/*"
-  to = "https://breslev-torah-api.onrender.com/api/:splat"
+  to = "https://breslev-torah-api.onrender.com/api/v1/:splat"
   status = 200
   force = true
