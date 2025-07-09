@@ -97,7 +97,7 @@ const categories = {
   prayers: { title: 'Prayers', icon: Search, color: 'from-pink-500/20 to-rose-500/20' }
 }
 
-export default function BookSelector({ onBookSelect, currentBook }: BookSelectorProps) {
+export function BookSelector({ onBookSelect, currentBook }: BookSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'title' | 'recent' | 'sections'>('title')
@@ -316,3 +316,5 @@ export default function BookSelector({ onBookSelect, currentBook }: BookSelector
     </div>
   )
 }
+
+export default BookSelector

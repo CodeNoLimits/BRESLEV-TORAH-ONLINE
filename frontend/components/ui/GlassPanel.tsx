@@ -42,3 +42,29 @@ export function GlassPanel({
     </div>
   )
 }
+
+export function GlassCard({ children, className, ...props }: GlassPanelProps) {
+  return (
+    <GlassPanel 
+      className={cn("transition-all duration-300 hover:shadow-2xl", className)} 
+      {...props}
+    >
+      {children}
+    </GlassPanel>
+  )
+}
+
+export function GlassHeader({ children, className, ...props }: GlassPanelProps) {
+  return (
+    <GlassPanel 
+      variant="strong"
+      padding="md"
+      className={cn("shadow-lg", className)} 
+      {...props}
+    >
+      {children}
+    </GlassPanel>
+  )
+}
+
+export default GlassPanel

@@ -34,7 +34,7 @@ export default function BookPage({ params }: BookPageProps) {
   const router = useRouter()
   const [currentChapter, setCurrentChapter] = useState(1)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [bookData, setBookData] = useState(null)
+  const [bookData, setBookData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

@@ -17,7 +17,7 @@ interface TriPanelLayoutProps {
   onChatToggle?: () => void
 }
 
-export default function TriPanelLayout({
+export function TriPanelLayout({
   currentBook = "Likutei Moharan",
   currentSection = "1:1",
   hebrewText = "וַיְהִי דְבַר יי אֶל יוֹנָה בֶּן אֲמִתַּי לֵאמֹר...",
@@ -240,3 +240,5 @@ export default function TriPanelLayout({
     </div>
   )
 }
+
+export default TriPanelLayout

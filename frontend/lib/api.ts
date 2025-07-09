@@ -161,3 +161,54 @@ export const ttsApi = {
       { responseType: 'blob' }
     ),
 }
+
+// Helper function to handle API responses
+const handleApiResponse = async (apiCall: Promise<any>) => {
+  try {
+    const response = await apiCall
+    return { data: response.data, error: null, status: response.status }
+  } catch (error: any) {
+    console.error('API Error:', error)
+    return { 
+      data: null, 
+      error: error.response?.data?.detail || error.message || 'Unknown error',
+      status: error.response?.status || 500
+    }
+  }
+}
+
+// useApi hook for consistent API usage
+export function useApi() {
+  return {
+    books: {
+      getAll: () => handleApiResponse(booksApi.getAll()),
+      getBySlug: (slug: string) => handleApiResponse(booksApi.getBySlug(slug)),
+    },
+    texts: {
+      search: (query: string, bookSlug?: string, language = 'he') =>
+        handleApiResponse(textsApi.search(query, bookSlug, language)),
+      getByRef: (ref: string) => handleApiResponse(textsApi.getByRef(ref)),
+      getRange: (bookSlug: string, startChapter: number, endChapter: number, language = 'he') =>
+        handleApiResponse(textsApi.getRange(bookSlug, startChapter, endChapter, language)),
+    },
+    gemini: {
+      chat: (question: string, bookContext?: string, mode: string = 'study') =>
+        handleApiResponse(api.post('/gemini/chat', { question, book_context: bookContext, mode })),
+      getStatus: () => handleApiResponse(api.get('/gemini/status')),
+      initialize: (books?: string[]) =>
+        handleApiResponse(api.post('/gemini/initialize', { books })),
+    },
+    tts: {
+      synthesize: (text: string, language = 'he', voice?: string) =>
+        handleApiResponse(ttsApi.synthesize(text, language, voice)),
+    },
+    health: {
+      check: () => handleApiResponse(api.get('/health')),
+    },
+    chat: {
+      sendMessage: (request: ChatRequest) => handleApiResponse(chatApi.sendMessage(request)),
+      getHistory: (sessionId: string) => handleApiResponse(chatApi.getHistory(sessionId)),
+      getSessions: () => handleApiResponse(chatApi.getSessions()),
+    }
+  }
+}

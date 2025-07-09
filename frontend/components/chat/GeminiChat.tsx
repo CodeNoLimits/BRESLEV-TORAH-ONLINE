@@ -13,7 +13,7 @@ interface GeminiChatProps {
   className?: string
 }
 
-export default function GeminiChat({ 
+export function GeminiChat({ 
   currentBook, 
   currentSection, 
   className 
@@ -242,3 +242,5 @@ export default function GeminiChat({
     </div>
   )
 }
+
+export default GeminiChat

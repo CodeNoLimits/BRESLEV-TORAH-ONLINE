@@ -131,7 +131,7 @@ export default function LibraryPage() {
                 Search
               </Button>
             </div>
-            <BookSelector />
+            <BookSelector onBookSelect={(bookId) => console.log('Selected book:', bookId)} />
           </GlassPanel>
         </div>
         

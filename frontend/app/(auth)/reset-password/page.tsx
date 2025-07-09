@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import ResetPasswordForm from '@/components/auth/reset-password-form'
 import { FloatingBackground } from '@/components/ui/FloatingBackground'
 import { GlassPanel } from '@/components/ui/GlassPanel'
@@ -9,7 +10,9 @@ export default function ResetPasswordPage() {
       
       <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
         <GlassPanel className="w-full max-w-md">
-          <ResetPasswordForm />
+          <Suspense fallback={<div>Loading...</div>}>
+            <ResetPasswordForm />
+          </Suspense>
         </GlassPanel>
       </div>
     </div>
