@@ -49,14 +49,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize auth state
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem('token')
-      if (token) {
-        try {
-          const response = await api.get('/auth/me')
-          setUser(response.data)
-        } catch (error) {
-          // Token is invalid, remove it
-          localStorage.removeItem('token')
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('token')
+        if (token) {
+          try {
+            const response = await api.get('/auth/me')
+            setUser(response.data)
+          } catch (error) {
+            // Token is invalid, remove it
+            if (typeof window !== 'undefined') {
+        localStorage.removeItem('token')
+      }
+          }
         }
       }
       setLoading(false)
@@ -106,7 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
       const { access_token } = response.data
-      localStorage.setItem('token', access_token)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', access_token)
+      }
 
       // Get user info
       const userResponse = await api.get('/auth/me')
@@ -125,7 +131,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Even if logout fails on server, clear local state
       console.error('Logout error:', error)
     } finally {
-      localStorage.removeItem('token')
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token')
+      }
       setUser(null)
       router.push('/login')
     }
@@ -145,7 +153,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.post('/auth/refresh')
       const { access_token } = response.data
-      localStorage.setItem('token', access_token)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', access_token)
+      }
       return true
     } catch (error) {
       return false

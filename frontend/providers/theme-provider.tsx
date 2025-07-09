@@ -90,40 +90,44 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Load saved preferences
-    const savedTheme = localStorage.getItem('theme') as Theme
-    const savedLanguage = localStorage.getItem('language') as Language
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme') as Theme
+      const savedLanguage = localStorage.getItem('language') as Language
 
-    if (savedTheme) {
-      setTheme(savedTheme)
-    }
+      if (savedTheme) {
+        setTheme(savedTheme)
+      }
 
-    if (savedLanguage) {
-      setLanguage(savedLanguage)
+      if (savedLanguage) {
+        setLanguage(savedLanguage)
+      }
     }
   }, [])
 
   useEffect(() => {
-    const root = window.document.documentElement
+    if (typeof window !== 'undefined') {
+      const root = window.document.documentElement
 
-    // Apply theme
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light'
-      root.classList.remove('light', 'dark')
-      root.classList.add(systemTheme)
-    } else {
-      root.classList.remove('light', 'dark')
-      root.classList.add(theme)
+      // Apply theme
+      if (theme === 'system') {
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light'
+        root.classList.remove('light', 'dark')
+        root.classList.add(systemTheme)
+      } else {
+        root.classList.remove('light', 'dark')
+        root.classList.add(theme)
+      }
+
+      // Apply language and direction
+      root.lang = language
+      root.dir = language === 'he' ? 'rtl' : 'ltr'
+
+      // Save preferences
+      localStorage.setItem('theme', theme)
+      localStorage.setItem('language', language)
     }
-
-    // Apply language and direction
-    root.lang = language
-    root.dir = language === 'he' ? 'rtl' : 'ltr'
-
-    // Save preferences
-    localStorage.setItem('theme', theme)
-    localStorage.setItem('language', language)
   }, [theme, language])
 
   const t = (key: string): string => {
