@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import texts, books, gemini, tts, auth
+from app.api.v1 import texts, books, gemini, tts, auth, enhanced_tts
 from app.core.config import settings
 
 app = FastAPI(
@@ -24,6 +24,7 @@ app.include_router(texts.router, prefix="/api/v1/texts", tags=["texts"])
 app.include_router(books.router, prefix="/api/v1/books", tags=["books"])
 app.include_router(gemini.router, prefix="/api/v1/gemini", tags=["gemini"])
 app.include_router(tts.router, prefix="/api/v1/tts", tags=["tts"])
+app.include_router(enhanced_tts.router, prefix="/api/v1", tags=["enhanced-tts"])
 
 @app.get("/")
 async def root():

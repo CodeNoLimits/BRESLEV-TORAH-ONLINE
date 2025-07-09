@@ -114,6 +114,7 @@ async def register(
     
     # Cache refresh token
     await cache_service.set(
+        "user_data",
         f"refresh_token:{created_user.id}",
         refresh_token,
         ttl=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
@@ -193,6 +194,7 @@ async def login(
     
     # Cache refresh token
     await cache_service.set(
+        "user_data",
         f"refresh_token:{user.id}",
         refresh_token,
         ttl=int(refresh_token_expires.total_seconds())
@@ -247,7 +249,7 @@ async def refresh_token(
         )
     
     # Check if refresh token is cached
-    cached_token = await cache_service.get(f"refresh_token:{user_id}")
+    cached_token = await cache_service.get("user_data", f"refresh_token:{user_id}")
     if cached_token != token_data.refresh_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -272,6 +274,7 @@ async def refresh_token(
     
     # Update cached refresh token
     await cache_service.set(
+        "user_data",
         f"refresh_token:{user.id}",
         new_refresh_token,
         ttl=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
@@ -301,7 +304,7 @@ async def logout(
         Logout response
     """
     # Remove refresh token from cache
-    await cache_service.delete(f"refresh_token:{current_user.id}")
+    await cache_service.delete("user_data", f"refresh_token:{current_user.id}")
     
     # Could also add token to blacklist here
     
@@ -411,7 +414,7 @@ async def reset_password(
     await user_service.update_password(user.id, new_password_hash)
     
     # Invalidate all refresh tokens for this user
-    await cache_service.delete(f"refresh_token:{user.id}")
+    await cache_service.delete("user_data", f"refresh_token:{user.id}")
     
     logger.info(f"Password reset completed for: {user.email}")
     
@@ -543,7 +546,7 @@ async def change_password(
     await user_service.update_password(current_user.id, new_password_hash)
     
     # Invalidate all refresh tokens for this user
-    await cache_service.delete(f"refresh_token:{current_user.id}")
+    await cache_service.delete("user_data", f"refresh_token:{current_user.id}")
     
     logger.info(f"Password changed for: {current_user.email}")
     

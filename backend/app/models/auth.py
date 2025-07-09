@@ -1,6 +1,7 @@
 """
 Authentication models for request/response schemas.
 """
+from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from app.models.user import UserRole
@@ -165,7 +166,7 @@ class UserResponse(BaseModel):
     is_verified: bool
     is_active: bool
     preferred_language: str
-    created_at: str
+    created_at: datetime
     avatar_url: Optional[str] = None
     
     class Config:

@@ -1,6 +1,6 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "infrastructure/docker/backend.Dockerfile"
+dockerfilePath = "backend/Dockerfile"
 
 [deploy]
 healthcheckPath = "/health"
@@ -13,19 +13,15 @@ name = "backend"
 port = 8000
 
 [services.backend]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-numReplicas = 2
-region = "us-east"
+startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1"
+numReplicas = 1
+region = "us-west"
 
 [[services.backend.envs]]
+NODE_ENV = "production"
 ENVIRONMENT = "production"
 DATABASE_URL = "${{POSTGRES.DATABASE_URL}}"
 REDIS_URL = "${{REDIS.REDIS_URL}}"
-
-[[services]]
-name = "worker"
-startCommand = "poetry run python -m app.workers.main"
-numReplicas = 1
 
 [[plugins]]
 name = "postgres"

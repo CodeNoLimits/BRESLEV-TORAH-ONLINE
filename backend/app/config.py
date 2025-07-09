@@ -30,10 +30,22 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: List[str] = Field(
-        default=["http://localhost:3000", "http://localhost:3001"]
+        default=[
+            "http://localhost:3000", 
+            "http://localhost:3001",
+            "https://*.vercel.app",
+            "https://breslev-torah.vercel.app",
+            "https://breslev-torah-online.vercel.app"
+        ]
     )
     ALLOWED_HOSTS: List[str] = Field(
-        default=["localhost", "127.0.0.1", ".breslev-torah.com"]
+        default=[
+            "localhost", 
+            "127.0.0.1", 
+            ".breslev-torah.com",
+            ".railway.app",
+            ".vercel.app"
+        ]
     )
     
     # Database

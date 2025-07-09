@@ -214,7 +214,7 @@ class UserService:
             if not user:
                 return None
             
-            user.last_login = datetime.utcnow()
+            user.last_login_at = datetime.utcnow()
             user.updated_at = datetime.utcnow()
             
             await self.db.commit()

@@ -201,6 +201,14 @@ export function useApi() {
     tts: {
       synthesize: (text: string, language = 'he', voice?: string) =>
         handleApiResponse(ttsApi.synthesize(text, language, voice)),
+      synthesizeWithHighlighting: (request: { text: string; language?: string; chunk_size?: number }) =>
+        handleApiResponse(api.post('/tts/synthesize-with-highlighting', request)),
+      synthesizeMixed: (request: { text: string; preferences?: any }) =>
+        handleApiResponse(api.post('/tts/synthesize-mixed', request)),
+      detectLanguage: (text: string) =>
+        handleApiResponse(api.post('/tts/detect-language', { text })),
+      getVoices: (language?: string) =>
+        handleApiResponse(api.get('/tts/voices', { params: { language } })),
     },
     health: {
       check: () => handleApiResponse(api.get('/health')),

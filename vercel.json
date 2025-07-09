@@ -1,11 +1,11 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm build",
-  "outputDirectory": ".next",
-  "installCommand": "npm install",
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/.next",
+  "installCommand": "cd frontend && npm install",
   "regions": ["iad1", "cdg1"],
   "functions": {
-    "src/app/api/backend/[...path]/route.ts": {
+    "frontend/app/api/backend/[...path]/route.ts": {
       "maxDuration": 30
     }
   },
@@ -24,6 +24,10 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
         }
       ]
     }
@@ -31,11 +35,11 @@
   "rewrites": [
     {
       "source": "/api/backend/:path*",
-      "destination": "https://api.breslev-torah.com/api/v1/:path*"
+      "destination": "https://breslev-torah-production.up.railway.app/api/v1/:path*"
     }
   ],
   "env": {
-    "NEXT_PUBLIC_API_URL": "@breslev_api_url",
-    "NEXT_PUBLIC_ENVIRONMENT": "@environment"
+    "NEXT_PUBLIC_API_URL": "https://breslev-torah-production.up.railway.app",
+    "NEXT_PUBLIC_ENVIRONMENT": "production"
   }
 }
