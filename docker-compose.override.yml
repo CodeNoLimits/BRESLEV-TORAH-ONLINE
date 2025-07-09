@@ -1,0 +1,46 @@
+version: '3.9'
+
+services:
+  # Override pour développement avec hot-reload
+  backend:
+    volumes:
+      - ./backend:/app
+      - /app/.venv  # Exclude virtualenv
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - RELOAD=true
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # Python debugger
+
+  frontend:
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+    ports:
+      - "3000:3000"
+
+  # Development tools
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - breslev-network
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - breslev-network

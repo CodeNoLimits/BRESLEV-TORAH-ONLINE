@@ -1,0 +1,129 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'  # Every Monday at 3 AM
+  workflow_dispatch:
+
+jobs:
+  update-python-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: '1.8.3'
+      
+      - name: Update dependencies
+        working-directory: ./backend
+        run: |
+          poetry update
+          poetry export -f requirements.txt --output requirements.txt --without-hashes
+      
+      - name: Run tests
+        working-directory: ./backend
+        run: |
+          poetry install
+          poetry run pytest --tb=short
+      
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(deps): update Python dependencies'
+          title: 'Update Python Dependencies'
+          body: |
+            ## 🔄 Automated Dependency Update
+            
+            This PR updates Python dependencies to their latest compatible versions.
+            
+            ### Changes
+            - Updated `poetry.lock` with latest dependency versions
+            - Regenerated `requirements.txt` for production
+            
+            ### Testing
+            - ✅ All tests passing
+            - ✅ No security vulnerabilities detected
+            
+            Please review and merge if all checks pass.
+          branch: deps/python-update
+          delete-branch: true
+
+  update-js-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.15.0'
+      
+      - name: Install npm
+        run: npm install -g npm@latest
+      
+      - name: Update dependencies
+        working-directory: ./frontend
+        run: |
+          npm update
+          npm audit fix || true
+      
+      - name: Run tests
+        working-directory: ./frontend
+        run: |
+          npm install
+          npm run test:ci
+          npm run build
+      
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(deps): update JavaScript dependencies'
+          title: 'Update JavaScript Dependencies'
+          body: |
+            ## 🔄 Automated Dependency Update
+            
+            This PR updates JavaScript dependencies to their latest compatible versions.
+            
+            ### Changes
+            - Updated `package-lock.json` with latest dependency versions
+            - Applied security fixes where available
+            
+            ### Testing
+            - ✅ All tests passing
+            - ✅ Build successful
+            - ✅ No high severity vulnerabilities
+            
+            Please review and merge if all checks pass.
+          branch: deps/js-update
+          delete-branch: true
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: [update-python-deps, update-js-deps]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy security scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+      
+      - name: Upload results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'

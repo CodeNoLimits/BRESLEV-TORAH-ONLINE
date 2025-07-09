@@ -1,0 +1,142 @@
+global:
+  environment: production
+  domain: breslev-torah.com
+  
+backend:
+  replicaCount: 3
+  image:
+    repository: ghcr.io/your-org/breslev-backend
+    tag: latest
+    pullPolicy: Always
+  
+  service:
+    type: ClusterIP
+    port: 8000
+  
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  env:
+    - name: ENVIRONMENT
+      value: production
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: breslev-secrets
+          key: database-url
+    - name: REDIS_URL
+      valueFrom:
+        secretKeyRef:
+          name: breslev-secrets
+          key: redis-url
+  
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 5
+    periodSeconds: 5
+
+frontend:
+  replicaCount: 2
+  image:
+    repository: ghcr.io/your-org/breslev-frontend
+    tag: latest
+  
+  service:
+    type: ClusterIP
+    port: 3000
+  
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  env:
+    - name: NODE_ENV
+      value: production
+    - name: NEXT_PUBLIC_API_URL
+      value: https://api.breslev-torah.com
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: breslev-torah.com
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: frontend
+              port:
+                number: 3000
+    - host: api.breslev-torah.com
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: backend
+              port:
+                number: 8000
+  tls:
+    - secretName: breslev-torah-tls
+      hosts:
+        - breslev-torah.com
+        - api.breslev-torah.com
+
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: ""
+    database: breslev_db
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+  metrics:
+    enabled: true
+
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: ""
+  master:
+    persistence:
+      enabled: true
+      size: 2Gi
+  metrics:
+    enabled: true
+
+chromadb:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 5Gi

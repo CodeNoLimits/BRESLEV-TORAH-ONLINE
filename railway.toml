@@ -1,0 +1,36 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "infrastructure/docker/backend.Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[[services]]
+name = "backend"
+port = 8000
+
+[services.backend]
+startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+numReplicas = 2
+region = "us-east"
+
+[[services.backend.envs]]
+ENVIRONMENT = "production"
+DATABASE_URL = "${{POSTGRES.DATABASE_URL}}"
+REDIS_URL = "${{REDIS.REDIS_URL}}"
+
+[[services]]
+name = "worker"
+startCommand = "poetry run python -m app.workers.main"
+numReplicas = 1
+
+[[plugins]]
+name = "postgres"
+plan = "starter"
+
+[[plugins]]
+name = "redis"
+plan = "starter"

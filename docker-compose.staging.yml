@@ -1,0 +1,46 @@
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../infrastructure/docker/backend.Dockerfile
+      target: production
+    environment:
+      - ENVIRONMENT=staging
+      - DATABASE_URL=${STAGING_DATABASE_URL}
+      - REDIS_URL=${STAGING_REDIS_URL}
+      - SENTRY_DSN=${SENTRY_DSN}
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../infrastructure/docker/frontend.Dockerfile
+      target: production
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://staging-api.breslev-torah.com
+      - NEXT_PUBLIC_ENVIRONMENT=staging
+
+  nginx:
+    image: nginx:1.25-alpine
+    volumes:
+      - ./infrastructure/nginx/staging.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/ssl/staging:/etc/nginx/ssl:ro
+    ports:
+      - "443:443"
+      - "80:80"
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - breslev-network
