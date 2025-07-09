@@ -5,7 +5,8 @@ from datetime import datetime
 from typing import Optional, List
 from enum import Enum
 
-from sqlmodel import Field, SQLModel, Relationship
+from sqlmodel import Field, SQLModel, Relationship, Column
+from sqlalchemy import JSON
 
 
 class BookCategory(str, Enum):
@@ -29,7 +30,7 @@ class BookBase(SQLModel):
     
     # Structure
     parts: int = Field(default=1, ge=1)
-    chapters: Optional[dict] = Field(default=None)  # JSON structure
+    chapters: Optional[dict] = Field(default=None, sa_column=Column(JSON))  # JSON structure
     
     # Metadata
     order_index: int = Field(default=0)
@@ -50,6 +51,11 @@ class Book(BookBase, table=True):
     __tablename__ = "books"
     
     id: int = Field(default=None, primary_key=True)
+    
+    # Relationships
+    bookmarks: List["Bookmark"] = Relationship(back_populates="book")
+    texts: List["Text"] = Relationship(back_populates="book")
+    study_progress: List["StudyProgress"] = Relationship(back_populates="book")
     
     def increment_views(self):
         """Increment view counter."""

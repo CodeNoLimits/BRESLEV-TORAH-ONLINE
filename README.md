@@ -1,233 +1,299 @@
-# Le Compagnon du Cœur 🕊️
+# 🔥 Breslev Torah Online - ברסלב תורה אונליין
 
-> Application spirituelle interactive pour l'étude des enseignements de Rabbi Nahman de Breslev
+> **Study the teachings of Rabbi Nachman of Breslov with AI assistance**
 
-## 🌟 Aperçu
+A modern web application for studying Breslov texts with AI-powered chat, text-to-speech, and comprehensive search capabilities.
 
-Le Compagnon du Cœur est une application web sophistiquée qui combine :
-- **Bibliothèque numérique complète** des textes de Breslev via l'API Sefaria
-- **Intelligence artificielle Gemini** pour l'analyse et l'orientation spirituelle
-- **Synthèse vocale premium** avec Google Cloud TTS (voix Studio)
-- **Traduction française progressive** par chunks de 1000 caractères
-- **Interface mobile optimisée** avec support tactile
+## 🌟 Features
 
-## 🛠️ Technologies
-
-### Frontend
-- **React 18** + TypeScript pour une interface moderne et typée
-- **Vite** pour un développement rapide et un build optimisé
-- **Tailwind CSS** avec thème spirituel (palette sombre : slate, sky, amber)
-- **Radix UI** pour des composants accessibles
-- **Wouter** pour le routage côté client
-
-### Backend
-- **Express.js** + TypeScript pour l'API REST
-- **PostgreSQL** avec Drizzle ORM pour la persistance
-- **Google Cloud TTS** pour la synthèse vocale premium
-- **Gemini AI** pour l'analyse et la traduction
-
-### Intégrations
-- **API Sefaria** pour l'accès aux textes juifs authentiques
-- **Google Cloud Text-to-Speech** avec voix Studio premium
-- **Web Speech API** comme fallback navigateur
-
-## 🚀 Installation
-
-### Prérequis
-- Node.js 20+ 
-- PostgreSQL (ou base Neon Database)
-- Clés API : Gemini, Google Cloud TTS
-
-### Configuration
-1. Cloner le repository
-```bash
-git clone [URL_DU_REPO]
-cd le-compagnon-du-coeur
-```
-
-2. Installer les dépendances
-```bash
-npm install
-```
-
-3. Configurer les variables d'environnement
-```bash
-cp .env.example .env
-# Éditer .env avec vos clés API
-```
-
-4. Lancer l'application
-```bash
-npm run dev
-```
-
-## 🎯 Fonctionnalités
-
-### 📚 Bibliothèque Spirituelle
-- **Navigation hiérarchique** des textes Breslev
-- **Affichage bilingue** hébreu/anglais côte à côte
-- **Sélection de texte** pour analyse contextuelle
-- **Cache intelligent** pour performances optimales
-
-### 🤖 Compagnon IA
-- **Modes d'interaction multiples** :
-  - Étude : Analyse approfondie des enseignements
-  - Exploration : Conversations spirituelles ouvertes
-  - Analyse : Examen de passages spécifiques
-  - Conseil : Guidance personnalisée
-- **Réponses en streaming** pour fluidité
-- **Traduction française progressive** (1000 char + bouton "Suite")
-
-### 🔊 Synthèse Vocale Premium
-- **Voix Google Cloud Studio** :
-  - Hébreu : he-IL-Studio-B
-  - Anglais : en-US-Studio-O  
-  - Français : fr-FR-Studio-D
-- **Fallback Web Speech API** pour compatibilité
-- **Contrôles TTS intuitifs** avec boutons dédiés
-
-### 📱 Expérience Mobile
-- **Design responsive** mobile-first
-- **Sidebar collapsible** avec navigation tactile
-- **Optimisations TTS mobiles** avec gestion des voix
-- **Interface simplifiée** pour écrans tactiles
+- **📚 Complete Breslov Library** - 12 books with Hebrew, English, and French translations
+- **🤖 AI Chat Assistant** - Real-time conversation with Gemini AI about Breslov teachings
+- **🔊 Text-to-Speech** - Multi-language audio playback with speed controls
+- **🔍 Advanced Search** - Find passages with highlighting and filtering
+- **👤 User Authentication** - JWT-based secure login and registration
+- **📱 Responsive Design** - Works on desktop and mobile devices
+- **🎨 Glassmorphism UI** - Modern, beautiful interface with floating elements
 
 ## 🏗️ Architecture
 
 ```
-├── client/src/          # Frontend React
-│   ├── components/      # Composants UI réutilisables
-│   ├── hooks/          # Hooks React personnalisés
-│   └── constants/      # Configuration et constantes
-├── server/             # Backend Express
-│   ├── routes/         # Endpoints API
-│   └── services/       # Services métier
-├── shared/             # Types et schémas partagés
-└── docs/              # Documentation
+BRESLEV-TORAH-ONLINE/
+├── backend/              # FastAPI + Python
+│   ├── app/
+│   │   ├── api/v1/      # API endpoints
+│   │   ├── core/        # Security & config
+│   │   ├── models/      # Database models
+│   │   ├── services/    # Business logic
+│   │   └── utils/       # Utilities
+│   ├── migrations/      # Alembic migrations
+│   └── tests/          # Backend tests
+├── frontend/            # Next.js 14
+│   ├── app/            # App router pages
+│   ├── components/     # React components
+│   ├── lib/            # API hooks & utilities
+│   ├── providers/      # Context providers
+│   └── hooks/          # Custom hooks
+├── scripts/            # Data import scripts
+├── docker-compose.yml  # Infrastructure
+└── .github/           # CI/CD workflows
 ```
 
-## 🔧 Scripts Disponibles
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js** 18+ and npm
+- **Python** 3.11+
+- **PostgreSQL** 14+
+- **Redis** 6+
+
+### 1. Clone the repository
 
 ```bash
-npm run dev         # Développement avec hot reload
-npm run build       # Build de production
-npm run type-check  # Vérification TypeScript
-npm run lint        # Linting ESLint
-npm run test        # Tests unitaires et e2e
-npm run db:push     # Migration base de données
+git clone https://github.com/CodeNoLimits/BRESLEV-TORAH-ONLINE.git
+cd BRESLEV-TORAH-ONLINE
 ```
 
-## 🌐 API Endpoints
+### 2. Backend Setup
 
-### Textes Spirituels
-- `GET /api/sefaria/texts/{ref}` - Récupération de textes
-- `GET /api/books/meta` - Métadonnées des livres
+```bash
+cd backend
 
-### Intelligence Artificielle
-- `POST /api/gemini/quick` - Analyse rapide
-- `POST /api/gemini/translate` - Traduction française
+# Install dependencies
+pip install -r requirements.txt
 
-### Synthèse Vocale
-- `POST /api/tts` - Génération audio premium
+# Set up environment
+cp .env.example .env.development
+# Edit .env.development with your configuration
 
-## 🎨 Interface Utilisateur
+# Run database migrations
+python manage_migrations.py create
 
-### Thème Spirituel
-- **Palette sombre apaisante** : slate, sky, amber
-- **Typographie lisible** optimisée pour l'étude
-- **Animations fluides** pour navigation intuitive
-- **Accessibilité complète** clavier et lecteurs d'écran
+# Start the backend
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-### Composants Clés
-- **Header** : Sélecteur langue, contrôles TTS
-- **Sidebar** : Navigation bibliothèque accordéon
-- **ChatArea** : Interface conversation streaming
-- **TextViewer** : Affichage textes bilingues
-- **InputArea** : Saisie multi-modes avec onglets
+### 3. Frontend Setup
 
-## 🔒 Sécurité
+```bash
+cd frontend
 
-- **Authentification JWT** pour sessions utilisateur
-- **Validation Zod** pour toutes les entrées
-- **CORS configuré** pour domaines autorisés
-- **Secrets protégés** via variables d'environnement
-- **Audit de sécurité** npm audit fix appliqué
+# Install dependencies
+npm install
 
-## 📊 Performance
+# Set up environment
+cp .env.example .env.local
+# Edit .env.local with your configuration
 
-- **Lazy loading** des textes lourds
-- **Cache navigateur** 24h pour réponses Sefaria
-- **Compression gzip** pour assets statiques
-- **Service Worker** avec data saver detection
-- **Optimisations mobiles** pour connexions lentes
+# Start the frontend
+npm run dev
+```
 
-## 🧪 Tests
+### 4. Access the application
 
-### Suite de Tests
-- **Tests unitaires** Jest/Vitest pour hooks
-- **Tests d'intégration** Playwright pour e2e
-- **Validation API** avec mocks Sefaria
-- **Tests de régression** pour fonctionnalités critiques
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
 
-### Couverture
-- Hooks React : useTTS, useLazyTranslate, useGemini
-- Composants UI : BreslovLibrary, TextViewer
-- API routes : /api/gemini, /api/tts, /api/sefaria
+## 🔧 Configuration
 
-## 🚢 Déploiement
+### Backend Environment Variables
 
-### Replit (Recommandé)
-1. Importer le projet dans Replit
-2. Configurer les secrets dans l'onglet Secrets
-3. Lancer avec `npm run dev`
-4. Déployer via Replit Deployments
+```env
+# Application
+NODE_ENV=development
+APP_URL=http://localhost:3000
+API_URL=http://localhost:8000
 
-### Autres Plateformes
-- **Vercel** : Support full-stack avec Postgres
-- **Railway** : Déploiement Docker automatisé
-- **Heroku** : Avec add-on PostgreSQL
+# Database
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/breslev_db
 
-## 🤝 Contribution
+# Redis
+REDIS_URL=redis://localhost:6379/0
 
-### Guidelines
-1. Fork le repository
-2. Créer une branche feature : `git checkout -b feature/ma-fonctionnalite`
-3. Commit avec messages conventionnels
-4. Pousser et créer une Pull Request
+# JWT
+JWT_SECRET_KEY=your-super-secret-jwt-key-here-minimum-32-characters-long
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
 
-### Standards Code
-- **TypeScript strict** avec types explicites
-- **ESLint** configuration Airbnb
-- **Prettier** pour formatage automatique
-- **Tests obligatoires** pour nouvelles fonctionnalités
+# API Keys
+GEMINI_API_KEY=your-gemini-api-key-here
+```
 
-## 📝 Changelog
+### Frontend Environment Variables
 
-### v2.0.0 (Juillet 2025)
-- ✅ Google Cloud TTS avec voix Studio premium
-- ✅ Système de traduction lazy par chunks 1000 caractères
-- ✅ Gestion d'erreurs robuste avec unhandledrejection
-- ✅ Architecture ES modules complètement réparée
-- ✅ Interface mobile optimisée avec contrôles tactiles
-- ✅ Cache performance < 3 secondes temps de chargement
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_WS_URL=ws://localhost:8000
+```
 
-### v1.0.0 (Juin 2025)
-- 🎉 Lancement initial avec 1,381+ textes Breslev
-- 🤖 Intégration Gemini AI pour analyse spirituelle
-- 📱 Interface responsive avec sidebar collapsible
-- 🔊 TTS Web Speech API avec fallback
+## 📚 API Endpoints
+
+### Authentication
+- `POST /api/v1/auth/register` - User registration
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/refresh` - Refresh access token
+- `POST /api/v1/auth/logout` - User logout
+- `GET /api/v1/auth/me` - Get current user
+
+### Books & Texts
+- `GET /api/v1/books/all` - Get all available books
+- `GET /api/v1/books/{book_id}` - Get specific book details
+- `GET /api/v1/texts/{ref}` - Get text by reference
+- `GET /api/v1/texts/search` - Search in texts
+
+### AI Chat
+- `POST /api/v1/gemini/chat` - Chat with AI assistant
+- `GET /api/v1/gemini/status` - Get AI service status
+
+### Text-to-Speech
+- `POST /api/v1/tts/synthesize` - Generate audio from text
+- `GET /api/v1/tts/voices` - Get available voices
+
+## 🎯 Frontend Features
+
+### Authentication System
+- **Login/Register** forms with validation
+- **JWT token** management with auto-refresh
+- **Protected routes** with middleware
+- **Password reset** functionality
+
+### Book Library
+- **Book selection** with preview
+- **Chapter navigation** with progress tracking
+- **Multi-language** content display
+- **Audio playback** with speed controls
+
+### AI Chat
+- **Real-time** WebSocket connection
+- **Conversation history** management
+- **Suggested topics** for quick start
+- **Typing indicators** and status
+
+### Search System
+- **Advanced filtering** by book, chapter, language
+- **Highlighted results** with relevance scoring
+- **Debounced queries** for performance
+- **Empty states** and error handling
+
+## 🔊 Audio Features
+
+### TTS Player
+- **Multi-language** support (Hebrew, English, French)
+- **Voice selection** per language
+- **Playback controls** (play, pause, stop, skip)
+- **Speed adjustment** (0.5x to 2x)
+- **Volume control** with mute
+- **Download** generated audio files
+
+## 🛠️ Development
+
+### Backend Development
+
+```bash
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Run tests
+pytest
+
+# Code formatting
+black app/
+isort app/
+
+# Type checking
+mypy app/
+
+# Security scan
+bandit -r app/
+```
+
+### Frontend Development
+
+```bash
+# Install development dependencies
+npm install
+
+# Run tests
+npm test
+
+# Type checking
+npm run typecheck
+
+# Linting
+npm run lint
+
+# Build for production
+npm run build
+```
+
+## 🐳 Docker Deployment
+
+### Development with Docker Compose
+
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+### Production Deployment
+
+```bash
+# Build production images
+docker-compose -f docker-compose.prod.yml build
+
+# Deploy to production
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+## 📖 Books Library
+
+The application includes 12 complete Breslov books:
+
+1. **Likutei Moharan** - ליקוטי מוהר"ן
+2. **Chayei Moharan** - חיי מוהר"ן  
+3. **Likutei Etzot** - ליקוטי עצות
+4. **Likutei Tefilot** - ליקוטי תפילות
+5. **Sippurei Maasiyot** - סיפורי מעשיות
+6. **Shivchey HaRan** - שבחי הר"ן
+7. **Sefer HaMidot** - ספר המדות
+8. **Sichot HaRan** - שיחות הר"ן
+9. **Tzavaat HaRivash** - צוואת הריב"ש
+10. **Tzofinat Paneach** - צפנת פענח
+11. **Likutei Halakhot** - ליקוטי הלכות
+12. **Tikkun HaKlali** - תיקון הכללי
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Rabbi Nachman of Breslov** for the timeless teachings
+- **Sefaria.org** for the text sources
+- **OpenAI & Google** for AI capabilities
+- **Breslov community** for inspiration and support
 
 ## 📞 Support
 
-Pour questions techniques ou spirituelles :
-- **Issues GitHub** pour bugs et features
-- **Discussions** pour questions générales
-- **Wiki** pour documentation approfondie
-
-## 📄 Licence
-
-MIT License - Voir [LICENSE](LICENSE) pour détails.
+For support, email support@breslevtorah.com or join our Discord community.
 
 ---
 
-*"נ נח נחמ נחמן מאומן - Le cœur de Breslev"* 🕊️
+**Made with ❤️ for the Breslov community**
+
+*"The entire world is a very narrow bridge, and the main thing is not to be afraid at all."* - Rabbi Nachman of Breslov

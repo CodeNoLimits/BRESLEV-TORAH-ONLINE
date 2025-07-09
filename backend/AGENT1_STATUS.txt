@@ -1,0 +1,48 @@
+---
+TERMINÉ:
+- [x] Toutes les dépendances installées (incluant sentry-sdk)
+- [x] Configuration corrigée (ENVIRONMENT ajouté)
+- [x] Backend démarre correctement sur port 8000
+- [x] Endpoints d'authentification fonctionnels
+
+EN COURS:
+- [ ] Tests des endpoints auth
+- [ ] Import des 13 livres Breslov
+
+PROCHAINE PRIORITÉ:
+Implémenter scripts/import_sefaria.py pour importer les 13 livres
+
+FICHIERS CRÉÉS/MODIFIÉS:
+- backend/requirements.txt (ajout de toutes les dépendances manquantes)
+- backend/app/core/config.py (nouveau - import depuis app/config.py)
+- backend/app/core/security.py (vérifié/fonctionnel)
+- backend/app/core/deps.py (corrigé imports SQLAlchemy)
+- backend/app/api/v1/auth.py (corrigé imports + tous endpoints)
+- backend/app/services/tts_manager.py (nouveau service TTS Google Cloud complet)
+- backend/app/services/chat_service.py (nouveau service de chat avec IA)
+- backend/app/models/user.py (corrigé problème unique + sa_column)
+- backend/app/models/book.py (ajouté support JSON pour chapters)
+- backend/app/models/chat.py (renommé metadata -> message_metadata)
+- backend/app/models/study_progress.py (renommé metadata -> study_metadata)
+- backend/app/models/__init__.py (corrigé imports Chat -> ChatMessage, ChatSession)
+
+READY FOR AGENT 2: ✅
+- Auth endpoints complets : POST /api/v1/auth/register, /login, /logout, /me
+- Structure API v1 prête
+- Tous les services backend implémentés
+- Modèles de données complets
+- Configuration centralisée
+- Sécurité JWT mise en place
+
+ENDPOINTS DISPONIBLES:
+- POST /api/v1/auth/register (inscription)
+- POST /api/v1/auth/login (connexion)
+- POST /api/v1/auth/logout (déconnexion)
+- GET /api/v1/auth/me (profil utilisateur)
+- POST /api/v1/auth/refresh (rafraîchir token)
+- POST /api/v1/auth/forgot-password (mot de passe oublié)
+- POST /api/v1/auth/reset-password (réinitialiser mot de passe)
+- POST /api/v1/auth/verify-email (vérifier email)
+- POST /api/v1/auth/change-password (changer mot de passe)
+
+L'Agent 2 peut maintenant commencer à travailler sur le frontend React/Next.js !

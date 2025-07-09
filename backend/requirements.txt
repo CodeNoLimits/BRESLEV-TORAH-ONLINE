@@ -7,3 +7,15 @@ redis
 pathlib
 google-generativeai
 google-cloud-texttospeech
+sqlalchemy==2.0.31
+sqlmodel==0.0.21
+alembic==1.13.2
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+pydantic-settings==2.3.4
+asyncpg==0.30.0
+python-multipart==0.0.9
+email-validator
+greenlet
+prometheus_client
+sentry-sdk

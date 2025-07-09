@@ -32,7 +32,7 @@ class ChatMessage(ChatMessageBase, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     
     # Message metadata
-    metadata: Optional[str] = Field(default=None)  # JSON string
+    message_metadata: Optional[str] = Field(default=None)  # JSON string
     
     # Context and citations
     context_used: bool = Field(default=False)
@@ -56,7 +56,7 @@ class ChatMessageRead(ChatMessageBase):
     """Schema for reading chat messages."""
     id: UUID
     created_at: datetime
-    metadata: Optional[Dict[str, Any]]
+    message_metadata: Optional[Dict[str, Any]]
     context_used: bool
     citations: Optional[List[Dict[str, Any]]]
     model_used: Optional[str]

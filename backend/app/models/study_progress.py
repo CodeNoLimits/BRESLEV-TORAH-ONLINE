@@ -39,7 +39,7 @@ class StudyProgressBase(SQLModel):
     questions_asked: int = Field(default=0)
     
     # Metadata
-    metadata: Dict = Field(default_factory=dict, sa_column=Column(JSON))
+    study_metadata: Dict = Field(default_factory=dict, sa_column=Column(JSON))
     
 
 class StudyProgress(StudyProgressBase, table=True):

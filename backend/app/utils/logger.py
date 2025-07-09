@@ -86,3 +86,7 @@ def setup_logger(name: Optional[str] = None) -> logging.Logger:
         logger.addHandler(file_handler)
     
     return logger
+
+
+# Global logger instance
+logger = setup_logger("app")

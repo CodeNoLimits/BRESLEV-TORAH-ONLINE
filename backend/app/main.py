@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import texts, books, gemini, tts
+from app.api.v1 import texts, books, gemini, tts, auth
+from app.core.config import settings
 
 app = FastAPI(
     title="Breslev Torah API",
@@ -11,13 +12,14 @@ app = FastAPI(
 # CORS pour Next.js
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Routes API v1
+app.include_router(auth.router, prefix="/api/v1")
 app.include_router(texts.router, prefix="/api/v1/texts", tags=["texts"])
 app.include_router(books.router, prefix="/api/v1/books", tags=["books"])
 app.include_router(gemini.router, prefix="/api/v1/gemini", tags=["gemini"])

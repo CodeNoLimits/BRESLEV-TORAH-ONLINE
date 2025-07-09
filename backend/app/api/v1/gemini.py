@@ -118,7 +118,7 @@ async def get_gemini_status():
 async def translate_text(text: str, target_lang: str = "fr"):
     """Traduction de texte avec Gemini"""
     try:
-        manager = await get_gemini_manager()
+        manager = await get_real_gemini_manager()
         
         prompt = f"""Traduis ce texte en {target_lang} avec précision et fluidité:
 
@@ -145,7 +145,7 @@ TRADUCTION {target_lang.upper()}:"""
         print(f"❌ Erreur traduction: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-async def initialize_books_task(manager: GeminiContextManager, client: SefariaClient, books: list):
+async def initialize_books_task(manager, client: SefariaClient, books: list):
     """Tâche d'initialisation des livres en arrière-plan"""
     print(f"🚀 Début initialisation de {len(books)} livres...")
     

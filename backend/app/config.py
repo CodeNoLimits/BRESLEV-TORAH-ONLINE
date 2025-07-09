@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     
     # Application
     NODE_ENV: str = Field(default="development")
+    ENVIRONMENT: str = Field(default="development")
     APP_NAME: str = Field(default="Breslev Torah Online")
     APP_URL: str = Field(default="http://localhost:3000")
     API_URL: str = Field(default="http://localhost:8000")
@@ -53,8 +54,10 @@ class Settings(BaseSettings):
     # Authentication
     JWT_SECRET_KEY: str = Field(min_length=32)
     JWT_ALGORITHM: str = Field(default="HS256")
-    JWT_EXPIRATION_HOURS: int = Field(default=24)
-    REFRESH_TOKEN_EXPIRATION_DAYS: int = Field(default=30)
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7)
+    PASSWORD_RESET_EXPIRE_HOURS: int = Field(default=24)
+    EMAIL_VERIFICATION_EXPIRE_HOURS: int = Field(default=24)
     
     # External APIs
     SEFARIA_API_URL: str = Field(default="https://www.sefaria.org/api")

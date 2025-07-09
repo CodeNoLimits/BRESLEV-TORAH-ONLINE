@@ -3,6 +3,7 @@ Bookmark model for saving user's reading positions.
 """
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from sqlmodel import Field, SQLModel, Relationship
 
@@ -11,7 +12,7 @@ class BookmarkBase(SQLModel):
     """Base bookmark model."""
     user_id: int = Field(foreign_key="users.id", index=True)
     book_id: int = Field(foreign_key="books.id", index=True)
-    text_id: Optional[int] = Field(default=None, foreign_key="texts.id")
+    text_id: Optional[UUID] = Field(default=None, foreign_key="texts.id")
     
     # Position
     chapter: int

@@ -43,7 +43,8 @@ class Text(TextBase, table=True):
     sefaria_data: Optional[str] = Field(default=None)  # JSON string
     
     # Relationships
-    book_id: Optional[UUID] = Field(default=None, foreign_key="books.id")
+    book_id: Optional[int] = Field(default=None, foreign_key="books.id")
+    book: Optional["Book"] = Relationship(back_populates="texts")
 
 
 class TextCreate(TextBase):

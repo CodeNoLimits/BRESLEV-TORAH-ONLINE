@@ -21,15 +21,13 @@ class UserRole(str, Enum):
 class UserBase(SQLModel):
     """Base user model with common fields."""
     email: EmailStr = Field(
-        unique=True,
-        index=True,
-        sa_column=Column(String(255), nullable=False)
+        sa_column=Column(String(255), nullable=False, unique=True, index=True)
     )
     name: str = Field(min_length=1, max_length=255)
     role: UserRole = Field(default=UserRole.STUDENT)
     is_active: bool = Field(default=True)
     is_verified: bool = Field(default=False)
-    preferred_language: str = Field(default="he", regex="^(he|en|fr)$")
+    preferred_language: str = Field(default="he")
     
     # Profile fields
     bio: Optional[str] = Field(default=None, max_length=1000)
@@ -51,6 +49,10 @@ class User(UserBase, table=True):
     
     id: int = Field(default=None, primary_key=True)
     hashed_password: str = Field(exclude=True)
+    
+    # Relationships
+    bookmarks: List["Bookmark"] = Relationship(back_populates="user")
+    study_progress: List["StudyProgress"] = Relationship(back_populates="user")
     
     def set_password(self, password: str) -> None:
         """Hash and set user password."""
