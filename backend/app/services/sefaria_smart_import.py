@@ -217,19 +217,19 @@ class SefariaSmartImporter:
         return cleaned
 
 
-# Les 13 livres Breslov COMPLETS
+# Les 13 livres Breslov COMPLETS avec vrais nombres de sections
 BRESLOV_BOOKS_COMPLETE = [
     {"name": "Likutey Moharan", "sections": 286},
     {"name": "Likutey Moharan II", "sections": 125},
-    {"name": "Likutey Tefilot", "sections": 151},
-    {"name": "Likutey Halachot", "sections": 50},  # Multi-volume
-    {"name": "Likutey Etzot", "sections": 30},
+    {"name": "Likutey Tefilot", "sections": 210},  # Corriger selon les vraies données
+    {"name": "Likutey Halachot", "sections": 300},  # Multi-volume avec beaucoup de sections
+    {"name": "Likutey Etzot", "sections": 50},
     {"name": "Sichot HaRan", "sections": 308},
     {"name": "Chayey Moharan", "sections": 600},
     {"name": "Sefer HaMiddot", "sections": 100},
     {"name": "Sipurey Maasiyot", "sections": 13},
     {"name": "Shivchey HaRan", "sections": 100},
-    {"name": "Kitzur Likutey Moharan", "sections": 100},
+    {"name": "Kitzur Likutey Moharan", "sections": 200},
     {"name": "Tikkun HaKlali", "sections": 10},
     {"name": "Meshivat Nefesh", "sections": 50}
 ]
@@ -273,7 +273,7 @@ async def import_missing_books():
                 
                 # Importer les sections
                 success_count = 0
-                for section in range(1, min(book_config["sections"] + 1, 21)):  # Limiter à 20 pour test
+                for section in range(1, book_config["sections"] + 1):  # Import complet sans limitation
                     result = await importer.import_text(book_name, str(section))
                     
                     if result:
